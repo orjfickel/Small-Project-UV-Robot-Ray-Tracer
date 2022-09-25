@@ -33,19 +33,22 @@ void MyApp::Init()
 		printf("Failed to parse glTF\n");
 		return;
 	}
-	tinygltf::Primitive primitive = model.meshes[0].primitives[0];
+	tinygltf::Primitive& primitive = model.meshes[0].primitives[0];
 	printf("hello world! %i \n", primitive.indices);
-	const tinygltf::Accessor& accessor = model.accessors[primitive.attributes["POSITION"]];
-	const tinygltf::BufferView& bufferView = model.bufferViews[accessor.bufferView];
-	const tinygltf::Buffer& buffer = model.buffers[bufferView.buffer];
-	const float* positions = reinterpret_cast<const float*>(&buffer.data[bufferView.byteOffset + accessor.byteOffset]);
-	for (size_t i = 0; i < accessor.count; ++i) {
-		std::cout << "(" << positions[i * 3 + 0] << ", "// x
-			<< positions[i * 3 + 1] << ", " // y
-			<< positions[i * 3 + 2] << ")" // z
+	const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
+	const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
+	const tinygltf::BufferView& positionBufferView = model.bufferViews[positionAccessor.bufferView];
+	const tinygltf::BufferView& indicesBufferView = model.bufferViews[indicesAccessor.bufferView];
+	const tinygltf::Buffer& positionBuffer = model.buffers[positionBufferView.buffer];
+	const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
+	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
+	const unsigned short* indices = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
+	for (size_t i = 0; i < indicesAccessor.count; ++i) {
+		std::cout << "(" << positions[indices[i] * 3 + 0] << ", "// x
+			<< positions[indices[i] * 3 + 1] << ", " // y
+			<< positions[indices[i] * 3 + 2] << ")" // z
 			<< "\n";
 	}
-	//This one primitive sure has a lot of vertices
 }
 
 // -----------------------------------------------------------
