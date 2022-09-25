@@ -19,6 +19,8 @@ public:
 	void KeyDown( int key ) { /* implement if you want to handle keys */ }
 	// data members
 	int2 mousePos;
+	RayTracer rayTracer{};
+	Camera camera{};
 };
 
 } // namespace Tmpl8

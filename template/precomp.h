@@ -841,6 +841,7 @@ public:
 		for (int i = 0; i < 16; i++) if (m.cell[i] != cell[i]) return false; return true;
 	}
 	float3 GetTranslation() const { return make_float3( cell[3], cell[7], cell[11] ); }
+	void SetTranslation(const float3 T) { cell[3] = T.x, cell[7] = T.y, cell[11] = T.z; }
 	static mat4 FromColumnMajor( const mat4& T )
 	{
 		mat4 M;
@@ -1240,6 +1241,7 @@ public:
 
 
 #include "raytracer.h"
+#include "camera.h"
 
 
 // InstructionSet.cpp

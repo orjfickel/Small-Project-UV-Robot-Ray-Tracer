@@ -11,7 +11,7 @@ tinygltf::Model model;
 tinygltf::TinyGLTF loader;
 string err;
 string warn;
-string modelFile = "assets/headphones.glb";
+string modelFile = "assets/simple.glb";//headphones
 
 // -----------------------------------------------------------
 // Initialize the application
@@ -34,7 +34,7 @@ void MyApp::Init()
 		return;
 	}
 	tinygltf::Primitive& primitive = model.meshes[0].primitives[0];
-	printf("hello world! %i \n", primitive.indices);
+	printf("hello world! %i \n");
 	const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
 	const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
 	const tinygltf::BufferView& positionBufferView = model.bufferViews[positionAccessor.bufferView];
@@ -43,12 +43,20 @@ void MyApp::Init()
 	const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
 	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
 	const unsigned short* indices = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
-	for (size_t i = 0; i < indicesAccessor.count; ++i) {
-		std::cout << "(" << positions[indices[i] * 3 + 0] << ", "// x
-			<< positions[indices[i] * 3 + 1] << ", " // y
-			<< positions[indices[i] * 3 + 2] << ")" // z
-			<< "\n";
+
+	rayTracer.triangles = indices; // Point triangles towards the indices
+	// Convert the position array into float3*
+	rayTracer.vertices = new float3[positionAccessor.count];
+	for (size_t i = 0; i < positionAccessor.count; ++i) {
+		rayTracer.vertices[i] = make_float3(positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2]);
+		//std::cout << "(" << positions[indices[i] * 3 + 0] << ", "// x
+		//	<< positions[indices[i] * 3 + 1] << ", " // y
+		//	<< positions[indices[i] * 3 + 2] << ")" // z
+		//	<< "\n";
 	}
+
+	rayTracer.triangleCount = indicesAccessor.count;
+	rayTracer.vertexCount = positionAccessor.count;
 }
 
 // -----------------------------------------------------------
@@ -56,24 +64,56 @@ void MyApp::Init()
 // -----------------------------------------------------------
 void MyApp::Tick( float deltaTime )
 {
+	printf("hello world!\n");
+	// Update the camera
+	camera.UpdateView();
 
 	// NOTE: clear this function before actual use; code is only for 
 	// demonstration purposes. See _ getting started.pdf for details.
 	
 	// clear the screen to black
 	screen->Clear( 0 );
-	// print something to the console window
-	//printf( "hello world!\n" );
-	// plot some colors
-	for (int red = 0; red < 256; red++) for (int green = 0; green < 256; green++)
-	{
-		int x = red, y = green;
-		screen->Plot( x + 200, y + 100, (red << 16) + (green << 8) );
-	}
-	// plot a white pixel in the bottom right corner
-	screen->Plot( SCRWIDTH - 2, SCRHEIGHT - 2, 0xffffff );
+	int screenWidth = screen->width;
+	int screenHeight = screen->height;
 
-#if 1
+	float3 color = make_float3(0,0,0);
+	Ray newray{};
+	for (int u = 0; u < screenWidth; u++) {
+		for (int v = 0; v < screenHeight; v++) {
+			float closestdist = 0;//TODO: find closest triangle
+			color = make_float3(0, 0, 0);
+			float3 umult = (camera.p2 - camera.p1) / screenWidth;
+			float3 vmult = (camera.p3 - camera.p1) / screenHeight;
+			newray.origin = camera.p1 + u * umult + v * vmult;
+			newray.dir = normalize(newray.origin - camera.position);
+			for (int i = 0; i < rayTracer.triangleCount; i+=3)
+			{
+				float u, v;
+				bool hit = TriangleIntersect(newray, rayTracer.vertices[rayTracer.triangles[i]], rayTracer.vertices[rayTracer.triangles[i+1]], rayTracer.vertices[rayTracer.triangles[i+2]], u, v);
+				if (hit)
+				{
+					//printf("ray hit %f p1: %f  %f %f \n", newray.dist * newray.dist * 0.008F, camera.p1.x, camera.p1.y, camera.p1.z);
+					color = make_float3(newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F);
+					break;
+				}
+			}
+
+			//color = raytracer.hostcolorBuffer[u + v * (screenWidth)];
+			screen->Plot(u, v, ((int)(min(color.z, 1.0f) * 255.0f) << 16) +
+				((int)(min(color.y, 1.0f) * 255.0f) << 8) + (int)(min(color.x, 1.0f) * 255.0f));
+		}
+	}
+
+	//// plot some colors
+	//for (int red = 0; red < 256; red++) for (int green = 0; green < 256; green++)
+	//{
+	//	int x = red, y = green;
+	//	screen->Plot( x + 200, y + 100, (red << 16) + (green << 8) );
+	//}
+	// plot a white pixel in the bottom right corner
+	//screen->Plot( SCRWIDTH - 2, SCRHEIGHT - 2, 0xffffff );
+
+#if 0
 
 	static Kernel* kernel = 0;			// statics should be members of MyApp of course.
 	static Surface bitmap( 512, 512 );	// having them here allows us to disable the OpenCL
