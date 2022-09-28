@@ -44,6 +44,8 @@ void MyApp::Init()
 	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
 	const unsigned short* indices = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 
+
+#if 0
 	rayTracer.triangles = indices; // Point triangles towards the indices
 	// Convert the position array into float3*
 	rayTracer.vertices = new float3[positionAccessor.count];
@@ -53,10 +55,59 @@ void MyApp::Init()
 		//	<< positions[indices[i] * 3 + 1] << ", " // y
 		//	<< positions[indices[i] * 3 + 2] << ")" // z
 		//	<< "\n";
+		//model.images[model.textures[0].source].
 	}
 
 	rayTracer.triangleCount = indicesAccessor.count;
 	rayTracer.vertexCount = positionAccessor.count;
+#endif
+}
+
+void MyApp::BindMesh()
+{
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
+
+	glBindVertexArray(VAO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), (vertices).data(), GL_STATIC_DRAW);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
+		(indices).data(), GL_STATIC_DRAW);
+
+	// vertex positions
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
+	// vertex normals
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normx));
+	// vertex texture coords
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, textureuv));
+
+	glBindVertexArray(0);
+}
+
+void MyApp::DrawMesh(Shader &shader)
+{
+	for (unsigned int i = 0; i < textures.size(); i++)
+	{
+		glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
+		// retrieve texture number (the N in diffuse_textureN)
+		
+
+		shader.SetInt(("material." + name + number).c_str(), i);
+		glBindTexture(GL_TEXTURE_2D, textures[i].id);
+	}
+	glActiveTexture(GL_TEXTURE0);
+
+	// draw mesh
+	glBindVertexArray(VAO);
+	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glBindVertexArray(0);
 }
 
 // -----------------------------------------------------------
@@ -70,7 +121,10 @@ void MyApp::Tick( float deltaTime )
 
 	// NOTE: clear this function before actual use; code is only for 
 	// demonstration purposes. See _ getting started.pdf for details.
-	
+
+	screen->Clear(0);
+
+#if 0
 	// clear the screen to black
 	screen->Clear( 0 );
 	int screenWidth = screen->width;
@@ -103,6 +157,7 @@ void MyApp::Tick( float deltaTime )
 				((int)(min(color.y, 1.0f) * 255.0f) << 8) + (int)(min(color.x, 1.0f) * 255.0f));
 		}
 	}
+#endif
 
 	//// plot some colors
 	//for (int red = 0; red < 256; red++) for (int green = 0; green < 256; green++)
