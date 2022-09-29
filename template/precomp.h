@@ -247,11 +247,11 @@ public:
 	void SetInt( const char* name, const int v );
 	void SetUInt( const char* name, const uint v );
 	void Unbind();
+	uint ID = 0;		// shader program identifier
 private:
 	// data members
 	uint vertex = 0;	// vertex shader identifier
 	uint pixel = 0;		// fragment shader identifier
-	uint ID = 0;		// shader program identifier
 };
 
 // generic error checking for OpenGL code

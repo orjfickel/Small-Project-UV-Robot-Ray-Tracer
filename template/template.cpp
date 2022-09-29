@@ -137,9 +137,9 @@ void main()
 	// done, enter main loop
 #if 1
 	// basic shader: apply gamma correction
-	Shader* shader = new Shader(
-		"#version 330\nin vec4 p;\nin vec2 t;out vec2 u;void main(){u=t;gl_Position=p;}",
-		"#version 330\nuniform sampler2D c;in vec2 u;out vec4 f;void main(){f=/*sqrt*/(texture(c,u));}", true );
+	//Shader* shader = new Shader(
+	//	"#version 330\nin vec4 p;\nin vec2 t;out vec2 u;void main(){u=t;gl_Position=p;}",
+	//	"#version 330\nuniform sampler2D c;in vec2 u;out vec4 f;void main(){f=/*sqrt*/(texture(c,u));}", true );
 #else
 	// fxaa shader
 	Shader* shader = new Shader(
@@ -582,10 +582,6 @@ Shader::Shader( const char* vfile, const char* pfile, bool fromString )
 
 Shader::~Shader()
 {
-	glDetachShader( ID, pixel );
-	glDetachShader( ID, vertex );
-	glDeleteShader( pixel );
-	glDeleteShader( vertex );
 	glDeleteProgram( ID );
 	CheckGL();
 }
@@ -614,11 +610,11 @@ void Shader::Compile( const char* vtext, const char* ftext )
 	ID = glCreateProgram();
 	glAttachShader( ID, vertex );
 	glAttachShader( ID, pixel );
-	glBindAttribLocation( ID, 0, "pos" );
-	glBindAttribLocation( ID, 1, "tuv" );
 	glLinkProgram( ID );
 	CheckProgram( ID, vtext, ftext );
 	CheckGL();
+	glDeleteShader(vertex);
+	glDeleteShader(pixel);
 }
 
 void Shader::Bind()
