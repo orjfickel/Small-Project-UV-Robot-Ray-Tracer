@@ -32,6 +32,8 @@
     <None Include="cl\kernels.cl">
       <Filter>template\cl</Filter>
     </None>
+    <None Include="shader3D.vs" />
+    <None Include="shader3D.fs" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="template">

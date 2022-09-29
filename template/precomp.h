@@ -25,6 +25,7 @@
 // if your CPU does not support this (unlikely), include the appropriate header instead.
 // see: https://stackoverflow.com/a/11228864/2844473
 #include <immintrin.h>
+#include <glm/fwd.hpp>
 
 // clang-format off
 
@@ -241,6 +242,7 @@ public:
 	void Bind();
 	void SetInputTexture( uint slot, const char* name, GLTexture* texture );
 	void SetInputMatrix( const char* name, const mat4& matrix );
+	void SetInputMatrixGLM(const char* name, const glm::mat4& matrix);
 	void SetFloat( const char* name, const float v );
 	void SetInt( const char* name, const int v );
 	void SetUInt( const char* name, const uint v );

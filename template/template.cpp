@@ -7,6 +7,8 @@
 #define STBI_NO_PSD
 #define STBI_NO_PIC
 #define STBI_NO_PNM
+#include <glm/fwd.hpp>
+
 #include "lib/tinygltf-master/stb_image.h"
 
 #pragma comment( linker, "/subsystem:windows /ENTRY:mainCRTStartup" )
@@ -91,7 +93,7 @@ void main()
 #ifdef FULLSCREEN
 	window = glfwCreateWindow( SCRWIDTH, SCRHEIGHT, "Tmpl8-2022", glfwGetPrimaryMonitor(), 0 );
 #else
-	window = glfwCreateWindow( SCRWIDTH, SCRHEIGHT, "Tmpl8-2022", 0, 0 );
+	window = glfwCreateWindow( SCRWIDTH, SCRHEIGHT, "UV dosage map", 0, 0 );
 #endif
 	if (!window) FatalError( "glfwCreateWindow failed." );
 	glfwMakeContextCurrent( window );
@@ -107,9 +109,10 @@ void main()
 	if (!gladLoadGLLoader( (GLADloadproc)glfwGetProcAddress )) FatalError( "gladLoadGLLoader failed." );
 	glfwSwapInterval( 0 );
 	// prepare OpenGL state
-	glDisable( GL_DEPTH_TEST );
-	glDisable( GL_CULL_FACE );
-	glDisable( GL_BLEND );
+	glEnable(GL_DEPTH_TEST);
+	//glDisable( GL_DEPTH_TEST );
+	//glDisable( GL_CULL_FACE );
+	//glDisable( GL_BLEND );
 	CheckGL();
 	// we want a console window for text output
 #ifndef FULLSCREEN
@@ -126,10 +129,10 @@ void main()
 	glfwShowWindow( window );
 #endif
 	// initialize application
-	InitRenderTarget( SCRWIDTH, SCRHEIGHT );
-	Surface* screen = new Surface( SCRWIDTH, SCRHEIGHT );
+	//InitRenderTarget( SCRWIDTH, SCRHEIGHT );
+	//Surface* screen = new Surface( SCRWIDTH, SCRHEIGHT );
 	app = CreateApp();
-	app->screen = screen;
+	//app->screen = screen;
 	app->Init();
 	// done, enter main loop
 #if 1
@@ -268,11 +271,11 @@ void main()
 		// send the rendering result to the screen using OpenGL
 		if (frameNr++ > 1)
 		{
-			renderTarget->CopyFrom( app->screen );
-			shader->Bind();
-			shader->SetInputTexture( 0, "c", renderTarget );
-			DrawQuad();
-			shader->Unbind();
+			//renderTarget->CopyFrom( app->screen );
+			//shader->Bind();
+			//shader->SetInputTexture( 0, "c", renderTarget );
+			//DrawQuad();
+			//shader->Unbind();
 			glfwSwapBuffers( window );
 			glfwPollEvents();
 		}
@@ -638,10 +641,17 @@ void Shader::SetInputTexture( uint slot, const char* name, GLTexture* texture )
 	CheckGL();
 }
 
-void Shader::SetInputMatrix( const char* name, const mat4& matrix )
+void Shader::SetInputMatrix(const char* name, const mat4& matrix)
 {
 	const GLfloat* data = (const GLfloat*)&matrix;
-	glUniformMatrix4fv( glGetUniformLocation( ID, name ), 1, GL_FALSE, data );
+	glUniformMatrix4fv(glGetUniformLocation(ID, name), 1, GL_FALSE, data);
+	CheckGL();
+}
+
+void Shader::SetInputMatrixGLM(const char* name, const glm::mat4& matrix)
+{
+	const GLfloat* data = (const GLfloat*)&matrix;
+	glUniformMatrix4fv(glGetUniformLocation(ID, name), 1, GL_FALSE, data);
 	CheckGL();
 }
 

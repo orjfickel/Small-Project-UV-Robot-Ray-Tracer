@@ -1,5 +1,7 @@
 #include "precomp.h"
 #include "myapp.h"
+#include "glm/glm.hpp"
+#include "glm/ext.hpp"
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -12,12 +14,14 @@ tinygltf::TinyGLTF loader;
 string err;
 string warn;
 string modelFile = "assets/simple.glb";//headphones
+Shader* shader3D;
 
 // -----------------------------------------------------------
 // Initialize the application
 // -----------------------------------------------------------
 void MyApp::Init()
 {
+
 	//bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, modelFile);
 	bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, modelFile); // for binary glTF(.glb)
 
@@ -34,16 +38,17 @@ void MyApp::Init()
 		return;
 	}
 	tinygltf::Primitive& primitive = model.meshes[0].primitives[0];
-	printf("hello world! %i \n");
-	const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
-	const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
-	const tinygltf::BufferView& positionBufferView = model.bufferViews[positionAccessor.bufferView];
-	const tinygltf::BufferView& indicesBufferView = model.bufferViews[indicesAccessor.bufferView];
-	const tinygltf::Buffer& positionBuffer = model.buffers[positionBufferView.buffer];
-	const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
-	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
-	const unsigned short* indices = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
+	printf("hello world! \n");
+	//const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
+	//const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
+	//const tinygltf::BufferView& positionBufferView = model.bufferViews[positionAccessor.bufferView];
+	//const tinygltf::BufferView& indicesBufferView = model.bufferViews[indicesAccessor.bufferView];
+	//const tinygltf::Buffer& positionBuffer = model.buffers[positionBufferView.buffer];
+	//const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
+	//const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
+	//const unsigned short* indices = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 
+	BindMesh();
 
 #if 0
 	rayTracer.triangles = indices; // Point triangles towards the indices
@@ -67,47 +72,93 @@ void MyApp::BindMesh()
 {
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
+	//glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), (vertices).data(), GL_STATIC_DRAW);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
-		(indices).data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), (vertices).data(), GL_STATIC_DRAW);
+	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
+	//	(indices).data(), GL_STATIC_DRAW);
 
 	// vertex positions
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)0);
-	// vertex normals
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, normx));
 	// vertex texture coords
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex), (void*)offsetof(Vertex, textureuv));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glEnableVertexAttribArray(1);
+	
+	glGenTextures(1, &texture);
+	glBindTexture(GL_TEXTURE_2D, texture);
+	// set the texture wrapping parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	// set texture filtering parameters
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	// load image, create texture and generate mipmaps
+	int width, height, nrChannels;
+	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
+	unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
+	if (data)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		std::cout << "Failed to load texture" << std::endl;
+	}
+	stbi_image_free(data);
 
-	glBindVertexArray(0);
+	shader3D = new Shader("shader3D.vs", "shader3D.fs", false);
+	shader3D->Bind();
+	shader3D->SetInt("tex", 0);
+	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
+	shader3D->SetInputMatrixGLM("projection", projection);
+	shader3D->Unbind();
 }
 
-void MyApp::DrawMesh(Shader &shader)
+void MyApp::DrawMesh()
 {
-	for (unsigned int i = 0; i < textures.size(); i++)
-	{
-		glActiveTexture(GL_TEXTURE0 + i); // activate proper texture unit before binding
-		// retrieve texture number (the N in diffuse_textureN)
-		
+	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-		shader.SetInt(("material." + name + number).c_str(), i);
-		glBindTexture(GL_TEXTURE_2D, textures[i].id);
-	}
 	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	shader3D->Bind();
+
+	//mat4 view = mat4::Identity(); // make sure to initialize matrix to identity matrix first
+	//float radius = 10.0f;
+	//float camX = static_cast<float>(sin(glfwGetTime()) * radius);
+	//float camZ = static_cast<float>(cos(glfwGetTime()) * radius);
+	//view = mat4::LookAt(float3(camX, 0.0f, camZ), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0f));
+
+	glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
+	float radius = 10.0f;
+	float camX = static_cast<float>(sin(glfwGetTime()) * radius);
+	float camZ = static_cast<float>(cos(glfwGetTime()) * radius);
+	view = glm::lookAt(glm::vec3(camX, 0.0f, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	shader3D->SetInputMatrixGLM("view", view);
 
 	// draw mesh
 	glBindVertexArray(VAO);
-	glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+
+	//mat4 model = mat4::Identity();
+	//model = mat4::translate(model, cubePositions[i]);
+	//float angle = 20.0f * i;
+	//model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+	glm::mat4 model = glm::mat4(1.0f);
+	model = glm::translate(model, {0,0,0});
+	model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.3f, 0.5f));
+	shader3D->SetInputMatrixGLM("model", model);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+
+	//glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
+
+	shader3D->Unbind();
 }
 
 // -----------------------------------------------------------
@@ -115,14 +166,14 @@ void MyApp::DrawMesh(Shader &shader)
 // -----------------------------------------------------------
 void MyApp::Tick( float deltaTime )
 {
-	printf("hello world!\n");
+	//printf("hello world!\n");
 	// Update the camera
-	camera.UpdateView();
+	//camera.UpdateView();
+
+	DrawMesh();
 
 	// NOTE: clear this function before actual use; code is only for 
 	// demonstration purposes. See _ getting started.pdf for details.
-
-	screen->Clear(0);
 
 #if 0
 	// clear the screen to black
@@ -195,4 +246,11 @@ void MyApp::Tick( float deltaTime )
 
 #endif
 
+}
+
+void MyApp::Shutdown()
+{
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
+	//glDeleteBuffers(1, &EBO);
 }
