@@ -22,8 +22,17 @@ public:
 	void MouseDown( int button ) { /* implement if you want to detect mouse button presses */ }
 	void MouseMove( int x, int y ) { mousePos.x = x, mousePos.y = y; }
 	void MouseWheel( float y ) { /* implement if you want to handle the mouse wheel */ }
-	void KeyUp( int key ) { /* implement if you want to handle keys */ }
-	void KeyDown( int key ) { /* implement if you want to handle keys */ }
+    void KeyUp(int key)
+	{ /* implement if you want to handle keys */
+	}
+	void KeyDown( int key ) {
+        //cout << " keydown " << key << " w " << 'w' + 1 << endl;
+        if (key == GLFW_KEY_W) { camera.position.x += 0.05f; cout << " w "; }
+        else if (key == GLFW_KEY_A) { camera.position.z -= 0.05f; }
+        else if (key == GLFW_KEY_S) { camera.position.x -= 0.05f; }
+        else if (key == GLFW_KEY_D) { camera.position.z += 0.05f; }
+        else if (key == GLFW_KEY_Q) { camera.position.y += 0.05f; }
+        else if (key == GLFW_KEY_E) { camera.position.y -= 0.05f; }/* implement if you want to handle keys */ }
 
 	void BindMesh();
 	void DrawMesh();

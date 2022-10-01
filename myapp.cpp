@@ -2,6 +2,9 @@
 #include "myapp.h"
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
+#include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/highgui.hpp>
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -121,8 +124,8 @@ void MyApp::BindMesh()
 
 		glBindTexture(GL_TEXTURE_2D, texture);
 		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
@@ -138,11 +141,50 @@ void MyApp::BindMesh()
 			format = GL_RGB;
 		}
 
-		GLenum type = GL_UNSIGNED_BYTE;
-		if (image.bits == 16) {
-			type = GL_UNSIGNED_SHORT;
-		}
+		GLenum type = image.bits == 16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
 
+		cout << "format " << format << endl;
+		cout << "type " << type << endl;
+		size_t vstride = image.width * image.component;
+		cv::Mat imageMatrix = cv::Mat(image.height, image.width, CV_8UC4);
+		//for (int i = 0; i < rayTracer.vertexCount; ++i)
+		//{
+		//	//if (rayTracer.vertices[i * 5 + 2] > 0)// If z > 0
+		//		//continue;
+
+		//	size_t v = rayTracer.vertices[i * 5 + 4] * vstride;
+		//	size_t u = rayTracer.vertices[i * 5 + 3] * image.component;
+		//	//TODO: how to convert textcoords into actual uv coords?
+		//	cout << "uv " << u + v << " u " << rayTracer.vertices[i * 5 + 3] << " v " << rayTracer.vertices[i * 5 + 4] << endl;
+		//	
+		//	image.image[v + u + 0] = 255;
+		//	image.image[v + u + 1] = 255;
+		//	image.image[v + u + 2] = 255;
+		//}
+
+		for (int i = 0; i < image.width; ++i)
+		{
+			for (int j = 0; j < image.height; ++j)
+			{
+				size_t v = j * vstride;
+				size_t u = i * image.component;
+				imageMatrix.at<cv::Vec4b>(i, j) = cv::Vec4b(image.image[u+v+0], image.image[u + v + 1], image.image[u + v + 2], 255);
+
+				image.image[u + v + 0] = (i % 2 == 0 && j % 2 == 0) ? 255 : 0;
+				image.image[u + v + 1] = (i % 2 == 0 && j % 2 == 0) ? 255 : 0;
+				image.image[u + v + 2] = (i % 2 == 0 && j % 2 == 0) ? 255 : 0;
+			}
+		}
+		namedWindow("image", cv::WINDOW_AUTOSIZE);
+		cv::imshow("image", imageMatrix);
+		//cv::waitKey();
+		//cout << imageMatrix.size;
+
+		//cv::Mat flat = imageMatrix.reshape(1, imageMatrix.total() * imageMatrix.channels());
+		//vector<unsigned char> newImage = imageMatrix.isContinuous() ? flat : flat.clone();
+
+
+		
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
 			format, type, &image.image.at(0));
 
@@ -200,10 +242,8 @@ void MyApp::DrawMesh()
 	//view = mat4::LookAt(float3(camX, 0.0f, camZ), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0f));
 
 	glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-	float radius = 1.5;
-	float camX = static_cast<float>(sin(glfwGetTime()) * radius);
-	float camZ = static_cast<float>(cos(glfwGetTime()) * radius);
-	view = glm::lookAt(glm::vec3(camX, 0.0f, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	view = glm::lookAt(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	view = translate(view, glm::vec3(camera.position.x, camera.position.y, camera.position.z));
 	shader3D->SetInputMatrixGLM("view", view);
 
 	// draw mesh
@@ -213,10 +253,10 @@ void MyApp::DrawMesh()
 	//model = mat4::translate(model, cubePositions[i]);
 	//float angle = 20.0f * i;
 	//model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-	glm::mat4 model = glm::mat4(1.0f);
-	model = glm::translate(model, {0,0,0});
-	model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.3f, 0.5f));
-	shader3D->SetInputMatrixGLM("model", model);
+	//glm::mat4 model = glm::mat4(1.0f);
+	//model = glm::translate(model, {0,0,0});
+	//model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.3f, 0.5f));
+	//shader3D->SetInputMatrixGLM("model", model);
 	//glDrawArrays(GL_TRIANGLES, 0, vertices.size()/5.0f);
 
 	glDrawElements(GL_TRIANGLES, rayTracer.triangleCount, GL_UNSIGNED_SHORT, 0);

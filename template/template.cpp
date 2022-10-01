@@ -56,7 +56,8 @@ void ReshapeWindowCallback( GLFWwindow* window, int w, int h )
 void KeyEventCallback( GLFWwindow* window, int key, int scancode, int action, int mods )
 {
 	if (key == GLFW_KEY_ESCAPE) running = false;
-	if (action == GLFW_PRESS) { if (app) if (key >= 0) app->KeyDown( key ); }
+	if (action == GLFW_PRESS) { if (app) if (key >= 0) app->KeyDown(key); }
+	else if (action == GLFW_REPEAT) { if (app) if (key >= 0) app->KeyDown(key); }
 	else if (action == GLFW_RELEASE) { if (app) if (key >= 0) app->KeyUp( key ); }
 }
 void CharEventCallback( GLFWwindow* window, uint code ) { /* nothing here yet */ }
