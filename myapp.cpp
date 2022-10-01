@@ -39,19 +39,21 @@ void MyApp::Init()
 	}
 	tinygltf::Primitive& primitive = model.meshes[0].primitives[0];
 	printf("hello world! \n");
-	//const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
-	//const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
-	//const tinygltf::BufferView& positionBufferView = model.bufferViews[positionAccessor.bufferView];
-	//const tinygltf::BufferView& indicesBufferView = model.bufferViews[indicesAccessor.bufferView];
-	//const tinygltf::Buffer& positionBuffer = model.buffers[positionBufferView.buffer];
-	//const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
-	//const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
-	//const unsigned short* indices = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
+	const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
+	const tinygltf::Accessor& texcoordAccessor = model.accessors[primitive.attributes["TEXCOORD_0"]];
+	const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
+	const tinygltf::BufferView& positionBufferView = model.bufferViews[positionAccessor.bufferView];
+	const tinygltf::BufferView& texcoordBufferView = model.bufferViews[texcoordAccessor.bufferView];
+	const tinygltf::BufferView& indicesBufferView = model.bufferViews[indicesAccessor.bufferView];
+	const tinygltf::Buffer& positionBuffer = model.buffers[positionBufferView.buffer];
+	const tinygltf::Buffer& texcoordBuffer = model.buffers[texcoordBufferView.buffer];
+	const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
+	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
+	const float* texcoords = reinterpret_cast<const float*>(&texcoordBuffer.data[texcoordBufferView.byteOffset + texcoordAccessor.byteOffset]);
+	rayTracer.triangles = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 
-	BindMesh();
-
-#if 0
-	rayTracer.triangles = indices; // Point triangles towards the indices
+#if 1
+	//rayTracer.triangles = indices; // Point triangles towards the indices
 	// Convert the position array into float3*
 	rayTracer.vertices = new float3[positionAccessor.count];
 	for (size_t i = 0; i < positionAccessor.count; ++i) {
@@ -61,11 +63,27 @@ void MyApp::Init()
 		//	<< positions[indices[i] * 3 + 2] << ")" // z
 		//	<< "\n";
 		//model.images[model.textures[0].source].
+
+		//cout << rayTracer.triangles[i] << " ind" << endl;
+
+		// Insert the vertices for the OpenGL rendering
+		vertices.insert(vertices.end(),
+			{ positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2], texcoords[i * 2 + 0], texcoords[i * 2 + 1] });
 	}
+
+	/*for (size_t i = 0; i < indicesAccessor.count; ++i) {
+		vertices.insert(vertices.end(),
+			{ positions[rayTracer.triangles[i] * 3 + 0], positions[rayTracer.triangles[i] * 3 + 1], positions[rayTracer.triangles[i] * 3 + 2], texcoords[rayTracer.triangles[i] * 2 + 0], texcoords[rayTracer.triangles[i] * 2 + 1]});
+	}*/
+	//MyApp::indices = indices;
 
 	rayTracer.triangleCount = indicesAccessor.count;
 	rayTracer.vertexCount = positionAccessor.count;
+	cout << rayTracer.triangleCount << endl;
+	cout << rayTracer.vertexCount << endl;
 #endif
+
+	BindMesh();
 }
 
 void MyApp::BindMesh()
@@ -74,14 +92,15 @@ void MyApp::BindMesh()
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	//glGenBuffers(1, &EBO);
+	glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), (vertices).data(), GL_STATIC_DRAW);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	//glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices.size() * sizeof(unsigned int),
-	//	(indices).data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, rayTracer.triangleCount * sizeof(unsigned short),
+		rayTracer.triangles, GL_STATIC_DRAW);
+	//TODO: use indices correctly
 
 	//GLint posloc = glGetAttribLocation(shader3D->ID, "pos");
 	//GLint uvloc = glGetAttribLocation(shader3D->ID, "tuv");
@@ -92,7 +111,57 @@ void MyApp::BindMesh()
 	// vertex texture coords
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-	
+
+	if (model.textures.size() > 0) {
+		tinygltf::Texture& tex = model.textures[model.materials[0].pbrMetallicRoughness.baseColorTexture.index];
+
+		if (tex.source > -1) {
+			
+			glGenTextures(1, &texture);
+
+			tinygltf::Image& image = model.images[tex.source];
+
+			glBindTexture(GL_TEXTURE_2D, texture);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+			GLenum format = GL_RGBA;
+
+			if (image.component == 1) {
+				format = GL_RED;
+			}
+			else if (image.component == 2) {
+				format = GL_RG;
+			}
+			else if (image.component == 3) {
+				format = GL_RGB;
+}
+			else {
+				// ???
+			}
+
+			GLenum type = GL_UNSIGNED_BYTE;
+			if (image.bits == 8) {
+				// ok
+			}
+			else if (image.bits == 16) {
+				type = GL_UNSIGNED_SHORT;
+			}
+			else {
+				// ???
+			}
+
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
+				format, type, &image.image.at(0));
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+	  }
+	}
+  
+#if 0
 	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
 	// set the texture wrapping parameters
@@ -117,6 +186,7 @@ void MyApp::BindMesh()
 	stbi_image_free(data);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	CheckGL();
+#endif
 
 	shader3D->Bind();
 	shader3D->SetInt("tex", 0);
@@ -142,7 +212,7 @@ void MyApp::DrawMesh()
 	//view = mat4::LookAt(float3(camX, 0.0f, camZ), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0f));
 
 	glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-	float radius = 10.0f;
+	float radius = 1.5;
 	float camX = static_cast<float>(sin(glfwGetTime()) * radius);
 	float camZ = static_cast<float>(cos(glfwGetTime()) * radius);
 	view = glm::lookAt(glm::vec3(camX, 0.0f, camZ), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -159,9 +229,9 @@ void MyApp::DrawMesh()
 	model = glm::translate(model, {0,0,0});
 	model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.3f, 0.5f));
 	shader3D->SetInputMatrixGLM("model", model);
-	glDrawArrays(GL_TRIANGLES, 0, 36);
+	//glDrawArrays(GL_TRIANGLES, 0, vertices.size()/5.0f);
 
-	//glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
+	glDrawElements(GL_TRIANGLES, rayTracer.triangleCount, GL_UNSIGNED_SHORT, 0);
 	glBindVertexArray(0);
 
 	shader3D->Unbind();
@@ -258,5 +328,5 @@ void MyApp::Shutdown()
 {
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
-	//glDeleteBuffers(1, &EBO);
+	glDeleteBuffers(1, &EBO);
 }

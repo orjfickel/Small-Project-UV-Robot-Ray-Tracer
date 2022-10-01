@@ -35,8 +35,8 @@ public:
 
 	unsigned int texture;
 	unsigned int VAO, VBO, EBO;
-	vector<GLfloat> vertices = 
-	{
+    vector<GLfloat> vertices;
+	/*{
 
         -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
          0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
@@ -79,7 +79,7 @@ public:
          0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
         -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
-    };
+    };*/
 	vector<unsigned int> indices;
 	vector<GLTexture> textures;
 };
