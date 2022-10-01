@@ -55,20 +55,24 @@ void MyApp::Init()
 #if 1
 	//rayTracer.triangles = indices; // Point triangles towards the indices
 	// Convert the position array into float3*
-	rayTracer.vertices = new float3[positionAccessor.count];
+	rayTracer.vertices = new float[positionAccessor.count * 5];
 	for (size_t i = 0; i < positionAccessor.count; ++i) {
-		rayTracer.vertices[i] = make_float3(positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2]);
+		rayTracer.vertices[i * 5 + 0] = positions[i * 3 + 0];
+		rayTracer.vertices[i * 5 + 1] = positions[i * 3 + 1];
+		rayTracer.vertices[i * 5 + 2] = positions[i * 3 + 2];
+		rayTracer.vertices[i * 5 + 3] = texcoords[i * 2 + 0];
+		rayTracer.vertices[i * 5 + 4] = texcoords[i * 2 + 1];
+
 		//std::cout << "(" << positions[indices[i] * 3 + 0] << ", "// x
 		//	<< positions[indices[i] * 3 + 1] << ", " // y
 		//	<< positions[indices[i] * 3 + 2] << ")" // z
 		//	<< "\n";
-		//model.images[model.textures[0].source].
 
 		//cout << rayTracer.triangles[i] << " ind" << endl;
 
 		// Insert the vertices for the OpenGL rendering
-		vertices.insert(vertices.end(),
-			{ positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2], texcoords[i * 2 + 0], texcoords[i * 2 + 1] });
+		//vertices.insert(vertices.end(),
+			//{ positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2], texcoords[i * 2 + 0], texcoords[i * 2 + 1] });
 	}
 
 	/*for (size_t i = 0; i < indicesAccessor.count; ++i) {
@@ -78,9 +82,9 @@ void MyApp::Init()
 	//MyApp::indices = indices;
 
 	rayTracer.triangleCount = indicesAccessor.count;
-	rayTracer.vertexCount = positionAccessor.count;
-	cout << rayTracer.triangleCount << endl;
-	cout << rayTracer.vertexCount << endl;
+	rayTracer.vertexCount = positionAccessor.count * 5;
+	std::cout << rayTracer.triangleCount << endl;
+	std::cout << rayTracer.vertexCount << endl;
 #endif
 
 	BindMesh();
@@ -96,14 +100,10 @@ void MyApp::BindMesh()
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), (vertices).data(), GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), rayTracer.vertices, GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, rayTracer.triangleCount * sizeof(unsigned short),
 		rayTracer.triangles, GL_STATIC_DRAW);
-	//TODO: use indices correctly
-
-	//GLint posloc = glGetAttribLocation(shader3D->ID, "pos");
-	//GLint uvloc = glGetAttribLocation(shader3D->ID, "tuv");
 
 	// vertex positions
 	glEnableVertexAttribArray(0);
@@ -115,50 +115,38 @@ void MyApp::BindMesh()
 	if (model.textures.size() > 0) {
 		tinygltf::Texture& tex = model.textures[model.materials[0].pbrMetallicRoughness.baseColorTexture.index];
 
-		if (tex.source > -1) {
-			
-			glGenTextures(1, &texture);
+		glGenTextures(1, &texture);
 
-			tinygltf::Image& image = model.images[tex.source];
+		tinygltf::Image& image = model.images[tex.source];
 
-			glBindTexture(GL_TEXTURE_2D, texture);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glBindTexture(GL_TEXTURE_2D, texture);
+		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
-			GLenum format = GL_RGBA;
+		GLenum format = GL_RGBA;
 
-			if (image.component == 1) {
-				format = GL_RED;
-			}
-			else if (image.component == 2) {
-				format = GL_RG;
-			}
-			else if (image.component == 3) {
-				format = GL_RGB;
-}
-			else {
-				// ???
-			}
+		if (image.component == 1) {
+			format = GL_RED;
+		}
+		else if (image.component == 2) {
+			format = GL_RG;
+		}
+		else if (image.component == 3) {
+			format = GL_RGB;
+		}
 
-			GLenum type = GL_UNSIGNED_BYTE;
-			if (image.bits == 8) {
-				// ok
-			}
-			else if (image.bits == 16) {
-				type = GL_UNSIGNED_SHORT;
-			}
-			else {
-				// ???
-			}
+		GLenum type = GL_UNSIGNED_BYTE;
+		if (image.bits == 16) {
+			type = GL_UNSIGNED_SHORT;
+		}
 
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
-				format, type, &image.image.at(0));
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
+			format, type, &image.image.at(0));
 
-			glBindTexture(GL_TEXTURE_2D, 0);
-	  }
+		glBindTexture(GL_TEXTURE_2D, 0);
 	}
   
 #if 0

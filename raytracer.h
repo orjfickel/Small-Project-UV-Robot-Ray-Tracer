@@ -18,7 +18,7 @@ namespace Tmpl8
 	{
 	public:
 		const unsigned short* triangles;
-		float3* vertices;
+		float* vertices;
 
 		int vertexCount, triangleCount;
 	};
