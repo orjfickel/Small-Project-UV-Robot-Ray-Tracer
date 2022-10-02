@@ -7,8 +7,11 @@ out vec2 uv;
 uniform mat4 view;
 uniform mat4 projection;
 
+out vec4 worldPos;
+
 void main()
 {
 	gl_Position = projection * view * vec4(pos, 1.0f);
 	uv = vec2(tuv.x, tuv.y);
+	worldPos = vec4(pos, 1.0f);
 }

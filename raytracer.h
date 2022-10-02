@@ -12,6 +12,14 @@ namespace Tmpl8
 		float intensity; // The power transmitted by the UV light
 	};
 
+	/*class Photon
+	{
+	public:
+		Photon(float3 pos, float dosage) : pos{ pos }, dosage{ dosage }{}
+		float3 pos;
+		float dosage;
+	};*/
+
 	bool TriangleIntersect(Ray& ray, float3 v1, float3 v2, float3 v3, float& u, float& v);
 
 	class RayTracer
@@ -21,6 +29,8 @@ namespace Tmpl8
 		float* vertices;
 
 		int vertexCount, triangleCount;
+
+		vector<float4> dosageMap;
 	};
 
 } // namespace Tmpl8

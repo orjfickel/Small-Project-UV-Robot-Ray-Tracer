@@ -27,7 +27,7 @@ public:
 	}
 	void KeyDown( int key ) {
         //cout << " keydown " << key << " w " << 'w' + 1 << endl;
-        if (key == GLFW_KEY_W) { camera.position.x += 0.05f; cout << " w "; }
+        if (key == GLFW_KEY_W) { camera.position.x += 0.05f; }
         else if (key == GLFW_KEY_A) { camera.position.z -= 0.05f; }
         else if (key == GLFW_KEY_S) { camera.position.x -= 0.05f; }
         else if (key == GLFW_KEY_D) { camera.position.z += 0.05f; }

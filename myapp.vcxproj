@@ -142,8 +142,8 @@
   <ItemGroup>
     <None Include="cl\kernels.cl" />
     <None Include="README.md" />
-    <None Include="shader3D.fs" />
-    <None Include="shader3D.vs" />
+    <None Include="shader3D.frag" />
+    <None Include="shader3D.vert" />
     <None Include="template\LICENSE" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

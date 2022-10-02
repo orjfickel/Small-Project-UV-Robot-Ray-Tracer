@@ -95,7 +95,7 @@ void MyApp::Init()
 
 void MyApp::BindMesh()
 {
-	shader3D = new Shader("shader3D.vs", "shader3D.fs", false);
+	shader3D = new Shader("shader3D.vert", "shader3D.frag", false);
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -115,6 +115,7 @@ void MyApp::BindMesh()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 
+	int dosagePointCount = 3;
 	if (model.textures.size() > 0) {
 		tinygltf::Texture& tex = model.textures[model.materials[0].pbrMetallicRoughness.baseColorTexture.index];
 
@@ -145,8 +146,6 @@ void MyApp::BindMesh()
 
 		cout << "format " << format << endl;
 		cout << "type " << type << endl;
-		size_t vstride = image.width * image.component;
-		cv::Mat imageMatrix = cv::Mat(image.height, image.width, CV_8UC4);
 		//for (int i = 0; i < rayTracer.vertexCount; ++i)
 		//{
 		//	//if (rayTracer.vertices[i * 5 + 2] > 0)// If z > 0
@@ -162,21 +161,31 @@ void MyApp::BindMesh()
 		//	image.image[v + u + 2] = 255;
 		//}
 
-		for (int i = 0; i < image.width; ++i)
-		{
-			for (int j = 0; j < image.height; ++j)
-			{
-				size_t v = j * vstride;
-				size_t u = i * image.component;
-				imageMatrix.at<cv::Vec4b>(i, j) = cv::Vec4b(image.image[u+v+0], image.image[u + v + 1], image.image[u + v + 2], 255);
+		//rayTracer.dosageMap.push_back(make_float4(0, 0, 0, 900));
+		rayTracer.dosageMap.push_back(make_float4(0.8, 0, 0, 100));
+		rayTracer.dosageMap.push_back(make_float4(-0.9f, -1.9, -0.9f, 400));
+		rayTracer.dosageMap.push_back(make_float4(0, 0, 0.8, 1));
 
-				image.image[u + v + 0] = (i % 2 == 0 && j % 2 == 0) ? 255 : 0;
-				image.image[u + v + 1] = (i % 2 == 0 && j % 2 == 0) ? 255 : 0;
-				image.image[u + v + 2] = (i % 2 == 0 && j % 2 == 0) ? 255 : 0;
+		int texWidth = ceil(dosagePointCount / 10.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
+		int texHeight = ceil(dosagePointCount / texWidth);
+
+		size_t vstride = texWidth * 4;
+		vector<float> imageData;
+		for (int i = 0; i < texHeight; ++i)
+		{
+			for (int j = 0; j < texWidth; ++j)
+			{
+				size_t v = i * vstride;
+				size_t u = j * 4;
+				int index = j * texWidth + i;
+				float4 dosagePoint = index < texWidth* texHeight ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
+				imageData.insert(imageData.end(), { 
+					dosagePoint.x, dosagePoint.y, dosagePoint.z, dosagePoint.w
+				});
 			}
 		}
-		namedWindow("image", cv::WINDOW_AUTOSIZE);
-		cv::imshow("image", imageMatrix);
+		//namedWindow("image", cv::WINDOW_AUTOSIZE);
+		//cv::imshow("image", imageMatrix);
 		//cv::waitKey();
 		//cout << imageMatrix.size;
 
@@ -185,8 +194,8 @@ void MyApp::BindMesh()
 
 
 		
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
-			format, type, &image.image.at(0));
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0,
+			GL_RGBA, GL_FLOAT, &imageData.at(0));
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
@@ -219,6 +228,7 @@ void MyApp::BindMesh()
 #endif
 
 	shader3D->Bind();
+	shader3D->SetInt("pointCount", dosagePointCount);
 	shader3D->SetInt("tex", 0);
 	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
 	shader3D->SetInputMatrixGLM("projection", projection);
