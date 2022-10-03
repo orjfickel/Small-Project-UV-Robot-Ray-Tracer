@@ -128,7 +128,7 @@ void MyApp::BindMesh()
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);//TODO: ensure no mipmaps are used?
 
 		GLenum format = GL_RGBA;
 
@@ -146,20 +146,6 @@ void MyApp::BindMesh()
 
 		cout << "format " << format << endl;
 		cout << "type " << type << endl;
-		//for (int i = 0; i < rayTracer.vertexCount; ++i)
-		//{
-		//	//if (rayTracer.vertices[i * 5 + 2] > 0)// If z > 0
-		//		//continue;
-
-		//	size_t v = rayTracer.vertices[i * 5 + 4] * vstride;
-		//	size_t u = rayTracer.vertices[i * 5 + 3] * image.component;
-		//	//TODO: how to convert textcoords into actual uv coords?
-		//	cout << "uv " << u + v << " u " << rayTracer.vertices[i * 5 + 3] << " v " << rayTracer.vertices[i * 5 + 4] << endl;
-		//	
-		//	image.image[v + u + 0] = 255;
-		//	image.image[v + u + 1] = 255;
-		//	image.image[v + u + 2] = 255;
-		//}
 
 		//rayTracer.dosageMap.push_back(make_float4(0, 0, 0, 900));
 		rayTracer.dosageMap.push_back(make_float4(0.8, 0, 0, 100));
@@ -184,15 +170,10 @@ void MyApp::BindMesh()
 				});
 			}
 		}
+		//TODO: save the texture layout and checkers images & get rid of OpenCV
 		//namedWindow("image", cv::WINDOW_AUTOSIZE);
 		//cv::imshow("image", imageMatrix);
 		//cv::waitKey();
-		//cout << imageMatrix.size;
-
-		//cv::Mat flat = imageMatrix.reshape(1, imageMatrix.total() * imageMatrix.channels());
-		//vector<unsigned char> newImage = imageMatrix.isContinuous() ? flat : flat.clone();
-
-
 		
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
 			GL_RGBA, GL_FLOAT, &imageData.at(0));
@@ -284,10 +265,19 @@ void MyApp::Tick( float deltaTime )
 	// Update the camera
 	//camera.UpdateView();
 
-	DrawMesh();
+	float movement = (shiftPress ? 0.01f : 0.001f) * deltaTime;
+	if (wPress) { camera.position.x += movement;  }//TODO: use bools to store wether a key is down. (arrows for rotation)
+	else if (aPress) { camera.position.z -= movement; }
+	else if (sPress) { camera.position.x -= movement;}
+	else if (dPress) { camera.position.z += movement;}
+	else if (qPress) { camera.position.y += movement;}
+	else if (ePress) { camera.position.y -= movement;}
+	//else if (upPress) { camera.position.y -= 0.05f; moveTimer = 0; }
+	//else if (leftPress) { camera.position.y -= 0.05f; moveTimer = 0; }
+	//else if (downPress) { camera.position.y -= 0.05f; moveTimer = 0; }
+	//else if (rightPress) { camera.position.y -= 0.05f; moveTimer = 0; }
 
-	// NOTE: clear this function before actual use; code is only for 
-	// demonstration purposes. See _ getting started.pdf for details.
+	DrawMesh();
 
 #if 0
 	// clear the screen to black
@@ -360,6 +350,90 @@ void MyApp::Tick( float deltaTime )
 
 #endif
 
+}
+
+void MyApp::KeyDown(int key)
+{
+	//cout << " pressed " << key;
+	switch (key)
+	{
+	case GLFW_KEY_W:
+		wPress = true;
+		break;
+	case GLFW_KEY_A:
+		aPress = true;
+		break;
+	case GLFW_KEY_S:
+		sPress = true;
+		break;
+	case GLFW_KEY_D:
+		dPress = true;
+		break;
+	case GLFW_KEY_Q:
+		qPress = true;
+		break;
+	case GLFW_KEY_E:
+		ePress = true;
+		break;
+	case GLFW_KEY_UP:
+		upPress = true;
+		break;
+	case GLFW_KEY_LEFT:
+		leftPress = true;
+		break;
+	case GLFW_KEY_DOWN:
+		downPress = true;
+		break;
+	case GLFW_KEY_RIGHT:
+		rightPress = true;
+		break;
+	case GLFW_KEY_LEFT_SHIFT:
+		shiftPress = true;
+		break;
+	default:
+		break;
+	}
+}
+void MyApp::KeyUp(int key)
+{
+	switch (key)
+	{
+	case GLFW_KEY_W:
+		wPress = false;
+		break;
+	case GLFW_KEY_A:
+		aPress = false;
+		break;
+	case GLFW_KEY_S:
+		sPress = false;
+		break;
+	case GLFW_KEY_D:
+		dPress = false;
+		break;
+	case GLFW_KEY_Q:
+		qPress = false;
+		break;
+	case GLFW_KEY_E:
+		ePress = false;
+		break;
+	case GLFW_KEY_UP:
+		upPress = false;
+		break;
+	case GLFW_KEY_LEFT:
+		leftPress = false;
+		break;
+	case GLFW_KEY_DOWN:
+		downPress = false;
+		break;
+	case GLFW_KEY_RIGHT:
+		rightPress = false;
+		break;
+	case GLFW_KEY_LEFT_SHIFT:
+		shiftPress = false;
+		break;
+	default:
+		break;
+	}
 }
 
 void MyApp::Shutdown()

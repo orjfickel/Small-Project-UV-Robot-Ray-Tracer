@@ -22,22 +22,16 @@ public:
 	void MouseDown( int button ) { /* implement if you want to detect mouse button presses */ }
 	void MouseMove( int x, int y ) { mousePos.x = x, mousePos.y = y; }
 	void MouseWheel( float y ) { /* implement if you want to handle the mouse wheel */ }
-    void KeyUp(int key)
-	{ /* implement if you want to handle keys */
-	}
-	void KeyDown( int key ) {
-        //cout << " keydown " << key << " w " << 'w' + 1 << endl;
-        if (key == GLFW_KEY_W) { camera.position.x += 0.05f; }//TODO: use bools to store wether a key is down.
-        else if (key == GLFW_KEY_A) { camera.position.z -= 0.05f; }
-        else if (key == GLFW_KEY_S) { camera.position.x -= 0.05f; }
-        else if (key == GLFW_KEY_D) { camera.position.z += 0.05f; }
-        else if (key == GLFW_KEY_Q) { camera.position.y += 0.05f; }
-        else if (key == GLFW_KEY_E) { camera.position.y -= 0.05f; }/* implement if you want to handle keys */ }
+    void KeyUp(int key);
+    void KeyDown(int key);
 
 	void BindMesh();
 	void DrawMesh();
 
 	// data members
+    bool wPress, aPress, sPress, dPress, qPress, ePress, upPress, leftPress, downPress, rightPress, shiftPress;
+    float moveTimer = 0, timeTillMove = 2;
+
 	int2 mousePos;
 	RayTracer rayTracer{};
 	Camera camera{};
