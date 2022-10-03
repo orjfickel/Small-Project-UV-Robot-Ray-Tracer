@@ -163,7 +163,7 @@ void MyApp::BindMesh()
 
 		//rayTracer.dosageMap.push_back(make_float4(0, 0, 0, 900));
 		rayTracer.dosageMap.push_back(make_float4(0.8, 0, 0, 100));
-		rayTracer.dosageMap.push_back(make_float4(-0.9f, -1.9, -0.9f, 400));
+		rayTracer.dosageMap.push_back(make_float4(-0.5f, 0.4, -0.5f, 400));
 		rayTracer.dosageMap.push_back(make_float4(0, 0, 0.8, 1));
 
 		int texWidth = ceil(dosagePointCount / 10.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
@@ -194,7 +194,7 @@ void MyApp::BindMesh()
 
 
 		
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, texWidth, texHeight, 0,
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
 			GL_RGBA, GL_FLOAT, &imageData.at(0));
 
 		glBindTexture(GL_TEXTURE_2D, 0);
