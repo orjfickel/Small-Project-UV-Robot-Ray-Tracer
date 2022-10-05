@@ -110,6 +110,8 @@ void main()
 	glfwSwapInterval( 0 );
 	// prepare OpenGL state
 	glEnable(GL_DEPTH_TEST);
+	glEnable( GL_BLEND );
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	//glDisable( GL_DEPTH_TEST );
 	//glDisable( GL_CULL_FACE );
 	//glDisable( GL_BLEND );
@@ -129,17 +131,17 @@ void main()
 	glfwShowWindow( window );
 #endif
 	// initialize application
-	//InitRenderTarget( SCRWIDTH, SCRHEIGHT );
-	//Surface* screen = new Surface( SCRWIDTH, SCRHEIGHT );
+	InitRenderTarget( SCRWIDTH, SCRHEIGHT );
+	Surface* screen = new Surface( SCRWIDTH, SCRHEIGHT );
 	app = CreateApp();
-	//app->screen = screen;
+	app->screen = screen;
 	app->Init();
 	// done, enter main loop
 #if 1
 	// basic shader: apply gamma correction
-	//Shader* shader = new Shader(
-	//	"#version 330\nin vec4 p;\nin vec2 t;out vec2 u;void main(){u=t;gl_Position=p;}",
-	//	"#version 330\nuniform sampler2D c;in vec2 u;out vec4 f;void main(){f=/*sqrt*/(texture(c,u));}", true );
+	Shader* shader = new Shader(
+		"#version 330\nin vec4 p;\nin vec2 t;out vec2 u;void main(){u=t;gl_Position=p;}",
+		"#version 330\nuniform sampler2D c;in vec2 u;out vec4 f;void main(){f=/*sqrt*/(texture(c,u));}", true );
 #else
 	// fxaa shader
 	Shader* shader = new Shader(
@@ -271,11 +273,11 @@ void main()
 		// send the rendering result to the screen using OpenGL
 		if (frameNr++ > 1)
 		{
-			//renderTarget->CopyFrom( app->screen );
-			//shader->Bind();
-			//shader->SetInputTexture( 0, "c", renderTarget );
-			//DrawQuad();
-			//shader->Unbind();
+			renderTarget->CopyFrom( app->screen );
+			shader->Bind();
+			shader->SetInputTexture( 0, "c", renderTarget );
+			DrawQuad();
+			shader->Unbind();
 			glfwSwapBuffers( window );
 			glfwPollEvents();
 		}

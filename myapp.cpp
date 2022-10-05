@@ -54,10 +54,7 @@ void MyApp::Init()
 	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
 	const float* texcoords = reinterpret_cast<const float*>(&texcoordBuffer.data[texcoordBufferView.byteOffset + texcoordAccessor.byteOffset]);
 	rayTracer.triangles = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
-
-#if 1
-	//rayTracer.triangles = indices; // Point triangles towards the indices
-	// Convert the position array into float3*
+	
 	rayTracer.vertices = new float[positionAccessor.count * 5];
 	for (size_t i = 0; i < positionAccessor.count; ++i) {
 		rayTracer.vertices[i * 5 + 0] = positions[i * 3 + 0];
@@ -65,30 +62,12 @@ void MyApp::Init()
 		rayTracer.vertices[i * 5 + 2] = positions[i * 3 + 2];
 		rayTracer.vertices[i * 5 + 3] = texcoords[i * 2 + 0];
 		rayTracer.vertices[i * 5 + 4] = texcoords[i * 2 + 1];
-
-		//std::cout << "(" << positions[indices[i] * 3 + 0] << ", "// x
-		//	<< positions[indices[i] * 3 + 1] << ", " // y
-		//	<< positions[indices[i] * 3 + 2] << ")" // z
-		//	<< "\n";
-
-		//cout << rayTracer.triangles[i] << " ind" << endl;
-
-		// Insert the vertices for the OpenGL rendering
-		//vertices.insert(vertices.end(),
-			//{ positions[i * 3 + 0], positions[i * 3 + 1], positions[i * 3 + 2], texcoords[i * 2 + 0], texcoords[i * 2 + 1] });
 	}
-
-	/*for (size_t i = 0; i < indicesAccessor.count; ++i) {
-		vertices.insert(vertices.end(),
-			{ positions[rayTracer.triangles[i] * 3 + 0], positions[rayTracer.triangles[i] * 3 + 1], positions[rayTracer.triangles[i] * 3 + 2], texcoords[rayTracer.triangles[i] * 2 + 0], texcoords[rayTracer.triangles[i] * 2 + 1]});
-	}*/
-	//MyApp::indices = indices;
 
 	rayTracer.triangleCount = indicesAccessor.count;
 	rayTracer.vertexCount = positionAccessor.count * 5;
 	std::cout << rayTracer.triangleCount << endl;
 	std::cout << rayTracer.vertexCount << endl;
-#endif
 
 	BindMesh();
 }
@@ -252,6 +231,9 @@ void MyApp::DrawMesh()
 // -----------------------------------------------------------
 void MyApp::Tick( float deltaTime )
 {
+	screen->Clear(0);
+	screen->Print("TEST", SCRWIDTH / 10, SCRHEIGHT / 10, MAXUINT);//Unscalable :( use learnopengl method instead
+
 	//printf("hello world!\n");
 	// Update the camera
 	camera.UpdateView(keyPresses, deltaTime);
