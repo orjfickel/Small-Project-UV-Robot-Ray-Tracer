@@ -211,7 +211,7 @@ void MyApp::BindMesh()
 	shader3D->Bind();
 	shader3D->SetInt("pointCount", dosagePointCount);
 	shader3D->SetInt("tex", 0);
-	glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
+	glm::mat4 projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
 	shader3D->SetInputMatrixGLM("projection", projection);
 	shader3D->Unbind();
 }
@@ -226,16 +226,7 @@ void MyApp::DrawMesh()
 
 	shader3D->Bind();
 
-	//mat4 view = mat4::Identity(); // make sure to initialize matrix to identity matrix first
-	//float radius = 10.0f;
-	//float camX = static_cast<float>(sin(glfwGetTime()) * radius);
-	//float camZ = static_cast<float>(cos(glfwGetTime()) * radius);
-	//view = mat4::LookAt(float3(camX, 0.0f, camZ), float3(0.0f, 0.0f, 0.0f), float3(0.0f, 1.0f, 0.0f));
-
-	glm::mat4 view = glm::mat4(1.0f); // make sure to initialize matrix to identity matrix first
-	view = glm::lookAt(glm::vec3(1.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-	view = translate(view, glm::vec3(camera.position.x, camera.position.y, camera.position.z));
-	shader3D->SetInputMatrixGLM("view", view);
+	shader3D->SetInputMatrixGLM("view", camera.view);
 
 	// draw mesh
 	glBindVertexArray(VAO);
@@ -263,19 +254,7 @@ void MyApp::Tick( float deltaTime )
 {
 	//printf("hello world!\n");
 	// Update the camera
-	//camera.UpdateView();
-
-	float movement = (shiftPress ? 0.01f : 0.001f) * deltaTime;
-	if (wPress) { camera.position.x += movement;  }//TODO: use bools to store wether a key is down. (arrows for rotation)
-	else if (aPress) { camera.position.z -= movement; }
-	else if (sPress) { camera.position.x -= movement;}
-	else if (dPress) { camera.position.z += movement;}
-	else if (qPress) { camera.position.y += movement;}
-	else if (ePress) { camera.position.y -= movement;}
-	//else if (upPress) { camera.position.y -= 0.05f; moveTimer = 0; }
-	//else if (leftPress) { camera.position.y -= 0.05f; moveTimer = 0; }
-	//else if (downPress) { camera.position.y -= 0.05f; moveTimer = 0; }
-	//else if (rightPress) { camera.position.y -= 0.05f; moveTimer = 0; }
+	camera.UpdateView(keyPresses, deltaTime);
 
 	DrawMesh();
 
@@ -358,37 +337,37 @@ void MyApp::KeyDown(int key)
 	switch (key)
 	{
 	case GLFW_KEY_W:
-		wPress = true;
+		keyPresses.wPress = true;
 		break;
 	case GLFW_KEY_A:
-		aPress = true;
+		keyPresses.aPress = true;
 		break;
 	case GLFW_KEY_S:
-		sPress = true;
+		keyPresses.sPress = true;
 		break;
 	case GLFW_KEY_D:
-		dPress = true;
+		keyPresses.dPress = true;
 		break;
 	case GLFW_KEY_Q:
-		qPress = true;
+		keyPresses.qPress = true;
 		break;
 	case GLFW_KEY_E:
-		ePress = true;
+		keyPresses.ePress = true;
 		break;
 	case GLFW_KEY_UP:
-		upPress = true;
+		keyPresses.upPress = true;
 		break;
 	case GLFW_KEY_LEFT:
-		leftPress = true;
+		keyPresses.leftPress = true;
 		break;
 	case GLFW_KEY_DOWN:
-		downPress = true;
+		keyPresses.downPress = true;
 		break;
 	case GLFW_KEY_RIGHT:
-		rightPress = true;
+		keyPresses.rightPress = true;
 		break;
 	case GLFW_KEY_LEFT_SHIFT:
-		shiftPress = true;
+		keyPresses.shiftPress = true;
 		break;
 	default:
 		break;
@@ -399,37 +378,37 @@ void MyApp::KeyUp(int key)
 	switch (key)
 	{
 	case GLFW_KEY_W:
-		wPress = false;
+		keyPresses.wPress = false;
 		break;
 	case GLFW_KEY_A:
-		aPress = false;
+		keyPresses.aPress = false;
 		break;
 	case GLFW_KEY_S:
-		sPress = false;
+		keyPresses.sPress = false;
 		break;
 	case GLFW_KEY_D:
-		dPress = false;
+		keyPresses.dPress = false;
 		break;
 	case GLFW_KEY_Q:
-		qPress = false;
+		keyPresses.qPress = false;
 		break;
 	case GLFW_KEY_E:
-		ePress = false;
+		keyPresses.ePress = false;
 		break;
 	case GLFW_KEY_UP:
-		upPress = false;
+		keyPresses.upPress = false;
 		break;
 	case GLFW_KEY_LEFT:
-		leftPress = false;
+		keyPresses.leftPress = false;
 		break;
 	case GLFW_KEY_DOWN:
-		downPress = false;
+		keyPresses.downPress = false;
 		break;
 	case GLFW_KEY_RIGHT:
-		rightPress = false;
+		keyPresses.rightPress = false;
 		break;
 	case GLFW_KEY_LEFT_SHIFT:
-		shiftPress = false;
+		keyPresses.shiftPress = false;
 		break;
 	default:
 		break;

@@ -9,6 +9,11 @@ namespace Tmpl8
 	struct Texture {
 		unsigned int id;
 	};
+    struct KeyPresses
+    {
+        bool wPress, aPress, sPress, dPress, qPress, ePress, upPress, leftPress, downPress, rightPress, shiftPress;
+        float moveTimer = 0, timeTillMove = 2;
+    };
 
 class MyApp : public TheApp
 {
@@ -29,9 +34,7 @@ public:
 	void DrawMesh();
 
 	// data members
-    bool wPress, aPress, sPress, dPress, qPress, ePress, upPress, leftPress, downPress, rightPress, shiftPress;
-    float moveTimer = 0, timeTillMove = 2;
-
+    KeyPresses keyPresses;
 	int2 mousePos;
 	RayTracer rayTracer{};
 	Camera camera{};
@@ -84,7 +87,6 @@ public:
         -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };*/
 	vector<unsigned int> indices;
-	vector<GLTexture> textures;
 };
 
 } // namespace Tmpl8
