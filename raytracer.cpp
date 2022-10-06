@@ -1,5 +1,10 @@
 #include "precomp.h"
 
+void RayTracer::computeDosageMap()
+{
+	//Shoot rays
+}
+
 // Adapted from https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection
 bool Tmpl8::TriangleIntersect(Ray& ray, float3 v1, float3 v2, float3 v3, float& u, float& v)
 {

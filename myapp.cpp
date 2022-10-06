@@ -20,8 +20,7 @@ tinygltf::TinyGLTF loader;
 // -----------------------------------------------------------
 void MyApp::Init(GLFWwindow* window)
 {
-
-	// Setup Dear ImGui context
+	// Initialise ImGui
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext())
 	{
@@ -34,29 +33,9 @@ void MyApp::Init(GLFWwindow* window)
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
 
-	//ImGui::font
-	//ImGui::font
-	//ImGui::ShowDemoWindow();
-	//Screen* screenUI = new nanogui::Screen();
-	//screenUI->initialize(window, true);
-
-	//int width, height;
-	//glfwGetFramebufferSize(window, &width, &height);
-	//glViewport(0, 0, width, height);
-
-	//FormHelper* gui = new FormHelper(screenUI);
-	//Window* windowUI = gui->add_window(Vector2i(10, 10), "Form helper example");
-	//gui->add_group("Basic types");
-	//gui->add_button("A button", []() { std::cout << "Button pressed." << std::endl; });
-	//screenUI->set_visible(true);
-	//screenUI->perform_layout();
-	//windowUI->center();
-
-	//// Draw nanogui
-	//screenUI->drawContents();
-	//screenUI->drawWidgets();
-
-	//bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, modelFile);
+	// Load the mesh (TODO: allow specifying model in gui and load after pushing button)
+	string err;
+	string warn;
 	bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, modelFile); // for binary glTF(.glb)
 
 	if (!warn.empty()) {
@@ -72,7 +51,6 @@ void MyApp::Init(GLFWwindow* window)
 		return;
 	}
 	tinygltf::Primitive& primitive = model.meshes[0].primitives[0];
-	printf("hello world! \n");
 	const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
 	const tinygltf::Accessor& texcoordAccessor = model.accessors[primitive.attributes["TEXCOORD_0"]];
 	const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
@@ -97,12 +75,15 @@ void MyApp::Init(GLFWwindow* window)
 
 	rayTracer.triangleCount = indicesAccessor.count;
 	rayTracer.vertexCount = positionAccessor.count * 5;
-	std::cout << rayTracer.triangleCount << endl;
-	std::cout << rayTracer.vertexCount << endl;
 
-	BindMesh();
+	rayTracer.computeDosageMap();
+
+	BindMesh();// TODO: This now also sets the texture, but this should be updated whenever the dosageMap is updated!
 }
 
+/**
+ * \brief Bind the mesh to the OpenGL context
+ */
 void MyApp::BindMesh()
 {
 	shader3D = new ShaderGL("shader3D.vert", "shader3D.frag", false);
@@ -226,6 +207,86 @@ void MyApp::BindMesh()
 	shader3D->Unbind();
 }
 
+// -----------------------------------------------------------
+// Main application tick function - Executed once per frame
+// -----------------------------------------------------------
+void MyApp::Tick(float deltaTime)
+{
+	screen->Clear(0);
+
+	//printf("hello world!\n");
+	// Update the camera
+	camera.UpdateView(keyPresses, deltaTime);
+
+	DrawMesh();
+	DrawUI();
+
+
+#if 0
+	// clear the screen to black
+	screen->Clear(0);
+	int screenWidth = screen->width;
+	int screenHeight = screen->height;
+
+	float3 color = make_float3(0, 0, 0);
+	Ray newray{};
+	for (int u = 0; u < screenWidth; u++) {
+		for (int v = 0; v < screenHeight; v++) {
+			float closestdist = 0;//TODO: find closest triangle
+			color = make_float3(0, 0, 0);
+			float3 umult = (camera.p2 - camera.p1) / screenWidth;
+			float3 vmult = (camera.p3 - camera.p1) / screenHeight;
+			newray.origin = camera.p1 + u * umult + v * vmult;
+			newray.dir = normalize(newray.origin - camera.position);
+			for (int i = 0; i < rayTracer.triangleCount; i += 3)
+			{
+				float u, v;
+				bool hit = TriangleIntersect(newray, rayTracer.vertices[rayTracer.triangles[i]], rayTracer.vertices[rayTracer.triangles[i + 1]], rayTracer.vertices[rayTracer.triangles[i + 2]], u, v);
+				if (hit)
+				{
+					//printf("ray hit %f p1: %f  %f %f \n", newray.dist * newray.dist * 0.008F, camera.p1.x, camera.p1.y, camera.p1.z);
+					color = make_float3(newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F);
+					break;
+				}
+			}
+
+			//color = raytracer.hostcolorBuffer[u + v * (screenWidth)];
+			screen->Plot(u, v, ((int)(min(color.z, 1.0f) * 255.0f) << 16) +
+				((int)(min(color.y, 1.0f) * 255.0f) << 8) + (int)(min(color.x, 1.0f) * 255.0f));
+		}
+	}
+#endif
+
+
+#if 0
+
+	static Kernel* kernel = 0;			// statics should be members of MyApp of course.
+	static Surface bitmap(512, 512);	// having them here allows us to disable the OpenCL
+	static Buffer* clBuffer = 0;		// demonstration using a single #if 0.
+	static int offset = 0;
+	if (!kernel)
+	{
+		// prepare for OpenCL work
+		Kernel::InitCL();
+		// compile and load kernel "render" from file "kernels.cl"
+		kernel = new Kernel("cl/kernels.cl", "render");
+		// create an OpenCL buffer over using bitmap.pixels
+		clBuffer = new Buffer(512 * 512, Buffer::DEFAULT, bitmap.pixels);
+	}
+	// pass arguments to the OpenCL kernel
+	kernel->SetArgument(0, clBuffer);
+	kernel->SetArgument(1, offset++);
+	// run the kernel; use 512 * 512 threads
+	kernel->Run(512 * 512);
+	// get the results back from GPU to CPU (and thus: into bitmap.pixels)
+	clBuffer->CopyFromDevice();
+	// show the result on screen
+	bitmap.CopyTo(screen, 500, 200);
+
+#endif
+
+}
+
 void MyApp::DrawMesh()
 {
 	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
@@ -257,107 +318,22 @@ void MyApp::DrawMesh()
 	shader3D->Unbind();
 }
 
-// -----------------------------------------------------------
-// Main application tick function - Executed once per frame
-// -----------------------------------------------------------
-void MyApp::Tick( float deltaTime )
+void MyApp::DrawUI()
 {
-	screen->Clear(0);
-
-
-
-	screen->Print("TEST", SCRWIDTH / 10, SCRHEIGHT / 10, MAXUINT);//Unscalable :( use learnopengl method instead
-
-	//printf("hello world!\n");
-	// Update the camera
-	camera.UpdateView(keyPresses, deltaTime);
-
-	DrawMesh();
-
-
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	ImGui::Begin("Render statistics", 0);
 	ImGui::SetWindowFontScale(1.5f);
-	ImGui::Text("Frame time:   %6.2fms", 3.0f * 1000);
-	float* lightPosInput = new float[3];//move to header file
-	ImGui::InputFloat3("Light position", lightPosInput);
+	ImGui::Text("Triangle count: %u", rayTracer.triangleCount);
+	ImGui::Text("Vertex count: %u", rayTracer.vertexCount / 5);
+	ImGui::InputFloat3("Light position", rayTracer.lightPos.cell);
 	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-#if 0
-	// clear the screen to black
-	screen->Clear( 0 );
-	int screenWidth = screen->width;
-	int screenHeight = screen->height;
-
-	float3 color = make_float3(0,0,0);
-	Ray newray{};
-	for (int u = 0; u < screenWidth; u++) {
-		for (int v = 0; v < screenHeight; v++) {
-			float closestdist = 0;//TODO: find closest triangle
-			color = make_float3(0, 0, 0);
-			float3 umult = (camera.p2 - camera.p1) / screenWidth;
-			float3 vmult = (camera.p3 - camera.p1) / screenHeight;
-			newray.origin = camera.p1 + u * umult + v * vmult;
-			newray.dir = normalize(newray.origin - camera.position);
-			for (int i = 0; i < rayTracer.triangleCount; i+=3)
-			{
-				float u, v;
-				bool hit = TriangleIntersect(newray, rayTracer.vertices[rayTracer.triangles[i]], rayTracer.vertices[rayTracer.triangles[i+1]], rayTracer.vertices[rayTracer.triangles[i+2]], u, v);
-				if (hit)
-				{
-					//printf("ray hit %f p1: %f  %f %f \n", newray.dist * newray.dist * 0.008F, camera.p1.x, camera.p1.y, camera.p1.z);
-					color = make_float3(newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F);
-					break;
-				}
-			}
-
-			//color = raytracer.hostcolorBuffer[u + v * (screenWidth)];
-			screen->Plot(u, v, ((int)(min(color.z, 1.0f) * 255.0f) << 16) +
-				((int)(min(color.y, 1.0f) * 255.0f) << 8) + (int)(min(color.x, 1.0f) * 255.0f));
-		}
-	}
-#endif
-
-	//// plot some colors
-	//for (int red = 0; red < 256; red++) for (int green = 0; green < 256; green++)
-	//{
-	//	int x = red, y = green;
-	//	screen->Plot( x + 200, y + 100, (red << 16) + (green << 8) );
-	//}
-	// plot a white pixel in the bottom right corner
-	//screen->Plot( SCRWIDTH - 2, SCRHEIGHT - 2, 0xffffff );
-
-#if 0
-
-	static Kernel* kernel = 0;			// statics should be members of MyApp of course.
-	static Surface bitmap( 512, 512 );	// having them here allows us to disable the OpenCL
-	static Buffer* clBuffer = 0;		// demonstration using a single #if 0.
-	static int offset = 0;
-	if (!kernel)
-	{
-		// prepare for OpenCL work
-		Kernel::InitCL();		
-		// compile and load kernel "render" from file "kernels.cl"
-		kernel = new Kernel( "cl/kernels.cl", "render" );
-		// create an OpenCL buffer over using bitmap.pixels
-		clBuffer = new Buffer( 512 * 512, Buffer::DEFAULT, bitmap.pixels );
-	}
-	// pass arguments to the OpenCL kernel
-	kernel->SetArgument( 0, clBuffer );
-	kernel->SetArgument( 1, offset++ );
-	// run the kernel; use 512 * 512 threads
-	kernel->Run( 512 * 512 );
-	// get the results back from GPU to CPU (and thus: into bitmap.pixels)
-	clBuffer->CopyFromDevice();
-	// show the result on screen
-	bitmap.CopyTo( screen, 500, 200 );
-
-#endif
-
+	
+	//rayTracer.lightPos = make_float3(lightPosInput[0], lightPosInput[1], lightPosInput[2]);
 }
 
 void MyApp::KeyDown(int key)
