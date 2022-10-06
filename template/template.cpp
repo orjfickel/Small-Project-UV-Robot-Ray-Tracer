@@ -7,6 +7,8 @@
 #define STBI_NO_PSD
 #define STBI_NO_PIC
 #define STBI_NO_PNM
+
+
 #include <glm/fwd.hpp>
 
 #include "lib/tinygltf-master/stb_image.h"
@@ -84,12 +86,21 @@ void main()
 {
 	// open a window
 	if (!glfwInit()) FatalError( "glfwInit failed." );
+	glfwSetTime(0);
 	glfwSetErrorCallback( ErrorCallback );
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MAJOR, 3 ); // 3.3 is enough for our needs
 	glfwWindowHint( GLFW_CONTEXT_VERSION_MINOR, 3 );
 	glfwWindowHint( GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE );
-	glfwWindowHint( GLFW_STENCIL_BITS, GL_FALSE );
+	//glfwWindowHint( GLFW_STENCIL_BITS, GL_FALSE );
 	glfwWindowHint( GLFW_RESIZABLE, GL_FALSE /* easier :) */ );
+	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	glfwWindowHint(GLFW_SAMPLES, 0);
+	glfwWindowHint(GLFW_RED_BITS, 8);
+	glfwWindowHint(GLFW_GREEN_BITS, 8);
+	glfwWindowHint(GLFW_BLUE_BITS, 8);
+	glfwWindowHint(GLFW_ALPHA_BITS, 8);
+	glfwWindowHint(GLFW_STENCIL_BITS, 8);
+	glfwWindowHint(GLFW_DEPTH_BITS, 24);
 #ifdef FULLSCREEN
 	window = glfwCreateWindow( SCRWIDTH, SCRHEIGHT, "Tmpl8-2022", glfwGetPrimaryMonitor(), 0 );
 #else
@@ -97,8 +108,9 @@ void main()
 #endif
 	if (!window) FatalError( "glfwCreateWindow failed." );
 	glfwMakeContextCurrent( window );
+
 	// register callbacks
-	glfwSetWindowSizeCallback( window, ReshapeWindowCallback );
+	//glfwSetWindowSizeCallback( window, ReshapeWindowCallback );
 	glfwSetKeyCallback( window, KeyEventCallback );
 	glfwSetWindowFocusCallback( window, WindowFocusCallback );
 	glfwSetMouseButtonCallback( window, MouseButtonCallback );
@@ -106,7 +118,9 @@ void main()
 	glfwSetCursorPosCallback( window, MousePosCallback );
 	glfwSetCharCallback( window, CharEventCallback );
 	// initialize GLAD
-	if (!gladLoadGLLoader( (GLADloadproc)glfwGetProcAddress )) FatalError( "gladLoadGLLoader failed." );
+	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+		throw std::runtime_error("Could not initialize GLAD!");
+	glGetError(); // pull and ignore unhandled errors like GL_INVALID_ENUM
 	glfwSwapInterval( 0 );
 	// prepare OpenGL state
 	glEnable(GL_DEPTH_TEST);
@@ -135,16 +149,16 @@ void main()
 	Surface* screen = new Surface( SCRWIDTH, SCRHEIGHT );
 	app = CreateApp();
 	app->screen = screen;
-	app->Init();
+	app->Init(window);
 	// done, enter main loop
 #if 1
 	// basic shader: apply gamma correction
-	Shader* shader = new Shader(
+	ShaderGL* shader = new ShaderGL(
 		"#version 330\nin vec4 p;\nin vec2 t;out vec2 u;void main(){u=t;gl_Position=p;}",
 		"#version 330\nuniform sampler2D c;in vec2 u;out vec4 f;void main(){f=/*sqrt*/(texture(c,u));}", true );
 #else
 	// fxaa shader
-	Shader* shader = new Shader(
+	ShaderGL* shader = new ShaderGL(
 		"#version 330\nin vec4 p;\nin vec2 t;out vec2 uv;void main(){uv=t;gl_Position=p;}",
 		// FXAA 3.11 Implementation - effendiian
 		// https://www.shadertoy.com/view/ttXGzn
@@ -273,11 +287,11 @@ void main()
 		// send the rendering result to the screen using OpenGL
 		if (frameNr++ > 1)
 		{
-			renderTarget->CopyFrom( app->screen );
-			shader->Bind();
-			shader->SetInputTexture( 0, "c", renderTarget );
-			DrawQuad();
-			shader->Unbind();
+			//renderTarget->CopyFrom( app->screen );
+			//shader->Bind();
+			//shader->SetInputTexture( 0, "c", renderTarget );
+			//DrawQuad(); //TODO: uncomment to use surface
+			//shader->Unbind();
 			glfwSwapBuffers( window );
 			glfwPollEvents();
 		}
@@ -570,7 +584,7 @@ void GLTexture::CopyTo( Surface* dst )
 }
 
 // Shader class implementation
-Shader::Shader( const char* vfile, const char* pfile, bool fromString )
+ShaderGL::ShaderGL( const char* vfile, const char* pfile, bool fromString )
 {
 	if (fromString)
 	{
@@ -582,13 +596,13 @@ Shader::Shader( const char* vfile, const char* pfile, bool fromString )
 	}
 }
 
-Shader::~Shader()
+ShaderGL::~ShaderGL()
 {
 	glDeleteProgram( ID );
 	CheckGL();
 }
 
-void Shader::Init( const char* vfile, const char* pfile )
+void ShaderGL::Init( const char* vfile, const char* pfile )
 {
 	string vsText = TextFileRead( vfile );
 	string fsText = TextFileRead( pfile );
@@ -599,7 +613,7 @@ void Shader::Init( const char* vfile, const char* pfile )
 	Compile( vertexText, fragmentText );
 }
 
-void Shader::Compile( const char* vtext, const char* ftext )
+void ShaderGL::Compile( const char* vtext, const char* ftext )
 {
 	vertex = glCreateShader( GL_VERTEX_SHADER );
 	pixel = glCreateShader( GL_FRAGMENT_SHADER );
@@ -619,19 +633,19 @@ void Shader::Compile( const char* vtext, const char* ftext )
 	glDeleteShader(pixel);
 }
 
-void Shader::Bind()
+void ShaderGL::Bind()
 {
 	glUseProgram( ID );
 	CheckGL();
 }
 
-void Shader::Unbind()
+void ShaderGL::Unbind()
 {
 	glUseProgram( 0 );
 	CheckGL();
 }
 
-void Shader::SetInputTexture( uint slot, const char* name, GLTexture* texture )
+void ShaderGL::SetInputTexture( uint slot, const char* name, GLTexture* texture )
 {
 	glActiveTexture( GL_TEXTURE0 + slot );
 	glBindTexture( GL_TEXTURE_2D, texture->ID );
@@ -639,33 +653,33 @@ void Shader::SetInputTexture( uint slot, const char* name, GLTexture* texture )
 	CheckGL();
 }
 
-void Shader::SetInputMatrix(const char* name, const mat4& matrix)
+void ShaderGL::SetInputMatrix(const char* name, const mat4& matrix)
 {
 	const GLfloat* data = (const GLfloat*)&matrix;
 	glUniformMatrix4fv(glGetUniformLocation(ID, name), 1, GL_FALSE, data);
 	CheckGL();
 }
 
-void Shader::SetInputMatrixGLM(const char* name, const glm::mat4& matrix)
+void ShaderGL::SetInputMatrixGLM(const char* name, const glm::mat4& matrix)
 {
 	const GLfloat* data = (const GLfloat*)&matrix;
 	glUniformMatrix4fv(glGetUniformLocation(ID, name), 1, GL_FALSE, data);
 	CheckGL();
 }
 
-void Shader::SetFloat( const char* name, const float v )
+void ShaderGL::SetFloat( const char* name, const float v )
 {
 	glUniform1f( glGetUniformLocation( ID, name ), v );
 	CheckGL();
 }
 
-void Shader::SetInt( const char* name, const int v )
+void ShaderGL::SetInt( const char* name, const int v )
 {
 	glUniform1i( glGetUniformLocation( ID, name ), v );
 	CheckGL();
 }
 
-void Shader::SetUInt( const char* name, const uint v )
+void ShaderGL::SetUInt( const char* name, const uint v )
 {
 	glUniform1ui( glGetUniformLocation( ID, name ), v );
 	CheckGL();
@@ -1761,7 +1775,7 @@ void Surface::InitCharset()
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "glad.h"
+#include "glad/glad.h"
 
 static void* get_proc( const char* namez );
 
@@ -2382,6 +2396,7 @@ PFNGLVERTEXP4UIPROC glad_glVertexP4ui = NULL;
 PFNGLVERTEXP4UIVPROC glad_glVertexP4uiv = NULL;
 PFNGLVIEWPORTPROC glad_glViewport = NULL;
 PFNGLWAITSYNCPROC glad_glWaitSync = NULL;
+
 static void load_GL_VERSION_1_0( GLADloadproc load ) {
 	if (!GLAD_GL_VERSION_1_0) return;
 	glad_glCullFace = (PFNGLCULLFACEPROC)load( "glCullFace" );

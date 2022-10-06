@@ -50,7 +50,7 @@ using namespace std;
 #define GLFW_USE_CHDIR 0
 #define GLFW_EXPOSE_NATIVE_WIN32
 #define GLFW_EXPOSE_NATIVE_WGL
-#include <glad.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 
@@ -230,12 +230,12 @@ public:
 
 // shader wrapper
 class mat4;
-class Shader
+class ShaderGL
 {
 public:
 	// constructor / destructor
-	Shader( const char* vfile, const char* pfile, bool fromString );
-	~Shader();
+	ShaderGL( const char* vfile, const char* pfile, bool fromString );
+	~ShaderGL();
 	// methods
 	void Init( const char* vfile, const char* pfile );
 	void Compile( const char* vtext, const char* ftext );
@@ -1244,7 +1244,8 @@ public:
 
 #include "raytracer.h"
 #include "camera.h"
-
+#include "glm/glm.hpp"
+#include "glm/ext.hpp"
 
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp
@@ -1360,7 +1361,7 @@ public:
 class TheApp
 {
 public:
-	virtual void Init() = 0;
+	virtual void Init(GLFWwindow* window) = 0;
 	virtual void Tick( float deltaTime ) = 0;
 	virtual void Shutdown() = 0;
 	virtual void MouseUp( int button ) = 0;

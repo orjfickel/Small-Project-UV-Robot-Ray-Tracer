@@ -1,29 +1,60 @@
 #include "precomp.h"
 #include "myapp.h"
-#include "glm/glm.hpp"
-#include "glm/ext.hpp"
-#include <opencv2/core.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/highgui.hpp>
 
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+
 // #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
-#include "tiny_gltf.h"
+
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include <tiny_gltf.h>
 
 TheApp* CreateApp() { return new MyApp(); }
 tinygltf::Model model;
 tinygltf::TinyGLTF loader;
-string err;
-string warn;
-string modelFile = "assets/simple.glb";//headphones
-Shader* shader3D;
 
 // -----------------------------------------------------------
 // Initialize the application
 // -----------------------------------------------------------
-void MyApp::Init()
+void MyApp::Init(GLFWwindow* window)
 {
+
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	if (!ImGui::CreateContext())
+	{
+		printf("ImGui::CreateContext failed.\n");
+		exit(EXIT_FAILURE);
+	}
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	ImGui::StyleColorsDark(); // or ImGui::StyleColorsClassic();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 130");
+
+	//ImGui::font
+	//ImGui::font
+	//ImGui::ShowDemoWindow();
+	//Screen* screenUI = new nanogui::Screen();
+	//screenUI->initialize(window, true);
+
+	//int width, height;
+	//glfwGetFramebufferSize(window, &width, &height);
+	//glViewport(0, 0, width, height);
+
+	//FormHelper* gui = new FormHelper(screenUI);
+	//Window* windowUI = gui->add_window(Vector2i(10, 10), "Form helper example");
+	//gui->add_group("Basic types");
+	//gui->add_button("A button", []() { std::cout << "Button pressed." << std::endl; });
+	//screenUI->set_visible(true);
+	//screenUI->perform_layout();
+	//windowUI->center();
+
+	//// Draw nanogui
+	//screenUI->drawContents();
+	//screenUI->drawWidgets();
 
 	//bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, modelFile);
 	bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, modelFile); // for binary glTF(.glb)
@@ -74,7 +105,7 @@ void MyApp::Init()
 
 void MyApp::BindMesh()
 {
-	shader3D = new Shader("shader3D.vert", "shader3D.frag", false);
+	shader3D = new ShaderGL("shader3D.vert", "shader3D.frag", false);
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -232,6 +263,9 @@ void MyApp::DrawMesh()
 void MyApp::Tick( float deltaTime )
 {
 	screen->Clear(0);
+
+
+
 	screen->Print("TEST", SCRWIDTH / 10, SCRHEIGHT / 10, MAXUINT);//Unscalable :( use learnopengl method instead
 
 	//printf("hello world!\n");
@@ -239,6 +273,19 @@ void MyApp::Tick( float deltaTime )
 	camera.UpdateView(keyPresses, deltaTime);
 
 	DrawMesh();
+
+
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplGlfw_NewFrame();
+	ImGui::NewFrame();
+	ImGui::Begin("Render statistics", 0);
+	ImGui::SetWindowFontScale(1.5f);
+	ImGui::Text("Frame time:   %6.2fms", 3.0f * 1000);
+	float* lightPosInput = new float[3];//move to header file
+	ImGui::InputFloat3("Light position", lightPosInput);
+	ImGui::End();
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
 #if 0
 	// clear the screen to black
@@ -402,4 +449,5 @@ void MyApp::Shutdown()
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);
+	//nanogui::shutdown();
 }

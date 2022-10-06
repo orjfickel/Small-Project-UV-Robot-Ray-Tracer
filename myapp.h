@@ -19,7 +19,7 @@ class MyApp : public TheApp
 {
 public:
 	// game flow methods
-	void Init();
+	void Init(GLFWwindow* window);
 	void Tick( float deltaTime );
     void Shutdown();
 	// input handling
@@ -33,7 +33,11 @@ public:
 	void BindMesh();
 	void DrawMesh();
 
-	// data members
+    string err;
+    string warn;
+    string modelFile = "assets/simple.glb";//headphones
+    ShaderGL* shader3D;
+
     KeyPresses keyPresses;
 	int2 mousePos;
 	RayTracer rayTracer{};
