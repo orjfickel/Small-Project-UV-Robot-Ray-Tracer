@@ -31,7 +31,7 @@ namespace Tmpl8
 		float* vertices;
 
 		unsigned int vertexCount, // Size of vertices array. Equals the number of vertices times 5
-					 triangleCount; // Size of the triangles array. Equals the number of triangles
+					 triangleCount; // Size of the triangles array. Equals the number of triangles times 3
 
 		vector<float4> dosageMap;
 		float3 lightPos = make_float3(0.5f, 0.5f, 0.5f);

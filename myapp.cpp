@@ -68,8 +68,8 @@ void MyApp::Init(GLFWwindow* window)
 		copy_n(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset], indicesAccessor.count, temp);
 		rayTracer.triangles = temp;
 		
+		
 	} else if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-		cout << " unsigned int triangles" << endl;
 		rayTracer.triangles = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 	}
 
@@ -81,9 +81,10 @@ void MyApp::Init(GLFWwindow* window)
 		rayTracer.vertices[i * 5 + 3] = texcoords[i * 2 + 0];
 		rayTracer.vertices[i * 5 + 4] = texcoords[i * 2 + 1];
 	}
-
+	
 	rayTracer.triangleCount = indicesAccessor.count;
 	rayTracer.vertexCount = positionAccessor.count * 5;
+	// Apparently number of triangles == 3 * number of vertices, so the vertex data must be fat even though you'd think having separate indices would allow preventing that...
 
 	rayTracer.computeDosageMap();
 
@@ -96,6 +97,7 @@ void MyApp::Init(GLFWwindow* window)
 void MyApp::BindMesh()
 {
 	shader3D = new ShaderGL("shader3D.vert", "shader3D.frag", false);
+	glEnable(GL_CULL_FACE);
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -312,7 +314,7 @@ void MyApp::DrawUI()
 	ImGui::NewFrame();
 	ImGui::Begin("Render statistics", 0);
 	ImGui::SetWindowFontScale(1.5f);
-	ImGui::Text("Triangle count: %u", rayTracer.triangleCount);
+	ImGui::Text("Triangle count: %u", rayTracer.triangleCount / 3);
 	ImGui::Text("Vertex count: %u", rayTracer.vertexCount / 5);
 	ImGui::InputFloat3("Light position", rayTracer.lightPos.cell);
 	ImGui::End();

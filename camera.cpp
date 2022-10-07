@@ -17,7 +17,7 @@ Camera::Camera()
 
 void Camera::UpdateView(KeyPresses keyPresses, float deltaTime)// Move all camera view code here & make position change relative while keeping the position itself absolute.
 {
-	float movement = (keyPresses.shiftPress ? 0.01f : 0.005f) * deltaTime;
+	float movement = (keyPresses.shiftPress ? 0.01f : 0.002f) * deltaTime;
 	float turning = 0.001f * deltaTime;
 
 	vec3 turnVec = vec3(0,0,0), moveVec = vec3(0, 0, 0);
