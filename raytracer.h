@@ -27,11 +27,11 @@ namespace Tmpl8
 	public:
 		void computeDosageMap();
 
-		const unsigned short* triangles;
+		const unsigned int* triangles;
 		float* vertices;
 
-		int vertexCount, // Size of vertices array. Equals the number of vertices times 5
-			triangleCount; // Size of the triangles array. Equals the number of triangles
+		unsigned int vertexCount, // Size of vertices array. Equals the number of vertices times 5
+					 triangleCount; // Size of the triangles array. Equals the number of triangles
 
 		vector<float4> dosageMap;
 		float3 lightPos = make_float3(0.5f, 0.5f, 0.5f);

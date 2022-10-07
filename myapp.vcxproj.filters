@@ -25,6 +25,9 @@
     <ClCompile Include="lib\imgui\imgui_widgets.cpp">
       <Filter>imgui</Filter>
     </ClCompile>
+    <ClCompile Include="lib\tinyxml2\tinyxml2.cpp">
+      <Filter>tinyxml2</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="template\common.h">
@@ -63,6 +66,9 @@
     <ClInclude Include="lib\imgui\imstb_truetype.h">
       <Filter>imgui</Filter>
     </ClInclude>
+    <ClInclude Include="lib\tinyxml2\tinyxml2.h">
+      <Filter>tinyxml2</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="template\LICENSE">
@@ -86,6 +92,9 @@
     </Filter>
     <Filter Include="imgui">
       <UniqueIdentifier>{7904cac0-6c0e-4291-b2ea-a146429eb1b0}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="tinyxml2">
+      <UniqueIdentifier>{72b3d47d-a3af-42b4-9e31-0fc725d7dc25}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

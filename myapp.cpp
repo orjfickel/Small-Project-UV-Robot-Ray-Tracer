@@ -10,10 +10,9 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include <tiny_gltf.h>
+#include <glm/gtx/string_cast.hpp>
 
 TheApp* CreateApp() { return new MyApp(); }
-tinygltf::Model model;
-tinygltf::TinyGLTF loader;
 
 // -----------------------------------------------------------
 // Initialize the application
@@ -34,10 +33,11 @@ void MyApp::Init(GLFWwindow* window)
 	ImGui_ImplOpenGL3_Init("#version 130");
 
 	// Load the mesh (TODO: allow specifying model in gui and load after pushing button)
+	tinygltf::Model model;
+	tinygltf::TinyGLTF loader;
 	string err;
 	string warn;
 	bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, modelFile); // for binary glTF(.glb)
-
 	if (!warn.empty()) {
 		printf("Warn: %s\n", warn.c_str());
 	}
@@ -62,8 +62,17 @@ void MyApp::Init(GLFWwindow* window)
 	const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
 	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
 	const float* texcoords = reinterpret_cast<const float*>(&texcoordBuffer.data[texcoordBufferView.byteOffset + texcoordAccessor.byteOffset]);
-	rayTracer.triangles = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
-	
+	if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
+	{
+		unsigned int* temp;
+		copy_n(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset], indicesAccessor.count, temp);
+		rayTracer.triangles = temp;
+		
+	} else if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+		cout << " unsigned int triangles" << endl;
+		rayTracer.triangles = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
+	}
+
 	rayTracer.vertices = new float[positionAccessor.count * 5];
 	for (size_t i = 0; i < positionAccessor.count; ++i) {
 		rayTracer.vertices[i * 5 + 0] = positions[i * 3 + 0];
@@ -96,7 +105,7 @@ void MyApp::BindMesh()
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), rayTracer.vertices, GL_STATIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, rayTracer.triangleCount * sizeof(unsigned short),
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, rayTracer.triangleCount * sizeof(unsigned int),
 		rayTracer.triangles, GL_STATIC_DRAW);
 
 	// vertex positions
@@ -107,70 +116,48 @@ void MyApp::BindMesh()
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 
 	int dosagePointCount = 3;
-	if (model.textures.size() > 0) {
-		tinygltf::Texture& tex = model.textures[model.materials[0].pbrMetallicRoughness.baseColorTexture.index];
 
-		glGenTextures(1, &texture);
+	glGenTextures(1, &texture);
+	
+	glBindTexture(GL_TEXTURE_2D, texture);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);//TODO: ensure no mipmaps are used?
+	
+	//rayTracer.dosageMap.push_back(make_float4(0, 0, 0, 900));
+	rayTracer.dosageMap.push_back(make_float4(0.8, 0, 0, 100));
+	rayTracer.dosageMap.push_back(make_float4(-0.5f, 0.4, -0.5f, 400));
+	rayTracer.dosageMap.push_back(make_float4(0, 0, 0.8, 1));
 
-		tinygltf::Image& image = model.images[tex.source];
+	int texWidth = ceil(dosagePointCount / 10.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
+	int texHeight = ceil(dosagePointCount / texWidth);
 
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);//TODO: ensure no mipmaps are used?
-
-		GLenum format = GL_RGBA;
-
-		if (image.component == 1) {
-			format = GL_RED;
-		}
-		else if (image.component == 2) {
-			format = GL_RG;
-		}
-		else if (image.component == 3) {
-			format = GL_RGB;
-		}
-
-		GLenum type = image.bits == 16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
-
-		cout << "format " << format << endl;
-		cout << "type " << type << endl;
-
-		//rayTracer.dosageMap.push_back(make_float4(0, 0, 0, 900));
-		rayTracer.dosageMap.push_back(make_float4(0.8, 0, 0, 100));
-		rayTracer.dosageMap.push_back(make_float4(-0.5f, 0.4, -0.5f, 400));
-		rayTracer.dosageMap.push_back(make_float4(0, 0, 0.8, 1));
-
-		int texWidth = ceil(dosagePointCount / 10.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
-		int texHeight = ceil(dosagePointCount / texWidth);
-
-		size_t vstride = texWidth * 4;
-		vector<float> imageData;
-		for (int i = 0; i < texHeight; ++i)
+	size_t vstride = texWidth * 4;
+	vector<float> imageData;
+	for (int i = 0; i < texHeight; ++i)
+	{
+		for (int j = 0; j < texWidth; ++j)
 		{
-			for (int j = 0; j < texWidth; ++j)
-			{
-				size_t v = i * vstride;
-				size_t u = j * 4;
-				int index = j * texWidth + i;
-				float4 dosagePoint = index < texWidth* texHeight ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
-				imageData.insert(imageData.end(), { 
-					dosagePoint.x, dosagePoint.y, dosagePoint.z, dosagePoint.w
-				});
-			}
+			size_t v = i * vstride;
+			size_t u = j * 4;
+			int index = j * texWidth + i;
+			float4 dosagePoint = index < texWidth* texHeight ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
+			imageData.insert(imageData.end(), { 
+				dosagePoint.x, dosagePoint.y, dosagePoint.z, dosagePoint.w
+			});
 		}
-		//TODO: save the texture layout and checkers images & get rid of OpenCV
-		//namedWindow("image", cv::WINDOW_AUTOSIZE);
-		//cv::imshow("image", imageMatrix);
-		//cv::waitKey();
-		
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
-			GL_RGBA, GL_FLOAT, &imageData.at(0));
-
-		glBindTexture(GL_TEXTURE_2D, 0);
 	}
+	//TODO: save the texture layout and checkers images & get rid of OpenCV
+	//namedWindow("image", cv::WINDOW_AUTOSIZE);
+	//cv::imshow("image", imageMatrix);
+	//cv::waitKey();
+	
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
+		GL_RGBA, GL_FLOAT, &imageData.at(0));
+
+	glBindTexture(GL_TEXTURE_2D, 0);
   
 #if 0
 	glGenTextures(1, &texture);
@@ -312,7 +299,7 @@ void MyApp::DrawMesh()
 	//shader3D->SetInputMatrixGLM("model", model);
 	//glDrawArrays(GL_TRIANGLES, 0, vertices.size()/5.0f);
 
-	glDrawElements(GL_TRIANGLES, rayTracer.triangleCount, GL_UNSIGNED_SHORT, 0);
+	glDrawElements(GL_TRIANGLES, rayTracer.triangleCount, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 
 	shader3D->Unbind();
@@ -422,6 +409,7 @@ void MyApp::KeyUp(int key)
 
 void MyApp::Shutdown()
 {
+	camera.Save();
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
 	glDeleteBuffers(1, &EBO);

@@ -10,12 +10,13 @@ namespace Tmpl8
 {
 public:
 	Camera();
-	glm::vec3 position = glm::vec3(1, 0, 0),
-		      rotation = glm::vec3(0, 0, 0);
+	void UpdateView(KeyPresses keyPresses, float deltaTime);
+	void Save();
+	void Load();
+
 	glm::mat4 view;
 	float FOV = 40;
-
-	void UpdateView(KeyPresses keyPresses, float deltaTime);
+	const char* cameraFile = "camera.xml";
 };
 
 } // namespace Tmpl8

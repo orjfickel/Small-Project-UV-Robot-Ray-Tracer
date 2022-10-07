@@ -34,7 +34,7 @@ public:
 	void DrawMesh();
 	void DrawUI();
 
-    string modelFile = "assets/simple.glb";//headphones
+    string modelFile = "assets/testroomopt.glb";
     ShaderGL* shader3D;
 
     KeyPresses keyPresses;
