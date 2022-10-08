@@ -31,13 +31,12 @@ void main()
                 minDistSqr = distSqr;
                 minVal = a.w;
             }
-        }
+        }//TODO: try break when getting to the -1 values
     }
-    float maxDistSqr = 1;
-    float colorDist = 0.05f / (minDistSqr / maxDistSqr);
-    //colorDist = colorDist * colorDist * colorDist * colorDist* colorDist* colorDist;
+    float maxVal = 1800;
+    float maxRangeSqr = 0.1f;
+    float colorDist = minDistSqr < maxRangeSqr ? (minVal / maxVal) : 0;
+//    float maxDistSqr = 1;
+//    float colorDist = 0.05f / (minDistSqr / maxDistSqr);
     f = vec4(colorDist, colorDist, colorDist, 1);
-    //float maxVal = 1000;
-    //float colorVal = minVal / maxVal;
-    //f = vec4(colorVal, colorVal, colorVal,1);
 }

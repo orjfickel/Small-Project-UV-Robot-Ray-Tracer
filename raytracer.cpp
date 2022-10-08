@@ -3,6 +3,67 @@
 void RayTracer::computeDosageMap()
 {
 	//Shoot rays
+	//dosageMap.push_back(make_float4(0, 0, 0, 900));
+	//dosageMap.push_back(make_float4(1.8, 0, 0, 100));
+	//dosageMap.push_back(make_float4(-1.5f, 0.4, -1.5f, 400));
+	//dosageMap.push_back(make_float4(0, 0, 1.8, 1));
+
+	for (uint i = 0; i < photonCount; ++i)//TODO: shoot more rays every frame
+	{
+		float3 color = make_float3(0, 0, 0);
+		Ray newray{};
+		newray.origin = make_float3(lightPos.x, lightHeight + 0.5f*lightLength, lightPos.y);//TODO: pick random pos on line
+		newray.dir = normalize(make_float3(RandomFloat() * 2 - 1, RandomFloat() * 2 - 1, RandomFloat() * 2 - 1));//TODO: dependent on light normal?
+		//TODO: make random direction gaussian!
+		float closestDist = 1000000;
+		for (int i = 0; i < triangleCount; i += 3)
+		{
+			float u, v;
+			uint v1 = triangles[i] * 5;
+			uint v2 = triangles[i+1] * 5;
+			uint v3 = triangles[i+2] * 5;//TODO: maybe cast the consecutive points for efficiency?
+			bool hit = TriangleIntersect(newray, make_float3(vertices[v1], vertices[v1 + 1], vertices[v1 + 2]), 
+				make_float3(vertices[v2], vertices[v2 + 1], vertices[v2 + 2]), make_float3(vertices[v3], vertices[v3 + 1], vertices[v3 + 2]), u, v);
+			if (hit)
+			{
+				//printf("ray hit %f p1: %f  %f %f \n", newray.dist * newray.dist * 0.008F, camera.p1.x, camera.p1.y, camera.p1.z);
+				//color = make_float3(newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F);
+				if (newray.dist < closestDist) closestDist = newray.dist;
+			}
+		}
+		//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;
+		dosageMap.push_back(make_float4(newray.origin + newray.dir * closestDist, lightIntensity / (closestDist * closestDist)));
+	}
+
+#if 0
+	float3 color = make_float3(0, 0, 0);
+	Ray newray{};
+	for (int u = 0; u < screenWidth; u++) {
+		for (int v = 0; v < screenHeight; v++) {
+			float closestdist = 0;//TODO: find closest triangle
+			color = make_float3(0, 0, 0);
+			float3 umult = (camera.p2 - camera.p1) / screenWidth;
+			float3 vmult = (camera.p3 - camera.p1) / screenHeight;
+			newray.origin = camera.p1 + u * umult + v * vmult;
+			newray.dir = normalize(newray.origin - camera.position);
+			for (int i = 0; i < rayTracer.triangleCount; i += 3)
+			{
+				float u, v;
+				bool hit = TriangleIntersect(newray, rayTracer.vertices[rayTracer.triangles[i]], rayTracer.vertices[rayTracer.triangles[i + 1]], rayTracer.vertices[rayTracer.triangles[i + 2]], u, v);
+				if (hit)
+				{
+					//printf("ray hit %f p1: %f  %f %f \n", newray.dist * newray.dist * 0.008F, camera.p1.x, camera.p1.y, camera.p1.z);
+					color = make_float3(newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F);
+					break;
+				}
+			}
+
+			//color = raytracer.hostcolorBuffer[u + v * (screenWidth)];
+			screen->Plot(u, v, ((int)(min(color.z, 1.0f) * 255.0f) << 16) +
+				((int)(min(color.y, 1.0f) * 255.0f) << 8) + (int)(min(color.x, 1.0f) * 255.0f));
+		}
+	}
+#endif
 }
 
 // Adapted from https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection

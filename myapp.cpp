@@ -64,13 +64,12 @@ void MyApp::Init(GLFWwindow* window)
 	const float* texcoords = reinterpret_cast<const float*>(&texcoordBuffer.data[texcoordBufferView.byteOffset + texcoordAccessor.byteOffset]);
 	if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
 	{
-		unsigned int* temp;
-		copy_n(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset], indicesAccessor.count, temp);
-		rayTracer.triangles = temp;
-		
-		
+		copy_n(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset], indicesAccessor.count, rayTracer.triangles);
+		//TODO:test		
 	} else if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-		rayTracer.triangles = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
+		const unsigned int* temp = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
+		rayTracer.triangles = new uint[indicesAccessor.count];
+		copy_n(temp, indicesAccessor.count, rayTracer.triangles);
 	}
 
 	rayTracer.vertices = new float[positionAccessor.count * 5];
@@ -86,9 +85,8 @@ void MyApp::Init(GLFWwindow* window)
 	rayTracer.vertexCount = positionAccessor.count * 5;
 	// Apparently number of triangles == 3 * number of vertices, so the vertex data must be fat even though you'd think having separate indices would allow preventing that...
 
-	rayTracer.computeDosageMap();
+	BindMesh();
 
-	BindMesh();// TODO: This now also sets the texture, but this should be updated whenever the dosageMap is updated!
 }
 
 /**
@@ -117,82 +115,59 @@ void MyApp::BindMesh()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 
-	int dosagePointCount = 3;
-
 	glGenTextures(1, &texture);
-	
 	glBindTexture(GL_TEXTURE_2D, texture);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);//TODO: ensure no mipmaps are used?
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glBindTexture(GL_TEXTURE_2D, 0);
+  
+	shader3D->Bind();
+	shader3D->SetInt("tex", 0);
+	glm::mat4 projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
+	shader3D->SetInputMatrixGLM("projection", projection);
+	shader3D->Unbind();
+}
+
+void MyApp::UpdateDosageMap()
+{
+	uint dosagePointCount = rayTracer.dosageMap.size();
+	bool recreateTexture = dosagePointCount > texSize;
+	if (recreateTexture)
+	{
+		texWidth = ceil(dosagePointCount / 10.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
+		texHeight = ceil(dosagePointCount / texWidth);
+		texSize = texWidth * texHeight;
+	}
+	cout << "count " << dosagePointCount << " texwidth " << texWidth << " texheight " << texHeight << endl;
 	
-	//rayTracer.dosageMap.push_back(make_float4(0, 0, 0, 900));
-	rayTracer.dosageMap.push_back(make_float4(0.8, 0, 0, 100));
-	rayTracer.dosageMap.push_back(make_float4(-0.5f, 0.4, -0.5f, 400));
-	rayTracer.dosageMap.push_back(make_float4(0, 0, 0.8, 1));
-
-	int texWidth = ceil(dosagePointCount / 10.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
-	int texHeight = ceil(dosagePointCount / texWidth);
-
-	size_t vstride = texWidth * 4;
 	vector<float> imageData;
 	for (int i = 0; i < texHeight; ++i)
 	{
 		for (int j = 0; j < texWidth; ++j)
 		{
-			size_t v = i * vstride;
-			size_t u = j * 4;
-			int index = j * texWidth + i;
-			float4 dosagePoint = index < texWidth* texHeight ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
-			imageData.insert(imageData.end(), { 
+			const uint index = i * texWidth + j;
+			float4 dosagePoint = index < dosagePointCount ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
+			imageData.insert(imageData.end(), {
 				dosagePoint.x, dosagePoint.y, dosagePoint.z, dosagePoint.w
-			});
+				});
 		}
 	}
-	//TODO: save the texture layout and checkers images & get rid of OpenCV
-	//namedWindow("image", cv::WINDOW_AUTOSIZE);
-	//cv::imshow("image", imageMatrix);
-	//cv::waitKey();
-	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
-		GL_RGBA, GL_FLOAT, &imageData.at(0));
-
-	glBindTexture(GL_TEXTURE_2D, 0);
-  
-#if 0
-	glGenTextures(1, &texture);
 	glBindTexture(GL_TEXTURE_2D, texture);
-	// set the texture wrapping parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	// set texture filtering parameters
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	// load image, create texture and generate mipmaps
-	int width, height, nrChannels;
-	stbi_set_flip_vertically_on_load(true); // tell stb_image.h to flip loaded texture's on the y-axis.
-	unsigned char* data = stbi_load("container.jpg", &width, &height, &nrChannels, 0);
-	if (data)
+	if (recreateTexture)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		//glGenerateMipmap(GL_TEXTURE_2D);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
+			GL_RGBA, GL_FLOAT, &imageData.at(0));
+	} else {
+		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texWidth, texHeight,
+			GL_RGBA, GL_FLOAT, &imageData.at(0));
 	}
-	else
-	{
-		std::cout << "Failed to load texture" << std::endl;
-	}
-	stbi_image_free(data);
 	glBindTexture(GL_TEXTURE_2D, 0);
-	CheckGL();
-#endif
 
 	shader3D->Bind();
 	shader3D->SetInt("pointCount", dosagePointCount);
-	shader3D->SetInt("tex", 0);
-	glm::mat4 projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
-	shader3D->SetInputMatrixGLM("projection", projection);
 	shader3D->Unbind();
 }
 
@@ -202,50 +177,20 @@ void MyApp::BindMesh()
 void MyApp::Tick(float deltaTime)
 {
 	screen->Clear(0);
-
-	//printf("hello world!\n");
+	
 	// Update the camera
 	camera.UpdateView(keyPresses, deltaTime);
 
+	timer += deltaTime;
+	if (timer > 200 && rayTracer.dosageMap.size() < 10000) {
+		cout << timer << endl;
+		timer = 0;
+		rayTracer.computeDosageMap();
+		UpdateDosageMap();
+	}
+
 	DrawMesh();
 	DrawUI();
-
-
-#if 0
-	// clear the screen to black
-	screen->Clear(0);
-	int screenWidth = screen->width;
-	int screenHeight = screen->height;
-
-	float3 color = make_float3(0, 0, 0);
-	Ray newray{};
-	for (int u = 0; u < screenWidth; u++) {
-		for (int v = 0; v < screenHeight; v++) {
-			float closestdist = 0;//TODO: find closest triangle
-			color = make_float3(0, 0, 0);
-			float3 umult = (camera.p2 - camera.p1) / screenWidth;
-			float3 vmult = (camera.p3 - camera.p1) / screenHeight;
-			newray.origin = camera.p1 + u * umult + v * vmult;
-			newray.dir = normalize(newray.origin - camera.position);
-			for (int i = 0; i < rayTracer.triangleCount; i += 3)
-			{
-				float u, v;
-				bool hit = TriangleIntersect(newray, rayTracer.vertices[rayTracer.triangles[i]], rayTracer.vertices[rayTracer.triangles[i + 1]], rayTracer.vertices[rayTracer.triangles[i + 2]], u, v);
-				if (hit)
-				{
-					//printf("ray hit %f p1: %f  %f %f \n", newray.dist * newray.dist * 0.008F, camera.p1.x, camera.p1.y, camera.p1.z);
-					color = make_float3(newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F);
-					break;
-				}
-			}
-
-			//color = raytracer.hostcolorBuffer[u + v * (screenWidth)];
-			screen->Plot(u, v, ((int)(min(color.z, 1.0f) * 255.0f) << 16) +
-				((int)(min(color.y, 1.0f) * 255.0f) << 8) + (int)(min(color.x, 1.0f) * 255.0f));
-		}
-	}
-#endif
-
 
 #if 0
 
@@ -316,7 +261,7 @@ void MyApp::DrawUI()
 	ImGui::SetWindowFontScale(1.5f);
 	ImGui::Text("Triangle count: %u", rayTracer.triangleCount / 3);
 	ImGui::Text("Vertex count: %u", rayTracer.vertexCount / 5);
-	ImGui::InputFloat3("Light position", rayTracer.lightPos.cell);
+	ImGui::InputFloat2("Light position", rayTracer.lightPos.cell);
 	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

@@ -31,6 +31,7 @@ public:
     void KeyDown(int key);
 
 	void BindMesh();
+	void UpdateDosageMap();
 	void DrawMesh();
 	void DrawUI();
 
@@ -44,6 +45,10 @@ public:
 
 	unsigned int texture;
 	unsigned int VAO, VBO, EBO;
+
+	uint texSize = 0, texWidth, texHeight;
+
+	float timer = 1000000;
 };
 
 } // namespace Tmpl8
