@@ -31,7 +31,7 @@ void Camera::UpdateView(KeyPresses keyPresses, float deltaTime)// Move all camer
 	if (keyPresses.leftPress) { turnVec.y += turning; }
 	if (keyPresses.downPress) { turnVec.x -= turning; }
 	if (keyPresses.rightPress) { turnVec.y -= turning; }
-	
+		
 	view = rotate(view, turnVec.y, vec3(vec4(0, 1, 0, 1)));
 	// Only turn up or down if doing so doesn't turn the room upside down
 	if(view[1][1] > 0 || (view[1][2] > 0 != turnVec.x > 0)) 

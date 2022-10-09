@@ -344,6 +344,7 @@ inline uint AddBlend( const uint c1, const uint c2 )
 }
 
 // random numbers
+static uint seed = 0x12345678;
 uint RandomUInt();
 uint RandomUInt( uint& seed );
 float RandomFloat();

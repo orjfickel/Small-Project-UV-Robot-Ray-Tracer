@@ -11,7 +11,7 @@ namespace Tmpl8
 	};
     struct KeyPresses
     {
-        bool wPress, aPress, sPress, dPress, qPress, ePress, upPress, leftPress, downPress, rightPress, shiftPress;
+        bool wPress, aPress, sPress, dPress, qPress, ePress, upPress, leftPress, downPress, rightPress, shiftPress, leftClick;
         float moveTimer = 0, timeTillMove = 2;
     };
 
@@ -23,12 +23,13 @@ public:
 	void Tick( float deltaTime );
     void Shutdown();
 	// input handling
-	void MouseUp( int button ) { /* implement if you want to detect mouse button presses */ }
-	void MouseDown( int button ) { /* implement if you want to detect mouse button presses */ }
+	void MouseUp( int button ) { if (button == GLFW_MOUSE_BUTTON_LEFT) keyPresses.leftClick = false; }
+	void MouseDown(int button) { if (button == GLFW_MOUSE_BUTTON_LEFT) keyPresses.leftClick = true; }
 	void MouseMove( int x, int y ) { mousePos.x = x, mousePos.y = y; }
 	void MouseWheel( float y ) { /* implement if you want to handle the mouse wheel */ }
     void KeyUp(int key);
     void KeyDown(int key);
+	bool CameraKeyPressed();
 
 	void BindMesh();
 	void UpdateDosageMap();
@@ -49,6 +50,8 @@ public:
 	uint texSize = 0, texWidth, texHeight;
 
 	float timer = 1000000;
+	float timerStart = 0;
+	bool bufferSwapDraw = false;
 };
 
 } // namespace Tmpl8

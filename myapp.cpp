@@ -19,6 +19,7 @@ TheApp* CreateApp() { return new MyApp(); }
 // -----------------------------------------------------------
 void MyApp::Init(GLFWwindow* window)
 {
+	seed = time(0);
 	// Initialise ImGui
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext())
@@ -87,6 +88,10 @@ void MyApp::Init(GLFWwindow* window)
 
 	BindMesh();
 
+	rayTracer.computeDosageMap();
+	UpdateDosageMap();
+	DrawMesh();
+	DrawUI();
 }
 
 /**
@@ -137,11 +142,15 @@ void MyApp::UpdateDosageMap()
 	bool recreateTexture = dosagePointCount > texSize;
 	if (recreateTexture)
 	{
-		texWidth = ceil(dosagePointCount / 10.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
-		texHeight = ceil(dosagePointCount / texWidth);
+		texHeight = ceil(dosagePointCount / 2048.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
+		texWidth = 2048;
 		texSize = texWidth * texHeight;
 	}
-	cout << "count " << dosagePointCount << " texwidth " << texWidth << " texheight " << texHeight << endl;
+	cout << "count " << dosagePointCount << " texwidth " << texWidth << " texheight " << texHeight << " texSize " << texSize << endl;
+	int maxSize = 0;
+	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
+	if (texHeight > maxSize)
+		cout << " TEXTURE TOO LARGE?" << endl;
 	
 	vector<float> imageData;
 	for (int i = 0; i < texHeight; ++i)
@@ -149,20 +158,20 @@ void MyApp::UpdateDosageMap()
 		for (int j = 0; j < texWidth; ++j)
 		{
 			const uint index = i * texWidth + j;
-			float4 dosagePoint = index < dosagePointCount ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
+			float3 dosagePoint = index < dosagePointCount ? rayTracer.dosageMap[index] : make_float3(-1, -1, -1);
 			imageData.insert(imageData.end(), {
-				dosagePoint.x, dosagePoint.y, dosagePoint.z, dosagePoint.w
+				dosagePoint.x, dosagePoint.y, dosagePoint.z
 				});
 		}
 	}
 	glBindTexture(GL_TEXTURE_2D, texture);
 	if (recreateTexture)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
-			GL_RGBA, GL_FLOAT, &imageData.at(0));
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, texWidth, texHeight, 0,
+			GL_RGB, GL_FLOAT, &imageData.at(0));
 	} else {
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texWidth, texHeight,
-			GL_RGBA, GL_FLOAT, &imageData.at(0));
+			GL_RGB, GL_FLOAT, &imageData.at(0));
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -176,20 +185,24 @@ void MyApp::UpdateDosageMap()
 // -----------------------------------------------------------
 void MyApp::Tick(float deltaTime)
 {
-	screen->Clear(0);
+	//screen->Clear(0);
 	
 	// Update the camera
 	camera.UpdateView(keyPresses, deltaTime);
 
 	timer += deltaTime;
-	if (timer > 200 && rayTracer.dosageMap.size() < 10000) {
-		cout << timer << endl;
+	bool updatedMap = (timer > 0 && rayTracer.dosageMap.size() < 50000);
+	if (timerStart > 100 && updatedMap) {
 		timer = 0;
 		rayTracer.computeDosageMap();
 		UpdateDosageMap();
 	}
+	if (timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed()) {
+		DrawMesh();
+		timerStart += deltaTime;
+		bufferSwapDraw = !bufferSwapDraw;
+	}
 
-	DrawMesh();
 	DrawUI();
 
 #if 0
@@ -223,7 +236,8 @@ void MyApp::Tick(float deltaTime)
 
 void MyApp::DrawMesh()
 {
-	glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	//glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+	glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glActiveTexture(GL_TEXTURE0);
@@ -265,7 +279,6 @@ void MyApp::DrawUI()
 	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
 	
 	//rayTracer.lightPos = make_float3(lightPosInput[0], lightPosInput[1], lightPosInput[2]);
 }
@@ -352,6 +365,12 @@ void MyApp::KeyUp(int key)
 	default:
 		break;
 	}
+}
+
+bool MyApp::CameraKeyPressed()
+{
+	return keyPresses.wPress || keyPresses.aPress || keyPresses.sPress || keyPresses.dPress || keyPresses.qPress
+		|| keyPresses.ePress || keyPresses.upPress || keyPresses.leftPress || keyPresses.downPress || keyPresses.rightPress || keyPresses.leftClick;
 }
 
 void MyApp::Shutdown()

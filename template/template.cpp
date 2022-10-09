@@ -686,7 +686,6 @@ void ShaderGL::SetUInt( const char* name, const uint v )
 }
 
 // RNG - Marsaglia's xor32
-static uint seed = 0x12345678;
 uint RandomUInt()
 {
 	seed ^= seed << 13;

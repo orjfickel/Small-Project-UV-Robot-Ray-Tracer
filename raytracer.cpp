@@ -8,31 +8,31 @@ void RayTracer::computeDosageMap()
 	//dosageMap.push_back(make_float4(-1.5f, 0.4, -1.5f, 400));
 	//dosageMap.push_back(make_float4(0, 0, 1.8, 1));
 
-	for (uint i = 0; i < photonCount; ++i)//TODO: shoot more rays every frame
+	for (uint i = 0; i < photonCount; ++i)
 	{
-		float3 color = make_float3(0, 0, 0);
 		Ray newray{};
-		newray.origin = make_float3(lightPos.x, lightHeight + 0.5f*lightLength, lightPos.y);//TODO: pick random pos on line
-		newray.dir = normalize(make_float3(RandomFloat() * 2 - 1, RandomFloat() * 2 - 1, RandomFloat() * 2 - 1));//TODO: dependent on light normal?
-		//TODO: make random direction gaussian!
+		newray.origin = make_float3(lightPos.x, lightHeight /*+ RandomFloat() *lightLength*/, lightPos.y);//TODO: pick random pos on line
+		newray.dir = make_float3(RandomFloat() * 2 - 1, RandomFloat() * 2 - 1, RandomFloat() * 2 - 1);//TODO: dependent on light normal? Cosine distribution
+		while (sqrLength(newray.dir) > 1) { // Keep generating random cube vectors until we find one within the sphere
+			newray.dir = make_float3(RandomFloat() * 2 - 1, RandomFloat() * 2 - 1, RandomFloat() * 2 - 1);
+		}
+		newray.dir = normalize(newray.dir);
 		float closestDist = 1000000;
 		for (int i = 0; i < triangleCount; i += 3)
 		{
 			float u, v;
 			uint v1 = triangles[i] * 5;
 			uint v2 = triangles[i+1] * 5;
-			uint v3 = triangles[i+2] * 5;//TODO: maybe cast the consecutive points for efficiency?
+			uint v3 = triangles[i+2] * 5;
 			bool hit = TriangleIntersect(newray, make_float3(vertices[v1], vertices[v1 + 1], vertices[v1 + 2]), 
 				make_float3(vertices[v2], vertices[v2 + 1], vertices[v2 + 2]), make_float3(vertices[v3], vertices[v3 + 1], vertices[v3 + 2]), u, v);
-			if (hit)
+			if (hit && newray.dist > 0 && newray.dist < closestDist)
 			{
-				//printf("ray hit %f p1: %f  %f %f \n", newray.dist * newray.dist * 0.008F, camera.p1.x, camera.p1.y, camera.p1.z);
-				//color = make_float3(newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F, newray.dist * newray.dist * 0.006F);
-				if (newray.dist < closestDist) closestDist = newray.dist;
+				closestDist = newray.dist;
 			}
 		}
 		//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;
-		dosageMap.push_back(make_float4(newray.origin + newray.dir * closestDist, lightIntensity / (closestDist * closestDist)));
+		dosageMap.push_back(newray.origin + newray.dir * closestDist);
 	}
 
 #if 0
