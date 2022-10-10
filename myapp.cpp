@@ -87,11 +87,7 @@ void MyApp::Init(GLFWwindow* window)
 	// Apparently number of triangles == 3 * number of vertices, so the vertex data must be fat even though you'd think having separate indices would allow preventing that...
 
 	BindMesh();
-
-	rayTracer.computeDosageMap();
-	UpdateDosageMap();
-	DrawMesh();
-	DrawUI();
+	rayTracer.Init();
 }
 
 /**
@@ -120,13 +116,18 @@ void MyApp::BindMesh()
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 
-	glGenTextures(1, &texture);
-	glBindTexture(GL_TEXTURE_2D, texture);
+	glGenTextures(1, &rayTracer.dosageTexture);
+	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+#ifdef GPU_RAYTRACING
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
+		GL_RGBA, GL_FLOAT, nullptr);//Stick to 2d texture for now
+#endif
 	glBindTexture(GL_TEXTURE_2D, 0);
   
 	shader3D->Bind();
@@ -137,8 +138,12 @@ void MyApp::BindMesh()
 }
 
 void MyApp::UpdateDosageMap()
-{
-	uint dosagePointCount = rayTracer.dosageMap.size();
+{//Not necessary anymore, if done in OpenCL?
+#ifdef GPU_RAYTRACING
+	
+
+#else
+	uint dosagePointCount = rayTracer.dosageMapSize;
 	bool recreateTexture = dosagePointCount > texSize;
 	if (recreateTexture)
 	{
@@ -158,25 +163,26 @@ void MyApp::UpdateDosageMap()
 		for (int j = 0; j < texWidth; ++j)
 		{
 			const uint index = i * texWidth + j;
-			float3 dosagePoint = index < dosagePointCount ? rayTracer.dosageMap[index] : make_float3(-1, -1, -1);
+			float4 dosagePoint = index < dosagePointCount ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
 			imageData.insert(imageData.end(), {
-				dosagePoint.x, dosagePoint.y, dosagePoint.z
+				dosagePoint.x, dosagePoint.y, dosagePoint.z, dosagePoint.w
 				});
 		}
 	}
-	glBindTexture(GL_TEXTURE_2D, texture);
+	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);
 	if (recreateTexture)
 	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, texWidth, texHeight, 0,
-			GL_RGB, GL_FLOAT, &imageData.at(0));
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
+			GL_RGBA, GL_FLOAT, &imageData.at(0));
 	} else {
 		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texWidth, texHeight,
-			GL_RGB, GL_FLOAT, &imageData.at(0));
+			GL_RGBA, GL_FLOAT, &imageData.at(0));
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
+#endif
 
 	shader3D->Bind();
-	shader3D->SetInt("pointCount", dosagePointCount);
+	shader3D->SetInt("pointCount", rayTracer.dosageMapSize);
 	shader3D->Unbind();
 }
 
@@ -191,47 +197,19 @@ void MyApp::Tick(float deltaTime)
 	camera.UpdateView(keyPresses, deltaTime);
 
 	timer += deltaTime;
-	bool updatedMap = (timer > 0 && rayTracer.dosageMap.size() < 50000);
+	bool updatedMap = (timer > 0 && rayTracer.dosageMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
 	if (timerStart > 100 && updatedMap) {
 		timer = 0;
-		rayTracer.computeDosageMap();
-		UpdateDosageMap();
+		rayTracer.ComputeDosageMap();
+		//UpdateDosageMap();
 	}
 	if (timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed()) {
-		DrawMesh();
+		//DrawMesh();
 		timerStart += deltaTime;
 		bufferSwapDraw = !bufferSwapDraw;
 	}
 
 	DrawUI();
-
-#if 0
-
-	static Kernel* kernel = 0;			// statics should be members of MyApp of course.
-	static Surface bitmap(512, 512);	// having them here allows us to disable the OpenCL
-	static Buffer* clBuffer = 0;		// demonstration using a single #if 0.
-	static int offset = 0;
-	if (!kernel)
-	{
-		// prepare for OpenCL work
-		Kernel::InitCL();
-		// compile and load kernel "render" from file "kernels.cl"
-		kernel = new Kernel("cl/kernels.cl", "render");
-		// create an OpenCL buffer over using bitmap.pixels
-		clBuffer = new Buffer(512 * 512, Buffer::DEFAULT, bitmap.pixels);
-	}
-	// pass arguments to the OpenCL kernel
-	kernel->SetArgument(0, clBuffer);
-	kernel->SetArgument(1, offset++);
-	// run the kernel; use 512 * 512 threads
-	kernel->Run(512 * 512);
-	// get the results back from GPU to CPU (and thus: into bitmap.pixels)
-	clBuffer->CopyFromDevice();
-	// show the result on screen
-	bitmap.CopyTo(screen, 500, 200);
-
-#endif
-
 }
 
 void MyApp::DrawMesh()
@@ -241,7 +219,7 @@ void MyApp::DrawMesh()
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture);
+	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);
 
 	shader3D->Bind();
 

@@ -36,7 +36,7 @@ void main()
         }//TODO: try break when getting to the -1 values
     }
     float maxVal = 1800;
-    float colorDist = (9.0f * nearbyPhotons) / (PI * maxRangeSqr * pointCount);
+    float colorDist = (9.0f * nearbyPhotons) / (PI * maxRangeSqr * pointCount);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
 //    float maxDistSqr = 1;
 //    float colorDist = 0.05f / (minDistSqr / maxDistSqr);
     f = vec4(0.1f + colorDist * 0.3f, colorDist * 0.9f, colorDist, 1);

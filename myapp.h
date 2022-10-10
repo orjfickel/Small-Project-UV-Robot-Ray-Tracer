@@ -44,7 +44,6 @@ public:
 	RayTracer rayTracer{};
 	Camera camera{};
 
-	unsigned int texture;
 	unsigned int VAO, VBO, EBO;
 
 	uint texSize = 0, texWidth, texHeight;

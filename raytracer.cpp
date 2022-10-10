@@ -1,12 +1,45 @@
 #include "precomp.h"
 
-void RayTracer::computeDosageMap()
+void RayTracer::Init()
+{
+	dosageMap = new float4[maxPhotonCount];
+
+#if GPU_RAYTRACING
+	if (!kernel)
+	{
+		// prepare for OpenCL work
+		Kernel::InitCL();
+		// compile and load kernel "render" from file "kernels.cl"
+		kernel = new Kernel("generate.cl", "render");
+		// create an OpenCL buffer over using bitmap.pixels
+		dosageBuffer = new Buffer(dosageTexture, Buffer::TARGET, dosageMap);//TARGET create from texture
+		rayBuffer = new Buffer(maxPhotonCount, Buffer::DEFAULT);
+	}
+#endif
+}
+
+void RayTracer::ComputeDosageMap()
 {
 	//Shoot rays
 	//dosageMap.push_back(make_float4(0, 0, 0, 900));
 	//dosageMap.push_back(make_float4(1.8, 0, 0, 100));
 	//dosageMap.push_back(make_float4(-1.5f, 0.4, -1.5f, 400));
 	//dosageMap.push_back(make_float4(0, 0, 1.8, 1));
+
+#if GPU_RAYTRACING
+
+	// pass arguments to the OpenCL kernel
+	kernel->SetArgument(0, dosageBuffer);
+	kernel->SetArgument(1, dosageMapSize);
+	kernel->SetArgument(2, rayBuffer);
+	// run the kernel; use 512 * 512 threads
+	kernel->Run(photonCount);
+	// get the results back from GPU to CPU (and thus: into bitmap.pixels)
+	dosageBuffer->CopyFromDevice();
+	// show the result on screen
+	//bitmap.CopyTo(screen, 500, 200);
+
+#else
 
 	for (uint i = 0; i < photonCount; ++i)
 	{
@@ -34,6 +67,7 @@ void RayTracer::computeDosageMap()
 		//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;
 		dosageMap.push_back(newray.origin + newray.dir * closestDist);
 	}
+#endif
 
 #if 0
 	float3 color = make_float3(0, 0, 0);

@@ -82,6 +82,12 @@
     </None>
     <None Include="shader3D.vert" />
     <None Include="shader3D.frag" />
+    <None Include="generate.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="extend.cl">
+      <Filter>Kernels</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="template">
@@ -95,6 +101,9 @@
     </Filter>
     <Filter Include="tinyxml2">
       <UniqueIdentifier>{72b3d47d-a3af-42b4-9e31-0fc725d7dc25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Kernels">
+      <UniqueIdentifier>{6971663e-14ba-4a22-bf1d-fe9e02ca769d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

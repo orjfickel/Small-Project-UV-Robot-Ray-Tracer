@@ -1,7 +1,7 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
-__kernel void render( __global uint* pixels, const int offset )
+__kernel void render( __global uint* dosageMap, const int offset )
 {
 	// plot a pixel to outimg
 	const int p = get_global_id( 0 );
