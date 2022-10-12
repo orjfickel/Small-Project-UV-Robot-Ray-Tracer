@@ -1242,6 +1242,7 @@ public:
 // In your own .cpp files just add #include "precomp.h".
 // #include "my_include.h"
 
+#define GPU_RAYTRACING 1;
 
 #include "raytracer.h"
 #include "camera.h"

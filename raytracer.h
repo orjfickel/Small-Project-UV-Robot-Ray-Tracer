@@ -1,15 +1,12 @@
 #pragma once
 
-#define GPU_RAYTRACING 1;
-
 namespace Tmpl8
 {
 
-	class Ray
-	{
-	public:
-		float3 dir;
-		float3 origin;
+	struct ALIGN(32) Ray
+	{ // 32 Bytes
+		float dirx, diry, dirz;
+		float origx,origy,origz;
 		float dist;
 		float intensity; // The power transmitted by the UV light
 	};
@@ -41,13 +38,13 @@ namespace Tmpl8
 
 		float2 lightPos = make_float2(0.0f, 0.0f);
 		float lightLength = 0.5f, lightHeight = 0.2f; // How long and how high light is positioned. TODO: make lightHeight not just the ypos but the distance from the ground.
-		uint photonCount = 2000;
-		int dosageMapSize;
+		int photonCount = 2000;
+		int photonMapSize = 0;
 		uint maxPhotonCount = 50000;
 		float lightIntensity = 180 * 10;
 
-		Kernel* kernel = 0;
-		Buffer* dosageBuffer = 0;
+		Kernel* generateKernel = 0, *extendKernel = 0;
+		Buffer* dosageBuffer = 0, *photonMapBuffer = 0;
 		Buffer* rayBuffer = 0;
 		unsigned int dosageTexture;
 

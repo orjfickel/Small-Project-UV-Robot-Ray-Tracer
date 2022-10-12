@@ -2,18 +2,19 @@
 
 void RayTracer::Init()
 {
-	dosageMap = new float4[maxPhotonCount];
+	//dosageMap = new float4[maxPhotonCount];
 
 #if GPU_RAYTRACING
-	if (!kernel)
+	if (!generateKernel)
 	{
 		// prepare for OpenCL work
 		Kernel::InitCL();
 		// compile and load kernel "render" from file "kernels.cl"
-		kernel = new Kernel("generate.cl", "render");
+		generateKernel = new Kernel("generate.cl", "render");
+		extendKernel = new Kernel("extend.cl", "render");
 		// create an OpenCL buffer over using bitmap.pixels
-		dosageBuffer = new Buffer(dosageTexture, Buffer::TARGET, dosageMap);//TARGET create from texture
-		rayBuffer = new Buffer(maxPhotonCount, Buffer::DEFAULT);
+		photonMapBuffer = new Buffer(4*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
+		rayBuffer = new Buffer(8*maxPhotonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 	}
 #endif
 }
@@ -29,13 +30,20 @@ void RayTracer::ComputeDosageMap()
 #if GPU_RAYTRACING
 
 	// pass arguments to the OpenCL kernel
-	kernel->SetArgument(0, dosageBuffer);
-	kernel->SetArgument(1, dosageMapSize);
-	kernel->SetArgument(2, rayBuffer);
+	generateKernel->SetArgument(0, rayBuffer);
+	generateKernel->SetArgument(1, lightPos);
+	generateKernel->SetArgument(2, lightHeight);
+
 	// run the kernel; use 512 * 512 threads
-	kernel->Run(photonCount);
+	generateKernel->Run(photonCount);
 	// get the results back from GPU to CPU (and thus: into bitmap.pixels)
-	dosageBuffer->CopyFromDevice();
+	//dosageBuffer->CopyFromDevice();
+
+	extendKernel->SetArgument(0, photonMapBuffer);
+	extendKernel->SetArgument(1, photonMapSize);
+	extendKernel->SetArgument(2, rayBuffer);
+	extendKernel->Run(photonCount);
+
 	// show the result on screen
 	//bitmap.CopyTo(screen, 500, 200);
 
@@ -99,30 +107,30 @@ void RayTracer::ComputeDosageMap()
 	}
 #endif
 }
-
-// Adapted from https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection
-bool Tmpl8::TriangleIntersect(Ray& ray, float3 v1, float3 v2, float3 v3, float& u, float& v)
-{
-	float3 v1v2 = v2 - v1;
-	float3 v1v3 = v3 - v1;
-	const float3 pvec = cross(ray.dir, v1v3);
-	float det = dot(v1v2, pvec);
-
-	// ray and triangle are parallel if det is close to 0
-	if (fabs(det) <= 0.0001f) return false;
-
-	float invDet = 1 / det;
-
-	const float3 tvec = ray.origin - v1;
-	u = dot(tvec, pvec) * invDet;
-	if (u < 0 || u > 1) return false;
-
-	const float3 qvec = cross(tvec, v1v2);
-	v = dot(ray.dir, qvec) * invDet;
-
-	if (v < 0 || u + v > 1) return false;
-
-	ray.dist = dot(v1v3, qvec) * invDet;
-
-	return true;
-}
+//
+//// Adapted from https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection
+//bool Tmpl8::TriangleIntersect(Ray& ray, float3 v1, float3 v2, float3 v3, float& u, float& v)
+//{
+//	float3 v1v2 = v2 - v1;
+//	float3 v1v3 = v3 - v1;
+//	const float3 pvec = cross(ray.dir, v1v3);
+//	float det = dot(v1v2, pvec);
+//
+//	// ray and triangle are parallel if det is close to 0
+//	if (fabs(det) <= 0.0001f) return false;
+//
+//	float invDet = 1 / det;
+//
+//	const float3 tvec = ray.origin - v1;
+//	u = dot(tvec, pvec) * invDet;
+//	if (u < 0 || u > 1) return false;
+//
+//	const float3 qvec = cross(tvec, v1v2);
+//	v = dot(ray.dir, qvec) * invDet;
+//
+//	if (v < 0 || u + v > 1) return false;
+//
+//	ray.dist = dot(v1v3, qvec) * invDet;
+//
+//	return true;
+//}

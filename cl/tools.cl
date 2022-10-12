@@ -3,4 +3,11 @@ uint WangHash( uint s ) { s = (s ^ 61) ^ (s >> 16), s *= 9, s = s ^ (s >> 4), s 
 uint RandomInt( uint* s ) { *s ^= *s << 13, * s ^= *s >> 17, * s ^= *s << 5; return *s; }
 float RandomFloat( uint* s ) { return RandomInt( s ) * 2.3283064365387e-10f; /* = 1 / (2^32-1) */ }
 
+struct Ray
+{ // 32 Bytes
+	float dirx, diry, dirz;
+	float origx, origy, origz;
+	float dist;
+	float intensity; // The power transmitted by the UV light
+};
 // EOF

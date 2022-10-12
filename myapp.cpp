@@ -88,6 +88,8 @@ void MyApp::Init(GLFWwindow* window)
 
 	BindMesh();
 	rayTracer.Init();
+	rayTracer.ComputeDosageMap();
+	UpdateDosageMap();
 }
 
 /**
@@ -124,9 +126,11 @@ void MyApp::BindMesh()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 #ifdef GPU_RAYTRACING
-
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
-		GL_RGBA, GL_FLOAT, nullptr);//Stick to 2d texture for now
+	//texHeight = ceil(rayTracer.maxPhotonCount / 2048.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
+	//texWidth = 2048;
+	//texSize = texWidth * texHeight;
+	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
+	//	GL_RGBA, GL_FLOAT, nullptr);//Stick to 2d texture for now
 #endif
 	glBindTexture(GL_TEXTURE_2D, 0);
   
@@ -143,7 +147,7 @@ void MyApp::UpdateDosageMap()
 	
 
 #else
-	uint dosagePointCount = rayTracer.dosageMapSize;
+	uint dosagePointCount = rayTracer.photonMapSize;
 	bool recreateTexture = dosagePointCount > texSize;
 	if (recreateTexture)
 	{
@@ -182,7 +186,7 @@ void MyApp::UpdateDosageMap()
 #endif
 
 	shader3D->Bind();
-	shader3D->SetInt("pointCount", rayTracer.dosageMapSize);
+	shader3D->SetInt("pointCount", rayTracer.photonMapSize);
 	shader3D->Unbind();
 }
 
@@ -197,14 +201,14 @@ void MyApp::Tick(float deltaTime)
 	camera.UpdateView(keyPresses, deltaTime);
 
 	timer += deltaTime;
-	bool updatedMap = (timer > 0 && rayTracer.dosageMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
+	bool updatedMap = (timer > 0 && rayTracer.photonMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
 	if (timerStart > 100 && updatedMap) {
 		timer = 0;
-		rayTracer.ComputeDosageMap();
+		//rayTracer.ComputeDosageMap();
 		//UpdateDosageMap();
 	}
 	if (timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed()) {
-		//DrawMesh();
+		DrawMesh();
 		timerStart += deltaTime;
 		bufferSwapDraw = !bufferSwapDraw;
 	}
