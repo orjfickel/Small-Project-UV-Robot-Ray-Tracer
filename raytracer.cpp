@@ -2,7 +2,7 @@
 
 void RayTracer::Init()
 {
-	//dosageMap = new float4[maxPhotonCount];
+	dosageMap = new float4[maxPhotonCount];
 
 #if GPU_RAYTRACING
 	if (!generateKernel)
@@ -13,8 +13,11 @@ void RayTracer::Init()
 		generateKernel = new Kernel("generate.cl", "render");
 		extendKernel = new Kernel("extend.cl", "render");
 		// create an OpenCL buffer over using bitmap.pixels
-		photonMapBuffer = new Buffer(4*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
+		photonMapBuffer = new Buffer(4*maxPhotonCount, Buffer::DEFAULT, dosageMap);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
 		rayBuffer = new Buffer(8*maxPhotonCount, Buffer::DEFAULT);//*8 because buffer is in uints
+
+		triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);
+		verticesBuffer = new Buffer(vertexCount, Buffer::DEFAULT, vertices);
 	}
 #endif
 }
@@ -34,15 +37,24 @@ void RayTracer::ComputeDosageMap()
 	generateKernel->SetArgument(1, lightPos);
 	generateKernel->SetArgument(2, lightHeight);
 
-	// run the kernel; use 512 * 512 threads
-	generateKernel->Run(photonCount);
-	// get the results back from GPU to CPU (and thus: into bitmap.pixels)
-	//dosageBuffer->CopyFromDevice();
-
 	extendKernel->SetArgument(0, photonMapBuffer);
 	extendKernel->SetArgument(1, photonMapSize);
 	extendKernel->SetArgument(2, rayBuffer);
+	extendKernel->SetArgument(3, triangleBuffer);
+	extendKernel->SetArgument(4, triangleCount);
+	extendKernel->SetArgument(5, verticesBuffer);
+
+	triangleBuffer->CopyToDevice();
+	verticesBuffer->CopyToDevice();//TODO: use 2
+
+	generateKernel->Run(photonCount);
 	extendKernel->Run(photonCount);
+
+	photonMapBuffer->CopyFromDevice();
+	for (int i = 0; i < photonCount; i++)
+	{
+		cout << dosageMap[i].x << " y " << dosageMap[i].y << " z " << dosageMap[i].z << " dt " << dosageMap[i].w << endl;
+	}
 
 	// show the result on screen
 	//bitmap.CopyTo(screen, 500, 200);

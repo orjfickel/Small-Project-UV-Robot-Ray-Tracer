@@ -30,8 +30,8 @@ namespace Tmpl8
 		uint* triangles;
 		float* vertices;
 
-		uint vertexCount, // Size of vertices array. Equals the number of vertices times 5
-					 triangleCount; // Size of the triangles array. Equals the number of triangles times 3
+		int vertexCount, // Size of vertices array. Equals the number of vertices times 5
+			triangleCount; // Size of the triangles array. Equals the number of triangles times 3
 
 		float4* dosageMap;
 
@@ -44,8 +44,7 @@ namespace Tmpl8
 		float lightIntensity = 180 * 10;
 
 		Kernel* generateKernel = 0, *extendKernel = 0;
-		Buffer* dosageBuffer = 0, *photonMapBuffer = 0;
-		Buffer* rayBuffer = 0;
+		Buffer* dosageBuffer = 0, *photonMapBuffer = 0, *triangleBuffer = 0, *verticesBuffer = 0, *rayBuffer = 0;
 		unsigned int dosageTexture;
 
 		int offset = 0;
