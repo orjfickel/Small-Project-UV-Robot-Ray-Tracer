@@ -3,8 +3,8 @@
 
 __kernel void render(__global struct Ray* rays, float2 lightPos, float lightHeight)
 {
-	const int i = get_global_id(0);
-	uint seed = WangHash((i + 1) * 17);
+	const int threadID = get_global_id(0);
+	uint seed = WangHash((threadID + 1) * 17);
 	
 	struct Ray newray;
 	float3 origin = (float3)(lightPos.x, lightHeight /*+ RandomFloat(seed) *lightLength*/, lightPos.y);//TODO: pick random pos on line
@@ -21,7 +21,7 @@ __kernel void render(__global struct Ray* rays, float2 lightPos, float lightHeig
 	newray.diry = dir.y;
 	newray.dirz = dir.z;
 
-	rays[i] = newray;
+	rays[threadID] = newray;
 	
 }
 

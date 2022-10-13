@@ -188,6 +188,7 @@
     <None Include="extend.cl" />
     <None Include="generate.cl" />
     <None Include="README.md" />
+    <None Include="shade.cl" />
     <None Include="shader3D.frag" />
     <None Include="shader3D.vert" />
     <None Include="template\LICENSE" />

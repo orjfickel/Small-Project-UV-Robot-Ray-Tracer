@@ -53,16 +53,16 @@ void MyApp::Init(GLFWwindow* window)
 	}
 	tinygltf::Primitive& primitive = model.meshes[0].primitives[0];
 	const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
-	const tinygltf::Accessor& texcoordAccessor = model.accessors[primitive.attributes["TEXCOORD_0"]];
+	//const tinygltf::Accessor& texcoordAccessor = model.accessors[primitive.attributes["TEXCOORD_0"]];
 	const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
 	const tinygltf::BufferView& positionBufferView = model.bufferViews[positionAccessor.bufferView];
-	const tinygltf::BufferView& texcoordBufferView = model.bufferViews[texcoordAccessor.bufferView];
+	//const tinygltf::BufferView& texcoordBufferView = model.bufferViews[texcoordAccessor.bufferView];
 	const tinygltf::BufferView& indicesBufferView = model.bufferViews[indicesAccessor.bufferView];
 	const tinygltf::Buffer& positionBuffer = model.buffers[positionBufferView.buffer];
-	const tinygltf::Buffer& texcoordBuffer = model.buffers[texcoordBufferView.buffer];
+	//const tinygltf::Buffer& texcoordBuffer = model.buffers[texcoordBufferView.buffer];
 	const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
 	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
-	const float* texcoords = reinterpret_cast<const float*>(&texcoordBuffer.data[texcoordBufferView.byteOffset + texcoordAccessor.byteOffset]);
+	//const float* texcoords = reinterpret_cast<const float*>(&texcoordBuffer.data[texcoordBufferView.byteOffset + texcoordAccessor.byteOffset]);
 	if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
 	{
 		copy_n(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset], indicesAccessor.count, rayTracer.triangles);
@@ -73,23 +73,23 @@ void MyApp::Init(GLFWwindow* window)
 		copy_n(temp, indicesAccessor.count, rayTracer.triangles);
 	}
 
-	rayTracer.vertices = new float[positionAccessor.count * 5];
+	rayTracer.vertices = new float[positionAccessor.count * 3];
 	for (size_t i = 0; i < positionAccessor.count; ++i) {
-		rayTracer.vertices[i * 5 + 0] = positions[i * 3 + 0];
-		rayTracer.vertices[i * 5 + 1] = positions[i * 3 + 1];
-		rayTracer.vertices[i * 5 + 2] = positions[i * 3 + 2];
-		rayTracer.vertices[i * 5 + 3] = texcoords[i * 2 + 0];
-		rayTracer.vertices[i * 5 + 4] = texcoords[i * 2 + 1];
+		rayTracer.vertices[i * 3 + 0] = positions[i * 3 + 0];
+		rayTracer.vertices[i * 3 + 1] = positions[i * 3 + 1];
+		rayTracer.vertices[i * 3 + 2] = positions[i * 3 + 2];
 	}
 	
 	rayTracer.triangleCount = indicesAccessor.count;
-	rayTracer.vertexCount = positionAccessor.count * 5;
+	rayTracer.vertexCount = positionAccessor.count * 3;
 	// Apparently number of triangles == 3 * number of vertices, so the vertex data must be fat even though you'd think having separate indices would allow preventing that...
 
+	Kernel::InitCL();
+	rayTracer.shadeKernel = new Kernel("shade.cl", "render");
 	BindMesh();
 	rayTracer.Init();
 	rayTracer.ComputeDosageMap();
-	UpdateDosageMap();
+	//UpdateDosageMap();
 }
 
 /**
@@ -102,40 +102,53 @@ void MyApp::BindMesh()
 
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &rayTracer.dosageBufferID);
 	glGenBuffers(1, &EBO);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), rayTracer.vertices, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
+	float* colors = new float[rayTracer.vertexCount];
+	for (int i = 0; i < rayTracer.vertexCount; i++)
+	{
+		colors[i] = (float)i / rayTracer.vertexCount;
+	}
+	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), colors, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, rayTracer.triangleCount * sizeof(unsigned int),
 		rayTracer.triangles, GL_STATIC_DRAW);
 
 	// vertex positions
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)0);
-	// vertex texture coords
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+	// vertex texture coords
+	//glEnableVertexAttribArray(1);
+	//glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
 
-	glGenTextures(1, &rayTracer.dosageTexture);
-	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);
-	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-#ifdef GPU_RAYTRACING
-	//texHeight = ceil(rayTracer.maxPhotonCount / 2048.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
-	//texWidth = 2048;
-	//texSize = texWidth * texHeight;
-	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
-	//	GL_RGBA, GL_FLOAT, nullptr);//Stick to 2d texture for now
-#endif
-	glBindTexture(GL_TEXTURE_2D, 0);
+//	glGenTextures(1, &rayTracer.dosageTexture);
+//	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);
+//	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+//	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+//	glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+//#ifdef GPU_RAYTRACING
+//	//texHeight = ceil(rayTracer.triangleCount / 1024.0f);
+//	//texWidth = 1024;
+//	//texSize = texWidth * texHeight;
+//	//rayTracer.workSize = make_int2(texWidth, texHeight);
+//	//glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
+//	//	GL_RGBA, GL_FLOAT, nullptr);//Stick to 2d texture for now
+//#endif
+//	glBindTexture(GL_TEXTURE_2D, 0);
   
 	shader3D->Bind();
-	shader3D->SetInt("tex", 0);
+	//shader3D->SetInt("tex", 0);
 	glm::mat4 projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
 	shader3D->SetInputMatrixGLM("projection", projection);
 	shader3D->Unbind();
@@ -185,9 +198,9 @@ void MyApp::UpdateDosageMap()
 	glBindTexture(GL_TEXTURE_2D, 0);
 #endif
 
-	shader3D->Bind();
-	shader3D->SetInt("pointCount", rayTracer.photonMapSize);
-	shader3D->Unbind();
+	//shader3D->Bind();
+	//shader3D->SetInt("pointCount", rayTracer.photonMapSize);
+	//shader3D->Unbind();
 }
 
 // -----------------------------------------------------------
@@ -195,25 +208,27 @@ void MyApp::UpdateDosageMap()
 // -----------------------------------------------------------
 void MyApp::Tick(float deltaTime)
 {
-	//screen->Clear(0);
-	
-	// Update the camera
-	camera.UpdateView(keyPresses, deltaTime);
-
+	fpstimer += deltaTime;
 	timer += deltaTime;
-	bool updatedMap = (timer > 0 && rayTracer.photonMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
-	if (timerStart > 100 && updatedMap) {
-		timer = 0;
-		//rayTracer.ComputeDosageMap();
-		//UpdateDosageMap();
-	}
-	if (timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed()) {
-		DrawMesh();
-		timerStart += deltaTime;
-		bufferSwapDraw = !bufferSwapDraw;
-	}
+	if (fpstimer > 8) {
+		// Update the camera
+		camera.UpdateView(keyPresses, fpstimer);
 
-	DrawUI();
+		bool updatedMap = (timer > 0 && rayTracer.photonMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
+		if (timerStart > 100 && updatedMap) {
+			timer = 0;
+			//rayTracer.ComputeDosageMap();
+			//UpdateDosageMap();
+		}
+		if ((timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed())) {
+			DrawMesh();
+			timerStart += deltaTime;
+			bufferSwapDraw = !bufferSwapDraw;
+		}
+
+		DrawUI();
+		fpstimer = 0;
+	}
 }
 
 void MyApp::DrawMesh()
@@ -222,26 +237,14 @@ void MyApp::DrawMesh()
 	glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);
+	/*glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);*/
 
 	shader3D->Bind();
 
 	shader3D->SetInputMatrixGLM("view", camera.view);
-
-	// draw mesh
+	
 	glBindVertexArray(VAO);
-
-	//mat4 model = mat4::Identity();
-	//model = mat4::translate(model, cubePositions[i]);
-	//float angle = 20.0f * i;
-	//model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-	//glm::mat4 model = glm::mat4(1.0f);
-	//model = glm::translate(model, {0,0,0});
-	//model = glm::rotate(model, glm::radians(0.0f), glm::vec3(1.0f, 0.3f, 0.5f));
-	//shader3D->SetInputMatrixGLM("model", model);
-	//glDrawArrays(GL_TRIANGLES, 0, vertices.size()/5.0f);
-
 	glDrawElements(GL_TRIANGLES, rayTracer.triangleCount, GL_UNSIGNED_INT, 0);
 	glBindVertexArray(0);
 
@@ -256,7 +259,7 @@ void MyApp::DrawUI()
 	ImGui::Begin("Render statistics", 0);
 	ImGui::SetWindowFontScale(1.5f);
 	ImGui::Text("Triangle count: %u", rayTracer.triangleCount / 3);
-	ImGui::Text("Vertex count: %u", rayTracer.vertexCount / 5);
+	ImGui::Text("Vertex count: %u", rayTracer.vertexCount / 3);
 	ImGui::InputFloat2("Light position", rayTracer.lightPos.cell);
 	ImGui::End();
 	ImGui::Render();

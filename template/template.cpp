@@ -1024,12 +1024,19 @@ Buffer::Buffer( unsigned int N, unsigned int t, void* ptr )
 	int rwFlags = CL_MEM_READ_WRITE;
 	if (t & READONLY) rwFlags = CL_MEM_READ_ONLY;
 	if (t & WRITEONLY) rwFlags = CL_MEM_WRITE_ONLY;
-	if ((t & (TEXTURE | TARGET)) == 0)
+	if ((t & (TEXTURE | TARGET | GLARRAY)) == 0)
 	{
 		size = N;
 		textureID = 0; // not representing a texture
 		deviceBuffer = clCreateBuffer( Kernel::GetContext(), rwFlags, size * 4, 0, 0 );
 		hostBuffer = (uint*)ptr;
+	} else if ((t & (TEXTURE | TARGET)) == 0)
+	{
+		if (!Kernel::candoInterop) FatalError("didn't expect to get here.");
+		int error = 0;
+		deviceBuffer = clCreateFromGLBuffer(Kernel::GetContext(), CL_MEM_READ_ONLY, N, &error);
+		CHECKCL(error);
+		hostBuffer = 0;
 	}
 	else
 	{
@@ -1483,7 +1490,7 @@ void Kernel::Run( cl_mem* buffers, const int count, cl_event* eventToWaitFor, cl
 	}
 }
 
-void Kernel::Run( Buffer* buffer, const int2 tileSize, cl_event* eventToWaitFor, cl_event* eventToSet, cl_event* acq, cl_event* rel )
+void Kernel::Run( Buffer* buffer, const int2 globalTileSize, const int2 tileSize, cl_event* eventToWaitFor, cl_event* eventToSet, cl_event* acq, cl_event* rel )
 {
 	// execute a kernel for each pixel of a screen buffer, 1 thread per pixel
 	CheckCLStarted();
@@ -1491,14 +1498,17 @@ void Kernel::Run( Buffer* buffer, const int2 tileSize, cl_event* eventToWaitFor,
 	if (!arg0set) FatalError( "Kernel expects at least 1 argument, none set." );
 	if (Kernel::candoInterop)
 	{
+		size_t globalSize[2] = { (size_t)globalTileSize.x, (size_t)globalTileSize.y };
 		size_t localSize[2] = { (size_t)tileSize.x, (size_t)tileSize.y };
 		CHECKCL( error = clEnqueueAcquireGLObjects( queue, 1, buffer->GetDevicePtr(), 0, 0, acq ) );
-		CHECKCL( error = clEnqueueNDRangeKernel( queue, kernel, 2, 0, workSize, localSize, eventToWaitFor ? 1 : 0, eventToWaitFor, eventToSet ) );
+		CHECKCL( error = clEnqueueNDRangeKernel( queue, kernel, 2, 0, globalSize, localSize, eventToWaitFor ? 1 : 0, eventToWaitFor, eventToSet ) );
 		CHECKCL( error = clEnqueueReleaseGLObjects( queue, 1, buffer->GetDevicePtr(), 0, 0, rel ) );
 	}
 	else
 	{
-		CHECKCL( error = clEnqueueNDRangeKernel( queue, kernel, 2, 0, workSize, localSize, eventToWaitFor ? 1 : 0, eventToWaitFor, eventToSet ) );
+		size_t globalSize[2] = { (size_t)globalTileSize.x, (size_t)globalTileSize.y };
+		size_t localSize[2] = { (size_t)tileSize.x, (size_t)tileSize.y };
+		CHECKCL( error = clEnqueueNDRangeKernel( queue, kernel, 2, 0, globalSize, localSize, eventToWaitFor ? 1 : 0, eventToWaitFor, eventToSet ) );
 	}
 }
 
@@ -1512,6 +1522,13 @@ void Kernel::Run( Buffer* buffer, const int count, cl_event* eventToWaitFor, cl_
 	{
 		CHECKCL( error = clEnqueueAcquireGLObjects( queue, 1, buffer->GetDevicePtr(), 0, 0, acq ) );
 		CHECKCL( error = clEnqueueNDRangeKernel( queue, kernel, 1, 0, &workSize, 0, eventToWaitFor ? 1 : 0, eventToWaitFor, eventToSet ) );
+		//cl_int error;
+		//float* temp = new float[count*3];//TODO:remove
+		//CHECKCL(error = clEnqueueReadBuffer(Kernel::GetQueue(), buffer->deviceBuffer, true, 0, count*3 * 4, temp, 0, 0, 0));
+		//for (int i = 0; i < count; ++i)
+		//{
+		//	cout << "temp " << temp[i] << endl;
+		//}
 		CHECKCL( error = clEnqueueReleaseGLObjects( queue, 1, buffer->GetDevicePtr(), 0, 0, rel ) );
 	}
 	else
@@ -1529,11 +1546,11 @@ void Kernel::Run2D( const int2 count, const int2 lsize, cl_event* eventToWaitFor
 	CHECKCL( error = clEnqueueNDRangeKernel( queue, kernel, 2, 0, workSize, localSize, eventToWaitFor ? 1 : 0, eventToWaitFor, eventToSet ) );
 }
 
-void Kernel::Run( const size_t count, const size_t localSize, cl_event* eventToWaitFor, cl_event* eventToSet )
+void Kernel::Run(const size_t count, const size_t localSize, cl_event* eventToWaitFor, cl_event* eventToSet)
 {
 	CheckCLStarted();
 	cl_int error;
-	CHECKCL( error = clEnqueueNDRangeKernel( queue, kernel, 1, 0, &count, localSize == 0 ? 0 : &localSize, eventToWaitFor ? 1 : 0, eventToWaitFor, eventToSet ) );
+	CHECKCL(error = clEnqueueNDRangeKernel(queue, kernel, 1, 0, &count, localSize == 0 ? 0 : &localSize, eventToWaitFor ? 1 : 0, eventToWaitFor, eventToSet));
 }
 
 // surface implementation

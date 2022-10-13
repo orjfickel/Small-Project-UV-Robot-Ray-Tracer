@@ -1150,7 +1150,7 @@ public:
 class Buffer
 {
 public:
-	enum { DEFAULT = 0, TEXTURE = 8, TARGET = 16, READONLY = 1, WRITEONLY = 2 };
+	enum { DEFAULT = 0, TEXTURE = 8, TARGET = 16, READONLY = 1, WRITEONLY = 2, GLARRAY = 32 };
 	// constructor / destructor
 	Buffer() : hostBuffer( 0 ) {}
 	Buffer( unsigned int N, unsigned int t = DEFAULT, void* ptr = 0 );
@@ -1186,11 +1186,11 @@ public:
 	static cl_context& GetContext() { return context; }
 	static cl_device_id& GetDevice() { return device; }
 	// methods
-	void Run( cl_event* eventToWaitFor = 0, cl_event* eventToSet = 0 );
+	void Run(cl_event* eventToWaitFor = 0, cl_event* eventToSet = 0);
 	void Run( cl_mem* buffers, const int count = 1, cl_event* eventToWaitFor = 0, cl_event* eventToSet = 0, cl_event* acq = 0, cl_event* rel = 0 );
-	void Run( Buffer* buffer, const int2 localSize = make_int2( 32, 2 ), cl_event* eventToWaitFor = 0, cl_event* eventToSet = 0, cl_event* acq = 0, cl_event* rel = 0 );
+	void Run( Buffer* buffer, const int2 globalTileSize, const int2 localSize = make_int2( 32, 2 ), cl_event* eventToWaitFor = 0, cl_event* eventToSet = 0, cl_event* acq = 0, cl_event* rel = 0 );
 	void Run( Buffer* buffer, const int count = 1, cl_event* eventToWaitFor = 0, cl_event* eventToSet = 0, cl_event* acq = 0, cl_event* rel = 0 );
-	void Run( const size_t count, const size_t localSize = 0, cl_event* eventToWaitFor = 0, cl_event* eventToSet = 0 );
+	void Run(const size_t count, const size_t localSize = 0, cl_event* eventToWaitFor = 0, cl_event* eventToSet = 0);
 	void Run2D( const int2 count, const int2 lsize, cl_event* eventToWaitFor = 0, cl_event* eventToSet = 0 );
 	void SetArgument( int idx, cl_mem* buffer );
 	void SetArgument( int idx, Buffer* buffer );

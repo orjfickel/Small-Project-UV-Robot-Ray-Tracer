@@ -33,10 +33,9 @@ bool TriangleIntersect(struct Ray* ray, float3 v1, float3 v2, float3 v3)
 __kernel void render(__global float4* photonMap, int offset, __global struct Ray* rays, __global unsigned int* triangles, int triangleCount,
 	__global float* vertices)
 {
-	// plot a pixel to outimg
-	const int i = get_global_id(0);
+	const int threadID = get_global_id(0);
 
-	struct Ray* newray = rays + i;
+	struct Ray* newray = rays + threadID;
 	float closestDist = 1000000;
 	for (int i = 0; i < triangleCount; i += 3)
 	{
@@ -51,7 +50,7 @@ __kernel void render(__global float4* photonMap, int offset, __global struct Ray
 		}
 	}
 	//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;
-	photonMap[i] = (float4)(newray->origx + newray->dirx * closestDist, newray->origy + newray->diry * closestDist, newray->origz + newray->dirz * closestDist, 1);
+	photonMap[threadID + offset] = (float4)(newray->origx + newray->dirx * closestDist, newray->origy + newray->diry * closestDist, newray->origz + newray->dirz * closestDist, 1);
 }
 //
 

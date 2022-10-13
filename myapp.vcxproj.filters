@@ -88,6 +88,9 @@
     <None Include="extend.cl">
       <Filter>Kernels</Filter>
     </None>
+    <None Include="shade.cl">
+      <Filter>Kernels</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="template">

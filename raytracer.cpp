@@ -2,23 +2,22 @@
 
 void RayTracer::Init()
 {
-	dosageMap = new float4[maxPhotonCount];
+	//dosageMap = new float4[maxPhotonCount];
 
 #if GPU_RAYTRACING
-	if (!generateKernel)
-	{
-		// prepare for OpenCL work
-		Kernel::InitCL();
-		// compile and load kernel "render" from file "kernels.cl"
-		generateKernel = new Kernel("generate.cl", "render");
-		extendKernel = new Kernel("extend.cl", "render");
-		// create an OpenCL buffer over using bitmap.pixels
-		photonMapBuffer = new Buffer(4*maxPhotonCount, Buffer::DEFAULT, dosageMap);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
-		rayBuffer = new Buffer(8*maxPhotonCount, Buffer::DEFAULT);//*8 because buffer is in uints
+	// compile and load kernel "render" from file "kernels.cl"
+	generateKernel = new Kernel("generate.cl", "render");
+	extendKernel = new Kernel("extend.cl", "render");
+	//TODO: new shade kernel for determining triangle color & updating opengl texture
+	// create an OpenCL buffer over using bitmap.pixels
+	photonMapBuffer = new Buffer(4*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
+	rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 
-		triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);
-		verticesBuffer = new Buffer(vertexCount, Buffer::DEFAULT, vertices);
-	}
+	triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);
+	verticesBuffer = new Buffer(vertexCount, Buffer::DEFAULT, vertices);
+
+	glBindBuffer(GL_ARRAY_BUFFER, dosageBufferID);
+	dosageBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY/* & Buffer::WRITEONLY*/);
 #endif
 }
 
@@ -31,7 +30,7 @@ void RayTracer::ComputeDosageMap()
 	//dosageMap.push_back(make_float4(0, 0, 1.8, 1));
 
 #if GPU_RAYTRACING
-
+	//TODO: use Photon struct and the triangleID to determine photon density per triangle.
 	// pass arguments to the OpenCL kernel
 	generateKernel->SetArgument(0, rayBuffer);
 	generateKernel->SetArgument(1, lightPos);
@@ -45,16 +44,35 @@ void RayTracer::ComputeDosageMap()
 	extendKernel->SetArgument(5, verticesBuffer);
 
 	triangleBuffer->CopyToDevice();
-	verticesBuffer->CopyToDevice();//TODO: use 2
+	verticesBuffer->CopyToDevice2(true);//TODO: use 2
 
-	generateKernel->Run(photonCount);
-	extendKernel->Run(photonCount);
+	//generateKernel->Run(photonCount);
+	//extendKernel->Run(photonCount);//TODO: turnign theses off fixed stuff?????
 
-	photonMapBuffer->CopyFromDevice();
-	for (int i = 0; i < photonCount; i++)
-	{
-		cout << dosageMap[i].x << " y " << dosageMap[i].y << " z " << dosageMap[i].z << " dt " << dosageMap[i].w << endl;
-	}
+	//photonMapSize += photonCount;
+
+	shadeKernel->SetArgument(0, photonMapBuffer);
+	shadeKernel->SetArgument(1, photonMapSize);
+	shadeKernel->SetArgument(2, dosageBuffer);
+
+	glFinish();
+	glFlush();
+	glBindBuffer(GL_ARRAY_BUFFER, dosageBufferID);
+	shadeKernel->Run(dosageBuffer, vertexCount/3);
+
+		////photonMapBuffer = new float[count*3];//TODO:remove
+		//photonMapBuffer->CopyFromDevice();
+		//for (int i = 0; i < 1000; ++i)
+		//{
+		//	cout << "temp " << photonMapBuffer->hostBuffer[i] << endl;
+		//}
+	clFinish(shadeKernel->GetQueue());
+
+	//photonMapBuffer->CopyFromDevice();
+	//for (int i = 0; i < photonCount; i++)
+	//{
+	//	cout << dosageMap[i].x << " y " << dosageMap[i].y << " z " << dosageMap[i].z << " dt " << dosageMap[i].w << endl;
+	//}
 
 	// show the result on screen
 	//bitmap.CopyTo(screen, 500, 200);
