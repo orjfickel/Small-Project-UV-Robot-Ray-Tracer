@@ -85,7 +85,6 @@ void MyApp::Init(GLFWwindow* window)
 	// Apparently number of triangles == 3 * number of vertices, so the vertex data must be fat even though you'd think having separate indices would allow preventing that...
 
 	Kernel::InitCL();
-	rayTracer.shadeKernel = new Kernel("shade.cl", "render");
 	BindMesh();
 	rayTracer.Init();
 	rayTracer.ComputeDosageMap();

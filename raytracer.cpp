@@ -8,6 +8,7 @@ void RayTracer::Init()
 	// compile and load kernel "render" from file "kernels.cl"
 	generateKernel = new Kernel("generate.cl", "render");
 	extendKernel = new Kernel("extend.cl", "render");
+	shadeKernel = new Kernel("shade.cl", "render");
 	//TODO: new shade kernel for determining triangle color & updating opengl texture
 	// create an OpenCL buffer over using bitmap.pixels
 	photonMapBuffer = new Buffer(4*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
@@ -15,9 +16,8 @@ void RayTracer::Init()
 
 	triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);
 	verticesBuffer = new Buffer(vertexCount, Buffer::DEFAULT, vertices);
-
-	glBindBuffer(GL_ARRAY_BUFFER, dosageBufferID);
-	dosageBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY/* & Buffer::WRITEONLY*/);
+	
+	dosageBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
 #endif
 }
 
@@ -43,30 +43,26 @@ void RayTracer::ComputeDosageMap()
 	extendKernel->SetArgument(4, triangleCount);
 	extendKernel->SetArgument(5, verticesBuffer);
 
-	triangleBuffer->CopyToDevice();
-	verticesBuffer->CopyToDevice2(true);//TODO: use 2
+	//triangleBuffer->CopyToDevice();
+	//verticesBuffer->CopyToDevice2(true);//TODO: use 2
 
-	//generateKernel->Run(photonCount);
-	//extendKernel->Run(photonCount);//TODO: turnign theses off fixed stuff?????
+	generateKernel->Run(photonCount);
+	extendKernel->Run(photonCount);//TODO: turnign theses off fixed stuff?????
 
 	//photonMapSize += photonCount;
 
 	shadeKernel->SetArgument(0, photonMapBuffer);
 	shadeKernel->SetArgument(1, photonMapSize);
 	shadeKernel->SetArgument(2, dosageBuffer);
-
-	glFinish();
-	glFlush();
-	glBindBuffer(GL_ARRAY_BUFFER, dosageBufferID);
+	
 	shadeKernel->Run(dosageBuffer, vertexCount/3);
 
 		////photonMapBuffer = new float[count*3];//TODO:remove
 		//photonMapBuffer->CopyFromDevice();
 		//for (int i = 0; i < 1000; ++i)
 		//{
-		//	cout << "temp " << photonMapBuffer->hostBuffer[i] << endl;
+		//	cout << "temp " << reinterpret_cast<float&>(photonMapBuffer->hostBuffer[i]) << endl;
 		//}
-	clFinish(shadeKernel->GetQueue());
 
 	//photonMapBuffer->CopyFromDevice();
 	//for (int i = 0; i < photonCount; i++)

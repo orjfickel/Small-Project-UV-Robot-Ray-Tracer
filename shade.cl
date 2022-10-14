@@ -45,8 +45,8 @@ __kernel void render(__global float4* photonMap, int photonCount, __global float
     dosageMap[threadID * 3 + 1] = 1;
     dosageMap[threadID * 3 + 2] = 1;
 
-    if (threadID < 1000)
-        photonMap[threadID] = (float4)(8, 8, 8, 8);
+    //if (threadID < 1000)
+    //    photonMap[threadID] = (float4)(8, 8, 8, 8);
     //write_imagef(dosageMap, (int2)(get_global_id(0), get_global_id(1)), (float4)(1,1,1,1))
 }
 

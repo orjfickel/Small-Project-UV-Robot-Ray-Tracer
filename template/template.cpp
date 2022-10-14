@@ -1034,7 +1034,7 @@ Buffer::Buffer( unsigned int N, unsigned int t, void* ptr )
 	{
 		if (!Kernel::candoInterop) FatalError("didn't expect to get here.");
 		int error = 0;
-		deviceBuffer = clCreateFromGLBuffer(Kernel::GetContext(), CL_MEM_READ_ONLY, N, &error);
+		deviceBuffer = clCreateFromGLBuffer(Kernel::GetContext(), rwFlags, N, &error);
 		CHECKCL(error);
 		hostBuffer = 0;
 	}

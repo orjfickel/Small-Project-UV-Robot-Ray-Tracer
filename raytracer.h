@@ -40,7 +40,7 @@ namespace Tmpl8
 		float lightLength = 0.5f, lightHeight = 0.2f; // How long and how high light is positioned. TODO: make lightHeight not just the ypos but the distance from the ground.
 		int photonCount = 2000;
 		int photonMapSize = 0;
-		uint maxPhotonCount = 5000;
+		uint maxPhotonCount = 50000;
 		float lightIntensity = 180 * 10;
 
 		Kernel* generateKernel = 0, * extendKernel = 0, * shadeKernel = 0;
