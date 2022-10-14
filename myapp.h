@@ -31,6 +31,7 @@ public:
     void KeyDown(int key);
 	bool CameraKeyPressed();
 
+	void LoadMesh();
 	void BindMesh();
 	void UpdateDosageMap();
 	void DrawMesh();

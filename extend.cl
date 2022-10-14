@@ -39,9 +39,9 @@ __kernel void render(__global float4* photonMap, int offset, __global struct Ray
 	float closestDist = 1000000;
 	for (int i = 0; i < triangleCount; i += 3)
 	{
-		uint v1 = triangles[i] * 5;
-		uint v2 = triangles[i + 1] * 5;
-		uint v3 = triangles[i + 2] * 5;
+		uint v1 = triangles[i] * 3;
+		uint v2 = triangles[i + 1] * 3;
+		uint v3 = triangles[i + 2] * 3;
 		bool hit = TriangleIntersect(newray, (float3)(vertices[v1], vertices[v1 + 1], vertices[v1 + 2]),
 			(float3)(vertices[v2], vertices[v2 + 1], vertices[v2 + 2]), (float3)(vertices[v3], vertices[v3 + 1], vertices[v3 + 2]));
 		if (hit && newray->dist > 0 && newray->dist < closestDist)

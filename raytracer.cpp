@@ -14,7 +14,7 @@ void RayTracer::Init()
 	photonMapBuffer = new Buffer(4*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
 	rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 
-	triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);
+	triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);	
 	verticesBuffer = new Buffer(vertexCount, Buffer::DEFAULT, vertices);
 	
 	dosageBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
@@ -43,19 +43,26 @@ void RayTracer::ComputeDosageMap()
 	extendKernel->SetArgument(4, triangleCount);
 	extendKernel->SetArgument(5, verticesBuffer);
 
-	//triangleBuffer->CopyToDevice();
-	//verticesBuffer->CopyToDevice2(true);//TODO: use 2
+	verticesBuffer->CopyToDevice();
+	triangleBuffer->CopyToDevice2(true);
 
+	cout << " startKernels " << endl;
 	generateKernel->Run(photonCount);
-	extendKernel->Run(photonCount);//TODO: turnign theses off fixed stuff?????
+	cout << " generate " << endl;
+	extendKernel->Run(photonCount);
+	cout << " extend " << endl;
 
-	//photonMapSize += photonCount;
+	photonMapSize += photonCount;
 
 	shadeKernel->SetArgument(0, photonMapBuffer);
 	shadeKernel->SetArgument(1, photonMapSize);
 	shadeKernel->SetArgument(2, dosageBuffer);
+	shadeKernel->SetArgument(3, triangleBuffer);
+	shadeKernel->SetArgument(4, triangleCount);
+	shadeKernel->SetArgument(5, verticesBuffer);
 	
-	shadeKernel->Run(dosageBuffer, vertexCount/3);
+	shadeKernel->Run(dosageBuffer, vertexCount / 3);
+	cout << " shade " << endl;
 
 		////photonMapBuffer = new float[count*3];//TODO:remove
 		//photonMapBuffer->CopyFromDevice();

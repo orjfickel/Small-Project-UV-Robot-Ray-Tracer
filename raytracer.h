@@ -30,8 +30,8 @@ namespace Tmpl8
 		uint* triangles;
 		float* vertices;
 
-		int vertexCount, // Size of vertices array. Equals the number of vertices times 3
-			triangleCount; // Size of the triangles array. Equals the number of triangles times 3
+		int vertexCount, // Size of the vertices array. Number of vertices times 3 (1 for every axis)
+			triangleCount; // Size of the triangles array. Equals the number of triangles times 3 (so basically the fat number of vertices)
 
 		float4* dosageMap;
 		int2 workSize;

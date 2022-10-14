@@ -33,6 +33,19 @@ void MyApp::Init(GLFWwindow* window)
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
 
+	LoadMesh();
+
+	Kernel::InitCL();
+	cout << "Initialised OpenCL " << endl;
+	BindMesh();
+	rayTracer.Init();
+	rayTracer.ComputeDosageMap();
+	//UpdateDosageMap();
+}
+
+void MyApp::LoadMesh()
+{
+	cout << "Loading mesh " << endl;
 	// Load the mesh (TODO: allow specifying model in gui and load after pushing button)
 	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
@@ -62,33 +75,30 @@ void MyApp::Init(GLFWwindow* window)
 	//const tinygltf::Buffer& texcoordBuffer = model.buffers[texcoordBufferView.buffer];
 	const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
 	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
+	rayTracer.vertices = new float[positionAccessor.count * 3];
+	copy_n(positions, positionAccessor.count * 3, rayTracer.vertices);
 	//const float* texcoords = reinterpret_cast<const float*>(&texcoordBuffer.data[texcoordBufferView.byteOffset + texcoordAccessor.byteOffset]);
+	rayTracer.triangles = new uint[indicesAccessor.count];
 	if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT)
 	{
-		copy_n(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset], indicesAccessor.count, rayTracer.triangles);
-		//TODO:test		
+		cout << "Loading unsigned short type indices " << endl;
+		const unsigned short* temp = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
+		copy_n(temp, indicesAccessor.count, rayTracer.triangles);
+		//for (int i = 0; i < indicesAccessor.count; ++i)
+		//{
+		//	rayTracer.triangles[i] = temp[i];//TODO: halve the indices array size by sending a bool to the kernel for whether to cast the pointer to int or short
+		//}
+
 	} else if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+		cout << "Loading unsigned int type indices " << endl;
 		const unsigned int* temp = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
-		rayTracer.triangles = new uint[indicesAccessor.count];
 		copy_n(temp, indicesAccessor.count, rayTracer.triangles);
 	}
-
-	rayTracer.vertices = new float[positionAccessor.count * 3];
-	for (size_t i = 0; i < positionAccessor.count; ++i) {
-		rayTracer.vertices[i * 3 + 0] = positions[i * 3 + 0];
-		rayTracer.vertices[i * 3 + 1] = positions[i * 3 + 1];
-		rayTracer.vertices[i * 3 + 2] = positions[i * 3 + 2];
-	}
-	
+		
 	rayTracer.triangleCount = indicesAccessor.count;
 	rayTracer.vertexCount = positionAccessor.count * 3;
 	// Apparently number of triangles == 3 * number of vertices, so the vertex data must be fat even though you'd think having separate indices would allow preventing that...
-
-	Kernel::InitCL();
-	BindMesh();
-	rayTracer.Init();
-	rayTracer.ComputeDosageMap();
-	//UpdateDosageMap();
+	
 }
 
 /**
@@ -99,6 +109,7 @@ void MyApp::BindMesh()
 	shader3D = new ShaderGL("shader3D.vert", "shader3D.frag", false);
 	glEnable(GL_CULL_FACE);
 
+	cout << "Binding the mesh " << endl;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
 	glGenBuffers(1, &rayTracer.dosageBufferID);
@@ -111,13 +122,13 @@ void MyApp::BindMesh()
 	float* colors = new float[rayTracer.vertexCount];
 	for (int i = 0; i < rayTracer.vertexCount; i++)
 	{
-		colors[i] = (float)i / rayTracer.vertexCount;
+		colors[i] = (float)i / (rayTracer.vertexCount);
 	}
 	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), colors, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 	glBufferData(GL_ELEMENT_ARRAY_BUFFER, rayTracer.triangleCount * sizeof(unsigned int),
 		rayTracer.triangles, GL_STATIC_DRAW);
-
+	
 	// vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glEnableVertexAttribArray(0);
@@ -258,7 +269,7 @@ void MyApp::DrawUI()
 	ImGui::Begin("Render statistics", 0);
 	ImGui::SetWindowFontScale(1.5f);
 	ImGui::Text("Triangle count: %u", rayTracer.triangleCount / 3);
-	ImGui::Text("Vertex count: %u", rayTracer.vertexCount / 3);
+	ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
 	ImGui::InputFloat2("Light position", rayTracer.lightPos.cell);
 	ImGui::End();
 	ImGui::Render();
