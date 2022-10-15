@@ -45,14 +45,14 @@ public:
 	RayTracer rayTracer{};
 	Camera camera{};
 
-	unsigned int VAO, VBO, EBO;
+	unsigned int VAO, VBO;
 
 	uint texSize = 0, texWidth, texHeight;
 
 	float timer = 1000000;
 	float fpstimer = 1000000;
-	float timerStart = 0;
-	bool bufferSwapDraw = false;
+	//float timerStart = 0;
+	//bool bufferSwapDraw = false;
 };
 
 } // namespace Tmpl8

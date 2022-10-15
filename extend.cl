@@ -30,20 +30,28 @@ bool TriangleIntersect(struct Ray* ray, float3 v1, float3 v2, float3 v3)
 	return true;
 }
 
-__kernel void render(__global float4* photonMap, int offset, __global struct Ray* rays, __global unsigned int* triangles, int triangleCount,
-	__global float* vertices)
+bool Test(struct Ray* ray) {
+	ray->dist = 23509.2f;
+	return true;
+}
+
+__kernel void render(__global float4* photonMap, int offset, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
+	__global float* vertices, int vertexCount)
 {
 	const int threadID = get_global_id(0);
 
 	struct Ray* newray = rays + threadID;
+
 	float closestDist = 1000000;
-	for (int i = 0; i < triangleCount; i += 3)
+	for (int i = 0; i < vertexCount/3; i++)
 	{
-		uint v1 = triangles[i] * 3;
-		uint v2 = triangles[i + 1] * 3;
-		uint v3 = triangles[i + 2] * 3;
+		uint v1 = (i) * 3;
+		uint v2 = (i + 1) * 3;
+		uint v3 = (i + 2) * 3;
 		bool hit = TriangleIntersect(newray, (float3)(vertices[v1], vertices[v1 + 1], vertices[v1 + 2]),
 			(float3)(vertices[v2], vertices[v2 + 1], vertices[v2 + 2]), (float3)(vertices[v3], vertices[v3 + 1], vertices[v3 + 2]));
+		//bool hit = TriangleIntersect(newray, (float3)(0, 1, 2),
+		//	(float3)(2, 1, 0), (float3)(2, 3, 1));
 		if (hit && newray->dist > 0 && newray->dist < closestDist)
 		{
 			closestDist = newray->dist;
@@ -51,6 +59,7 @@ __kernel void render(__global float4* photonMap, int offset, __global struct Ray
 	}
 	//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;
 	photonMap[threadID + offset] = (float4)(newray->origx + newray->dirx * closestDist, newray->origy + newray->diry * closestDist, newray->origz + newray->dirz * closestDist, 1);
+	//if (photonMap[threadID + offset].x > 0) photonMap[threadID + offset] = (float4)(0, 0, 0, 0);
 }
 //
 

@@ -14,10 +14,26 @@ void RayTracer::Init()
 	photonMapBuffer = new Buffer(4*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
 	rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 
-	triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);	
+	//triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);	
 	verticesBuffer = new Buffer(vertexCount, Buffer::DEFAULT, vertices);
-	
+
+	//TODO: since one vertex belongs to multiple faces, we cannot give it a single color, as it would be wrongly interpolated in the fragment shader.
+	//		Therefore a texture map should be used and sent to the fragment shader after all...
+	// Or otherwise render opengl with fat triangle data after all, but use the compressed data for the OpenCL kernels?
 	dosageBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
+
+	generateKernel->SetArgument(0, rayBuffer);
+
+	extendKernel->SetArgument(0, photonMapBuffer);
+	extendKernel->SetArgument(2, rayBuffer);
+	extendKernel->SetArgument(3, verticesBuffer);
+	extendKernel->SetArgument(4, vertexCount);
+
+	shadeKernel->SetArgument(0, photonMapBuffer);
+	shadeKernel->SetArgument(2, dosageBuffer);
+	shadeKernel->SetArgument(3, verticesBuffer);
+
+	verticesBuffer->CopyToDevice();
 #endif
 }
 
@@ -32,37 +48,26 @@ void RayTracer::ComputeDosageMap()
 #if GPU_RAYTRACING
 	//TODO: use Photon struct and the triangleID to determine photon density per triangle.
 	// pass arguments to the OpenCL kernel
-	generateKernel->SetArgument(0, rayBuffer);
 	generateKernel->SetArgument(1, lightPos);
 	generateKernel->SetArgument(2, lightHeight);
 
-	extendKernel->SetArgument(0, photonMapBuffer);
 	extendKernel->SetArgument(1, photonMapSize);
-	extendKernel->SetArgument(2, rayBuffer);
-	extendKernel->SetArgument(3, triangleBuffer);
-	extendKernel->SetArgument(4, triangleCount);
-	extendKernel->SetArgument(5, verticesBuffer);
 
 	verticesBuffer->CopyToDevice();
-	triangleBuffer->CopyToDevice2(true);
+	//triangleBuffer->CopyToDevice2(true);
 
-	cout << " startKernels " << endl;
+	//cout << " startKernels " << endl;
 	generateKernel->Run(photonCount);
-	cout << " generate " << endl;
+	//cout << " generate " << endl;
 	extendKernel->Run(photonCount);
-	cout << " extend " << endl;
+	//cout << " extend " << endl;
 
 	photonMapSize += photonCount;
 
-	shadeKernel->SetArgument(0, photonMapBuffer);
 	shadeKernel->SetArgument(1, photonMapSize);
-	shadeKernel->SetArgument(2, dosageBuffer);
-	shadeKernel->SetArgument(3, triangleBuffer);
-	shadeKernel->SetArgument(4, triangleCount);
-	shadeKernel->SetArgument(5, verticesBuffer);
 	
 	shadeKernel->Run(dosageBuffer, vertexCount / 3);
-	cout << " shade " << endl;
+	cout << " shade " << photonMapSize << endl;
 
 		////photonMapBuffer = new float[count*3];//TODO:remove
 		//photonMapBuffer->CopyFromDevice();

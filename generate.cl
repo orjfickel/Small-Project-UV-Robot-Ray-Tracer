@@ -1,10 +1,12 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
+static uint SEED;
+
 __kernel void render(__global struct Ray* rays, float2 lightPos, float lightHeight)
 {
 	const int threadID = get_global_id(0);
-	uint seed = WangHash((threadID + 1) * 17 + lightHeight * 13 + lightPos.x * 7 + lightPos.y * 11);
+	uint seed = WangHash((threadID + 1) * 17 + lightHeight * 13 + lightPos.x * 7 + lightPos.y * 11 + SEED);
 	
 	struct Ray newray;
 	float3 origin = (float3)(lightPos.x, lightHeight /*+ RandomFloat(seed) *lightLength*/, lightPos.y);//TODO: pick random pos on line
@@ -23,6 +25,7 @@ __kernel void render(__global struct Ray* rays, float2 lightPos, float lightHeig
 
 	rays[threadID] = newray;
 	
+	if (threadID == 0) SEED = seed;
 }
 
 // EOF
