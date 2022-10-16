@@ -39,14 +39,7 @@ void RayTracer::Init()
 
 void RayTracer::ComputeDosageMap()
 {
-	//Shoot rays
-	//dosageMap.push_back(make_float4(0, 0, 0, 900));
-	//dosageMap.push_back(make_float4(1.8, 0, 0, 100));
-	//dosageMap.push_back(make_float4(-1.5f, 0.4, -1.5f, 400));
-	//dosageMap.push_back(make_float4(0, 0, 1.8, 1));
-
 #if GPU_RAYTRACING
-	//TODO: use Photon struct and the triangleID to determine photon density per triangle.
 	// pass arguments to the OpenCL kernel
 	generateKernel->SetArgument(1, lightPos);
 	generateKernel->SetArgument(2, lightHeight);

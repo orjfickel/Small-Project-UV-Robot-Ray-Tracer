@@ -100,7 +100,7 @@ void MyApp::LoadMesh()
 void MyApp::BindMesh()
 {
 	shader3D = new ShaderGL("shader3D.vert", "shader3D.frag", false);
-	glEnable(GL_CULL_FACE);
+	
 
 	cout << "Binding the mesh " << endl;
 	glGenVertexArrays(1, &VAO);
@@ -111,12 +111,7 @@ void MyApp::BindMesh()
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), rayTracer.vertices, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
-	float* colors = new float[rayTracer.vertexCount];
-	for (int i = 0; i < rayTracer.vertexCount; i++)
-	{
-		colors[i] = 0.1f;//(float)i / (rayTracer.vertexCount);
-	}
-	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), colors, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 	
 	// vertex positions
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -127,8 +122,8 @@ void MyApp::BindMesh()
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
   
 	shader3D->Bind();
-	glm::mat4 projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
-	shader3D->SetInputMatrixGLM("projection", projection);
+	camera.projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
+	shader3D->SetInputMatrixGLM("projection", camera.projection);
 	shader3D->Unbind();
 }
 
@@ -183,14 +178,23 @@ void MyApp::UpdateDosageMap()
 // -----------------------------------------------------------
 void MyApp::Tick(float deltaTime)
 {
-	screen->Clear(0);
-	screen->Line(200, -200, 900, 600, MAXUINT);
-
 	fpstimer += deltaTime;
 	timer += deltaTime;
 	if (fpstimer > 8) {
 		// Update the camera
 		camera.UpdateView(keyPresses, fpstimer);
+
+		screen->Clear(0);
+		glm::mat4 newProjection = camera.projection;
+		//newProjection[1][1] *= -1;
+		glm::vec4 lightClipPosBottom = newProjection * camera.view * glm::vec4(rayTracer.lightPos.x, rayTracer.lightHeight, rayTracer.lightPos.y, 1);
+		glm::vec4 lightClipPosTop = newProjection * camera.view * glm::vec4(rayTracer.lightPos.x, rayTracer.lightHeight + rayTracer.lightLength, rayTracer.lightPos.y, 1);
+		glm::vec2 lightScreenPosBottom = ((glm::vec2(lightClipPosBottom.x, -lightClipPosBottom.y) / lightClipPosBottom.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
+		glm::vec2 lightScreenPosTop = ((glm::vec2(lightClipPosTop.x, -lightClipPosTop.y) / lightClipPosTop.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
+		//cout << "lightpos " << lightScreenPosBottom.x << " y " << lightScreenPosBottom.y << endl;
+		
+		screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y, MAXUINT, 3);
+
 
 		bool updatedMap = (timer > 0 && rayTracer.photonMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
 		if (/*timerStart > 100 && */updatedMap) {
@@ -218,7 +222,7 @@ void MyApp::DrawMesh()
 	shader3D->Bind();
 
 	shader3D->SetInputMatrixGLM("view", camera.view);
-	
+	glEnable(GL_CULL_FACE);
 	glBindVertexArray(VAO);
 	glDrawArrays(GL_TRIANGLES, 0, rayTracer.vertexCount);
 	glBindVertexArray(0);

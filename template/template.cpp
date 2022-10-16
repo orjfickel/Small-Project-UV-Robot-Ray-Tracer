@@ -283,6 +283,13 @@ void main()
 	{
 		deltaTime = min( 500.0f, 1000.0f * timer.elapsed() );
 		timer.reset();
+		//for (int i = 10 - SCRWIDTH; i < SCRWIDTH - 10; ++i)
+		//{
+		//	for (int j = 10 - SCRHEIGHT; j < SCRWIDTH - 10; ++j)
+		//	{
+		//		app->screen->Plot(i, j, MAXUINT);
+		//	}
+		//}
 		app->Tick( deltaTime );
 		// send the rendering result to the screen using OpenGL
 		if (frameNr++ > 1)
@@ -290,6 +297,7 @@ void main()
 			renderTarget->CopyFrom( app->screen );
 			shader->Bind();
 			shader->SetInputTexture( 0, "c", renderTarget );
+			glDisable(GL_CULL_FACE);
 			DrawQuad(); //TODO: uncomment to use surface
 			shader->Unbind();
 			glfwSwapBuffers( window );
@@ -1638,7 +1646,7 @@ void Surface::Print( const char* s, int x1, int y1, uint c )
 
 #define OUTCODE(x,y) (((x)<xmin)?1:(((x)>xmax)?2:0))+(((y)<ymin)?4:(((y)>ymax)?8:0))
 
-void Surface::Line( float x1, float y1, float x2, float y2, uint c )
+void Surface::Line( float x1, float y1, float x2, float y2, uint c , uint xthickness)
 {
 	// clip (Cohen-Sutherland, https://en.wikipedia.org/wiki/Cohen%E2%80%93Sutherland_algorithm)
 	const float xmin = 0, ymin = 0, xmax = (float)width - 1, ymax = (float)height - 1;
@@ -1669,7 +1677,10 @@ void Surface::Line( float x1, float y1, float x2, float y2, uint c )
 	float dy = h / (float)l;
 	for (int i = 0; i <= il; i++)
 	{
-		*(pixels + (int)x1 + (int)y1 * width) = c;
+		for (int j = -(int)xthickness; j < (int)xthickness; ++j)
+		{
+			*(pixels + (int)x1 + j + (int)y1 * width) = c;
+		}
 		x1 += dx, y1 += dy;
 	}
 }

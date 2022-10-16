@@ -14,7 +14,7 @@ public:
 	void Save();
 	void Load();
 
-	glm::mat4 view;
+	glm::mat4 view, projection;
 	float FOV = 40;
 	const char* cameraFile = "camera.xml";
 };
