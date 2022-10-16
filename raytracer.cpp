@@ -11,7 +11,7 @@ void RayTracer::Init()
 	shadeKernel = new Kernel("shade.cl", "render");
 	//TODO: new shade kernel for determining triangle color & updating opengl texture
 	// create an OpenCL buffer over using bitmap.pixels
-	photonMapBuffer = new Buffer(4*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
+	photonMapBuffer = new Buffer(6*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
 	rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 
 	//triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);	
@@ -66,7 +66,7 @@ void RayTracer::ComputeDosageMap()
 
 	shadeKernel->SetArgument(1, photonMapSize);
 	
-	shadeKernel->Run(dosageBuffer, vertexCount / 3);
+	shadeKernel->Run(dosageBuffer, vertexCount / 9);
 	cout << " shade " << photonMapSize << endl;
 
 		////photonMapBuffer = new float[count*3];//TODO:remove

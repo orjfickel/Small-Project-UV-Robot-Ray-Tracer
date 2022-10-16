@@ -35,30 +35,37 @@ bool Test(struct Ray* ray) {
 	return true;
 }
 
-__kernel void render(__global float4* photonMap, int offset, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
-	__global float* vertices, int vertexCount)
+__kernel void render(__global struct Photon* photonMap, int offset, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
+	__global struct Triangle* vertices, int vertexCount)
 {
 	const int threadID = get_global_id(0);
 
 	struct Ray* newray = rays + threadID;
 
 	float closestDist = 1000000;
-	for (int i = 0; i < vertexCount/3; i++)
+	int triID = -1;
+	for (int i = 0; i < vertexCount/9; i++)
 	{
-		uint v1 = (i) * 3;
-		uint v2 = (i + 1) * 3;
-		uint v3 = (i + 2) * 3;
-		bool hit = TriangleIntersect(newray, (float3)(vertices[v1], vertices[v1 + 1], vertices[v1 + 2]),
-			(float3)(vertices[v2], vertices[v2 + 1], vertices[v2 + 2]), (float3)(vertices[v3], vertices[v3 + 1], vertices[v3 + 2]));
+		struct Triangle tri = vertices[i];
+		bool hit = TriangleIntersect(newray, (float3)(tri.v1x, tri.v1y, tri.v1z),
+			(float3)(tri.v2x, tri.v2y, tri.v2z), (float3)(tri.v3x, tri.v3y, tri.v3z));
 		//bool hit = TriangleIntersect(newray, (float3)(0, 1, 2),
 		//	(float3)(2, 1, 0), (float3)(2, 3, 1));
 		if (hit && newray->dist > 0 && newray->dist < closestDist)
 		{
 			closestDist = newray->dist;
+			triID = i;
 		}
 	}
-	//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;
-	photonMap[threadID + offset] = (float4)(newray->origx + newray->dirx * closestDist, newray->origy + newray->diry * closestDist, newray->origz + newray->dirz * closestDist, 1);
+	//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;]
+	struct Photon newPhoton;
+	newPhoton.posx = newray->origx + newray->dirx * closestDist;
+	newPhoton.posy = newray->origy + newray->diry * closestDist;
+	newPhoton.posz = newray->origz + newray->dirz * closestDist;
+	newPhoton.timeStep = 1;
+	newPhoton.timePoint = 0;
+	newPhoton.triangleID = /*(vertexCount/3) - */triID;
+	photonMap[threadID + offset] = newPhoton;
 	//if (photonMap[threadID + offset].x > 0) photonMap[threadID + offset] = (float4)(0, 0, 0, 0);
 }
 //
