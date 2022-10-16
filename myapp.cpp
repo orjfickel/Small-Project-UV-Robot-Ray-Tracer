@@ -183,6 +183,9 @@ void MyApp::UpdateDosageMap()
 // -----------------------------------------------------------
 void MyApp::Tick(float deltaTime)
 {
+	screen->Clear(0);
+	screen->Line(200, -200, 900, 600, MAXUINT);
+
 	fpstimer += deltaTime;
 	timer += deltaTime;
 	if (fpstimer > 8) {

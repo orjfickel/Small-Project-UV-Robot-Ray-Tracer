@@ -287,11 +287,11 @@ void main()
 		// send the rendering result to the screen using OpenGL
 		if (frameNr++ > 1)
 		{
-			//renderTarget->CopyFrom( app->screen );
-			//shader->Bind();
-			//shader->SetInputTexture( 0, "c", renderTarget );
-			//DrawQuad(); //TODO: uncomment to use surface
-			//shader->Unbind();
+			renderTarget->CopyFrom( app->screen );
+			shader->Bind();
+			shader->SetInputTexture( 0, "c", renderTarget );
+			DrawQuad(); //TODO: uncomment to use surface
+			shader->Unbind();
 			glfwSwapBuffers( window );
 			glfwPollEvents();
 		}

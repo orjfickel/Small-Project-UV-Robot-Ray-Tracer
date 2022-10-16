@@ -1,8 +1,8 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
-__kernel void render(__global struct Photon* photonMap, int photonCount, __global struct Triangle* dosageMap,// __global unsigned int* triangles,
-    __global struct Triangle* vertices)
+__kernel void render(__global struct Photon* photonMap, int photonCount, __global struct Triangle* dosageMap,
+    __global struct Triangle* vertices)// float power
 {
 	const int threadID = get_global_id(0);
 
@@ -12,44 +12,47 @@ __kernel void render(__global struct Photon* photonMap, int photonCount, __globa
     float3 v3 = (float3)(tri.v3x, tri.v3y, tri.v3z);
     float3 centerPos = (v1 + v2 + v3) / 3;
 
-    float3 v1v2 = v1 - v2;
-    float3 v1v3 = v1 - v3;
-    float area = length(cross(v1v2, v1v3)) / 2.0f;
-
-    //float3 diff = v1 = centerpos;
-    //float distSqr = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-    //diff = v1 = centerpos;
-    //distSqr = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
     int triID = 0;
     
     float minDistSqr = 10000000.0;
     float minVal = 0.0;
-    float maxRangeSqr = 10.3f;//TODO: make this the max dist between the centerpos and the other vertices
+    float maxRangeSqr = 0.25f;
     int nearbyPhotons = 0;
     for (int i = 0; i < photonCount; ++i) {
         struct Photon photon = photonMap[i];
-        //if (photon.timeStep != 0)
-        //    triID = i;
 
         float3 diff = centerPos - (float3)(photon.posx, photon.posy, photon.posz);
         float distSqr = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-        if (distSqr < maxRangeSqr && threadID == photon.triangleID/* && abs(photon.triangleID - threadID) < 10*/) {//wtf
-            //minDistSqr = distSqr;
-            //minVal = a.w;
+        if (distSqr < maxRangeSqr) {
             nearbyPhotons++;
-            if (distSqr < minDistSqr) {
-                minDistSqr = distSqr;
-                triID = photon.triangleID;
-            }
+            //if (distSqr < minDistSqr) {
+            //    minDistSqr = distSqr;
+            //    triID = photon.triangleID;
+            //}
         }
     }    
     float maxVal = 1800;
-    float colorDist = (9.0f * nearbyPhotons) / (area * photonCount);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
-    //    float maxDistSqr = 1;
-    //    float colorDist = 0.05f / (minDistSqr / maxDistSqr);
-    float3 f = (float3)(0.1f + colorDist * 0.3f, colorDist * 0.9f, colorDist);
+    float colorDist = (16.0f * nearbyPhotons) / (PI * maxRangeSqr * photonCount);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
 
-    //TODO: better to use float3 for better cache aligned accesses?//photonCount / 9000.0f;//
+    //    0.1f + colorDist * 0.3f, colorDist * 0.9f, colorDist
+    float3 f;
+    float minDosageColor = 0.3f;
+    float upperHalfColor = minDosageColor + (1.0 - minDosageColor) / 2;
+    float lowerHalfColor = minDosageColor / 2.0f;
+    if (colorDist > minDosageColor) {
+        if (colorDist > upperHalfColor)
+            f = (float3)(1.0f, (1.0f - colorDist) / (1.0f - upperHalfColor), 0);
+        else
+            f = (float3)((colorDist - minDosageColor) / (upperHalfColor - minDosageColor), 1.0f, 0);
+    }
+    else {
+        if (colorDist > lowerHalfColor)
+            f = (float3)(0, 1.0f, (minDosageColor - colorDist) / (minDosageColor - lowerHalfColor));
+        else
+            f = (float3)(0, (colorDist) / (lowerHalfColor), 1.0f);
+    }
+
+    //TODO: better to use float3 for better cache aligned accesses?
     struct Triangle* triColor = &dosageMap[threadID];
     triColor->v1x = f.x;
     triColor->v1y = f.y;
@@ -72,9 +75,6 @@ __kernel void render(__global struct Photon* photonMap, int photonCount, __globa
     //triColor->v3y = testColor;//f.y;
     //triColor->v3z = testColor;//f.z;
 
-    //if (threadID < 1000)
-    //    photonMap[threadID] = (float4)(8, 8, 8, 8);
-    //write_imagef(dosageMap, (int2)(get_global_id(0), get_global_id(1)), (float4)(1,1,1,1))
 }
 
 // EOF
