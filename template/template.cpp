@@ -1675,11 +1675,21 @@ void Surface::Line( float x1, float y1, float x2, float y2, uint c , uint xthick
 	int il = (int)l;
 	float dx = b / (float)l;
 	float dy = h / (float)l;
+	int y1int = -1;
 	for (int i = 0; i <= il; i++)
 	{
-		for (int j = -(int)xthickness; j < (int)xthickness; ++j)
+		int newy1int = (int(y1));
+		if (y1int != newy1int)
 		{
-			*(pixels + (int)x1 + j + (int)y1 * width) = c;
+			y1int = newy1int;
+			for (int j = -(int)xthickness; j < (int)xthickness; ++j)
+			{
+				*(pixels + (int)x1 + j + newy1int * width) = c;
+			}
+		}
+		else
+		{
+			*(pixels + (int)x1 + newy1int * width) = c;
 		}
 		x1 += dx, y1 += dy;
 	}

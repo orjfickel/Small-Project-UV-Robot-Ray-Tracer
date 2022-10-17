@@ -43,6 +43,7 @@ void RayTracer::ComputeDosageMap()
 	// pass arguments to the OpenCL kernel
 	generateKernel->SetArgument(1, lightPos);
 	generateKernel->SetArgument(2, lightHeight);
+	generateKernel->SetArgument(3, lightLength);
 
 	extendKernel->SetArgument(1, photonMapSize);
 
