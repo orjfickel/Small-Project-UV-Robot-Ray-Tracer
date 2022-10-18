@@ -1248,6 +1248,7 @@ public:
 #include "camera.h"
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
+#include "userinterface.h"
 
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp
@@ -1363,7 +1364,7 @@ public:
 class TheApp
 {
 public:
-	virtual void Init(GLFWwindow* window) = 0;
+	virtual void Init(GLFWwindow* window, UserInterface* userInterface) = 0;
 	virtual void Tick( float deltaTime ) = 0;
 	virtual void Shutdown() = 0;
 	virtual void MouseUp( int button ) = 0;

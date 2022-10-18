@@ -147,9 +147,10 @@ void main()
 	// initialize application
 	InitRenderTarget( SCRWIDTH, SCRHEIGHT );
 	Surface* screen = new Surface( SCRWIDTH, SCRHEIGHT );
+	UserInterface userInterface;
 	app = CreateApp();
 	app->screen = screen;
-	app->Init(window);
+	app->Init(window, &userInterface);
 	// done, enter main loop
 #if 1
 	// basic shader: apply gamma correction
@@ -293,16 +294,20 @@ void main()
 			//		app->screen->Plot(i, j, MAXUINT);
 			//	}
 			//}
-			app->Tick(fpstimer);
 			// send the rendering result to the screen using OpenGL
 			if (frameNr++ > 1)
 			{
+				app->Tick(fpstimer);
+
 				renderTarget->CopyFrom(app->screen);
 				shader->Bind();
 				shader->SetInputTexture(0, "c", renderTarget);
 				glDisable(GL_CULL_FACE);
 				DrawQuad();
 				shader->Unbind();
+
+				userInterface.DrawUI();
+
 				glfwSwapBuffers(window);
 				glfwPollEvents();
 			}

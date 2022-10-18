@@ -6,9 +6,6 @@
 
 // #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
 
-#include "imgui.h"
-#include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
 #include <tiny_gltf.h>
 #include <glm/gtx/string_cast.hpp>
 
@@ -17,22 +14,11 @@ TheApp* CreateApp() { return new MyApp(); }
 // -----------------------------------------------------------
 // Initialize the application
 // -----------------------------------------------------------
-void MyApp::Init(GLFWwindow* window)
+void MyApp::Init(GLFWwindow* window, UserInterface* userInterface)
 {
 	seed = time(0);
 
-	// Initialise ImGui
-	IMGUI_CHECKVERSION();
-	if (!ImGui::CreateContext())
-	{
-		printf("ImGui::CreateContext failed.\n");
-		exit(EXIT_FAILURE);
-	}
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	ImGui::StyleColorsDark(); // or ImGui::StyleColorsClassic();
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init("#version 130");
+	userInterface->Init(window, &rayTracer);
 
 	LoadMesh();
 
@@ -40,7 +26,7 @@ void MyApp::Init(GLFWwindow* window)
 	cout << "Initialised OpenCL " << endl;
 	BindMesh();
 	rayTracer.Init();
-	rayTracer.ComputeDosageMap();
+	//rayTracer.ComputeDosageMap();
 	//UpdateDosageMap();
 }
 
@@ -128,51 +114,51 @@ void MyApp::BindMesh()
 	shader3D->Unbind();
 }
 
-void MyApp::UpdateDosageMap()
-{//Not necessary anymore, if done in OpenCL?
-#ifdef GPU_RAYTRACING
-	
-
-#else
-	uint dosagePointCount = rayTracer.photonMapSize;
-	bool recreateTexture = dosagePointCount > texSize;
-	if (recreateTexture)
-	{
-		texHeight = ceil(dosagePointCount / 2048.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
-		texWidth = 2048;
-		texSize = texWidth * texHeight;
-	}
-	cout << "count " << dosagePointCount << " texwidth " << texWidth << " texheight " << texHeight << " texSize " << texSize << endl;
-	int maxSize = 0;
-	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
-	if (texHeight > maxSize)
-		cout << " TEXTURE TOO LARGE?" << endl;
-	
-	vector<float> imageData;
-	for (int i = 0; i < texHeight; ++i)
-	{
-		for (int j = 0; j < texWidth; ++j)
-		{
-			const uint index = i * texWidth + j;
-			float4 dosagePoint = index < dosagePointCount ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
-			imageData.insert(imageData.end(), {
-				dosagePoint.x, dosagePoint.y, dosagePoint.z, dosagePoint.w
-				});
-		}
-	}
-	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);
-	if (recreateTexture)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
-			GL_RGBA, GL_FLOAT, &imageData.at(0));
-	} else {
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texWidth, texHeight,
-			GL_RGBA, GL_FLOAT, &imageData.at(0));
-	}
-	glBindTexture(GL_TEXTURE_2D, 0);
-#endif
-	
-}
+//void MyApp::UpdateDosageMap()
+//{//Not necessary anymore, if done in OpenCL?
+//#ifdef GPU_RAYTRACING
+//	
+//
+//#else
+//	uint dosagePointCount = rayTracer.photonMapSize;
+//	bool recreateTexture = dosagePointCount > texSize;
+//	if (recreateTexture)
+//	{
+//		texHeight = ceil(dosagePointCount / 2048.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
+//		texWidth = 2048;
+//		texSize = texWidth * texHeight;
+//	}
+//	cout << "count " << dosagePointCount << " texwidth " << texWidth << " texheight " << texHeight << " texSize " << texSize << endl;
+//	int maxSize = 0;
+//	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
+//	if (texHeight > maxSize)
+//		cout << " TEXTURE TOO LARGE?" << endl;
+//	
+//	vector<float> imageData;
+//	for (int i = 0; i < texHeight; ++i)
+//	{
+//		for (int j = 0; j < texWidth; ++j)
+//		{
+//			const uint index = i * texWidth + j;
+//			float4 dosagePoint = index < dosagePointCount ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
+//			imageData.insert(imageData.end(), {
+//				dosagePoint.x, dosagePoint.y, dosagePoint.z, dosagePoint.w
+//				});
+//		}
+//	}
+//	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);
+//	if (recreateTexture)
+//	{
+//		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
+//			GL_RGBA, GL_FLOAT, &imageData.at(0));
+//	} else {
+//		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texWidth, texHeight,
+//			GL_RGBA, GL_FLOAT, &imageData.at(0));
+//	}
+//	glBindTexture(GL_TEXTURE_2D, 0);
+//#endif
+//	
+//}
 
 // -----------------------------------------------------------
 // Main application tick function - Executed once per frame
@@ -201,15 +187,13 @@ void MyApp::Tick(float deltaTime)
 	if (/*timerStart > 100 && */updatedMap) {
 		timer = 0;
 		rayTracer.ComputeDosageMap();
-		UpdateDosageMap();
+		//UpdateDosageMap();
 	}
 	//if ((timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed())) {
 	DrawMesh();
 		//timerStart += deltaTime;
 		//bufferSwapDraw = !bufferSwapDraw;
 	//}
-
-	DrawUI();	
 }
 
 void MyApp::DrawMesh()
@@ -227,33 +211,6 @@ void MyApp::DrawMesh()
 	glBindVertexArray(0);
 
 	shader3D->Unbind();
-}
-
-void MyApp::DrawUI()
-{
-	//TODO: ensure it is drawn in front of the lights
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-	ImGui::Begin("Render statistics", 0);
-	ImGui::SetWindowFontScale(1.5f);
-	ImGui::Text("Triangle count: %u", rayTracer.vertexCount / 3);
-	ImGui::End();
-
-	ImGui::Begin("Light positions", 0);
-	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
-	for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
-	{
-		std::string str = "Position " + std::to_string(i);
-		const char* chars = str.c_str();
-		ImGui::InputFloat3(chars, rayTracer.lightPositions[i].position.cell);
-			
-	}
-	ImGui::End();
-	ImGui::Render();
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-	
-	//rayTracer.lightPos = make_float3(lightPosInput[0], lightPosInput[1], lightPosInput[2]);
 }
 
 void MyApp::KeyDown(int key)

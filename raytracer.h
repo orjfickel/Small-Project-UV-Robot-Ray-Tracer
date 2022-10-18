@@ -14,6 +14,7 @@ namespace Tmpl8
 	public:
 		void Init();
 		void ComputeDosageMap();
+		void ResetDosageMap();
 
 		float* vertices;
 
@@ -26,7 +27,7 @@ namespace Tmpl8
 		float lightLength = 1.3f;
 		float floorOffset = -1.5f; //TODO: make lightHeight not just the ypos but the distance from the ground.
 		uint maxPhotonCount = 160000;
-		int photonCount = (int)(maxPhotonCount / 4);
+		int photonCount = (int)(maxPhotonCount / 8);
 		int photonMapSize = 0;
 		float lightIntensity = 180 * 10;
 

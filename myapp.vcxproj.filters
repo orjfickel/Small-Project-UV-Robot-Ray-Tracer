@@ -28,6 +28,7 @@
     <ClCompile Include="lib\tinyxml2\tinyxml2.cpp">
       <Filter>tinyxml2</Filter>
     </ClCompile>
+    <ClCompile Include="userinterface.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="template\common.h">
@@ -69,6 +70,7 @@
     <ClInclude Include="lib\tinyxml2\tinyxml2.h">
       <Filter>tinyxml2</Filter>
     </ClInclude>
+    <ClInclude Include="userinterface.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="template\LICENSE">

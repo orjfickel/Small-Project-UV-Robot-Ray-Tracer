@@ -19,7 +19,7 @@ class MyApp : public TheApp
 {
 public:
 	// game flow methods
-	void Init(GLFWwindow* window);
+	void Init(GLFWwindow* window, UserInterface* userInterface);
 	void Tick( float deltaTime );
     void Shutdown();
 	// input handling
@@ -33,9 +33,8 @@ public:
 
 	void LoadMesh();
 	void BindMesh();
-	void UpdateDosageMap();
+	//void UpdateDosageMap();
 	void DrawMesh();
-	void DrawUI();
 
     string modelFile = "assets/testroomopt.glb";
     ShaderGL* shader3D;
@@ -47,10 +46,9 @@ public:
 
 	unsigned int VAO, VBO;
 
-	uint texSize = 0, texWidth, texHeight;
+	//uint texSize = 0, texWidth, texHeight;
 
 	float timer = 1000000;
-	float fpstimer = 1000000;
 	//float timerStart = 0;
 	//bool bufferSwapDraw = false;
 };
