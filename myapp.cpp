@@ -20,6 +20,7 @@ TheApp* CreateApp() { return new MyApp(); }
 void MyApp::Init(GLFWwindow* window)
 {
 	seed = time(0);
+
 	// Initialise ImGui
 	IMGUI_CHECKVERSION();
 	if (!ImGui::CreateContext())
@@ -178,39 +179,37 @@ void MyApp::UpdateDosageMap()
 // -----------------------------------------------------------
 void MyApp::Tick(float deltaTime)
 {
-	fpstimer += deltaTime;
 	timer += deltaTime;
-	if (fpstimer > 8) {
-		// Update the camera
-		camera.UpdateView(keyPresses, fpstimer);
 
-		screen->Clear(0);
-		glm::mat4 newProjection = camera.projection;
-		//newProjection[1][1] *= -1;
-		glm::vec4 lightClipPosBottom = newProjection * camera.view * glm::vec4(rayTracer.lightPos.x, rayTracer.lightHeight, rayTracer.lightPos.y, 1);
-		glm::vec4 lightClipPosTop = newProjection * camera.view * glm::vec4(rayTracer.lightPos.x, rayTracer.lightHeight + rayTracer.lightLength, rayTracer.lightPos.y, 1);
+	// Update the camera
+	camera.UpdateView(keyPresses, deltaTime);
+
+	screen->Clear(0);
+	for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
+	{
+		float3 lightPos = rayTracer.lightPositions[i].position;
+		glm::vec4 lightClipPosBottom = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y, lightPos.z, 1);
+		glm::vec4 lightClipPosTop = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y + rayTracer.lightLength, lightPos.z, 1);
 		glm::vec2 lightScreenPosBottom = ((glm::vec2(lightClipPosBottom.x, -lightClipPosBottom.y) / lightClipPosBottom.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
 		glm::vec2 lightScreenPosTop = ((glm::vec2(lightClipPosTop.x, -lightClipPosTop.y) / lightClipPosTop.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
 		//cout << "lightpos " << lightScreenPosBottom.x << " y " << lightScreenPosBottom.y << endl;
 		
 		screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y, MAXUINT, 3);
-
-
-		bool updatedMap = (timer > 0 && rayTracer.photonMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
-		if (/*timerStart > 100 && */updatedMap) {
-			timer = 0;
-			rayTracer.ComputeDosageMap();
-			UpdateDosageMap();
-		}
-		//if ((timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed())) {
-		DrawMesh();
-			//timerStart += deltaTime;
-			//bufferSwapDraw = !bufferSwapDraw;
-		//}
-
-		DrawUI();
-		fpstimer = 0;
 	}
+
+	bool updatedMap = (timer > 0 && rayTracer.photonMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
+	if (/*timerStart > 100 && */updatedMap) {
+		timer = 0;
+		rayTracer.ComputeDosageMap();
+		UpdateDosageMap();
+	}
+	//if ((timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed())) {
+	DrawMesh();
+		//timerStart += deltaTime;
+		//bufferSwapDraw = !bufferSwapDraw;
+	//}
+
+	DrawUI();	
 }
 
 void MyApp::DrawMesh()
@@ -232,14 +231,24 @@ void MyApp::DrawMesh()
 
 void MyApp::DrawUI()
 {
+	//TODO: ensure it is drawn in front of the lights
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 	ImGui::Begin("Render statistics", 0);
 	ImGui::SetWindowFontScale(1.5f);
 	ImGui::Text("Triangle count: %u", rayTracer.vertexCount / 3);
+	ImGui::End();
+
+	ImGui::Begin("Light positions", 0);
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
-	ImGui::InputFloat2("Light position", rayTracer.lightPos.cell);
+	for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
+	{
+		std::string str = "Position " + std::to_string(i);
+		const char* chars = str.c_str();
+		ImGui::InputFloat3(chars, rayTracer.lightPositions[i].position.cell);
+			
+	}
 	ImGui::End();
 	ImGui::Render();
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

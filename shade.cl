@@ -2,7 +2,7 @@
 #include "cl/tools.cl"
 
 __kernel void render(__global struct Photon* photonMap, int photonCount, __global struct Triangle* dosageMap,
-    __global struct Triangle* vertices)// float power
+    __global struct Triangle* vertices, int photonsPerLight)// float power
 {
 	const int threadID = get_global_id(0);
 
@@ -32,7 +32,7 @@ __kernel void render(__global struct Photon* photonMap, int photonCount, __globa
         }
     }    
     float maxVal = 1800;
-    float colorDist = (16.0f * nearbyPhotons) / (PI * maxRangeSqr * photonCount);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
+    float colorDist = (16.0f * nearbyPhotons) / (PI * maxRangeSqr * photonsPerLight);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
 
     //    0.1f + colorDist * 0.3f, colorDist * 0.9f, colorDist
     float3 f;

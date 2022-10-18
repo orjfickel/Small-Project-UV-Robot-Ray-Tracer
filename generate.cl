@@ -3,13 +3,16 @@
 
 static uint SEED;
 
-__kernel void render(__global struct Ray* rays, float2 lightPos, float lightHeight, float lightLength)
+__kernel void render(__global struct Ray* rays, float3 lightPos, 
+	float lightLength, int lightCount)
 {
 	const int threadID = get_global_id(0);
-	uint seed = WangHash((threadID + 1) * 17 + lightHeight * 13 + lightPos.x * 7 + lightPos.y * 11 + SEED);
+
+	uint seed = WangHash((threadID + 1) * 17 + lightPos.x * 13 + lightPos.y * 7 + lightPos.z * 11 + SEED);
 	
 	struct Ray newray;
-	float3 origin = (float3)(lightPos.x, lightHeight + RandomFloat(&seed) * lightLength, lightPos.y);
+	//struct LightPos lightPos = lightPositions[(int)(RandomFloat(&seed) * (lightCount-1))];
+	float3 origin = (float3)(lightPos.x, lightPos.y + RandomFloat(&seed) * lightLength, lightPos.z);
 	newray.origx = origin.x;
 	newray.origy = origin.y;
 	newray.origz = origin.z;

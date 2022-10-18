@@ -2,7 +2,14 @@
 
 void RayTracer::Init()
 {
-	//dosageMap = new float4[maxPhotonCount];
+	LightPos initLightPos;
+	initLightPos.position = make_float3(0.4f, 0.6f + floorOffset, 0.5f);
+	initLightPos.duration = 1;
+	lightPositions.push_back(initLightPos);
+
+	initLightPos.position = make_float3(-0.1f, 0.6f + floorOffset, -1.9f);
+	initLightPos.duration = 1;
+	lightPositions.push_back(initLightPos);
 
 #if GPU_RAYTRACING
 	// compile and load kernel "render" from file "kernels.cl"
@@ -13,6 +20,7 @@ void RayTracer::Init()
 	// create an OpenCL buffer over using bitmap.pixels
 	photonMapBuffer = new Buffer(6*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
 	rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
+	//lightPosBuffer = new Buffer(4 * lightPositions.size(), Buffer::DEFAULT, lightPositions.data());
 
 	//triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);	
 	verticesBuffer = new Buffer(vertexCount, Buffer::DEFAULT, vertices);
@@ -40,45 +48,29 @@ void RayTracer::Init()
 void RayTracer::ComputeDosageMap()
 {
 #if GPU_RAYTRACING
-	// pass arguments to the OpenCL kernel
-	generateKernel->SetArgument(1, lightPos);
-	generateKernel->SetArgument(2, lightHeight);
-	generateKernel->SetArgument(3, lightLength);
 
-	extendKernel->SetArgument(1, photonMapSize);
+	int photonsPerLight = photonCount / lightPositions.size();
+	for (int i = 0; i < lightPositions.size(); ++i)
+	{
 
-	verticesBuffer->CopyToDevice();
-	//triangleBuffer->CopyToDevice2(true);
+		generateKernel->SetArgument(1, lightPositions[i].position);
+		generateKernel->SetArgument(2, lightLength);
+		generateKernel->SetArgument(3, (int)lightPositions.size());
+		generateKernel->Run(photonsPerLight);
+		
+		extendKernel->SetArgument(1, photonMapSize);
+		extendKernel->Run(photonsPerLight);
 
-	//cout << " startKernels " << endl;
-	generateKernel->Run(photonCount);
-	//cout << " generate " << endl;
-	extendKernel->Run(photonCount);
-	//cout << " extend " << endl;
-
-	photonMapSize += photonCount;
-
+		photonMapSize += photonsPerLight;
+	}
+	// The number of photons per area should be divided by the number of photons per light,
+	// as each photon carries a fraction of a single light's power
 	shadeKernel->SetArgument(1, photonMapSize);
+	shadeKernel->SetArgument(4, photonMapSize / (int)lightPositions.size());
 	
 	shadeKernel->Run(dosageBuffer, vertexCount / 9);
-	cout << " shade " << photonMapSize << endl;
-
-		////photonMapBuffer = new float[count*3];//TODO:remove
-		//photonMapBuffer->CopyFromDevice();
-		//for (int i = 0; i < 1000; ++i)
-		//{
-		//	cout << "temp " << reinterpret_cast<float&>(photonMapBuffer->hostBuffer[i]) << endl;
-		//}
-
-	//photonMapBuffer->CopyFromDevice();
-	//for (int i = 0; i < photonCount; i++)
-	//{
-	//	cout << dosageMap[i].x << " y " << dosageMap[i].y << " z " << dosageMap[i].z << " dt " << dosageMap[i].w << endl;
-	//}
-
-	// show the result on screen
-	//bitmap.CopyTo(screen, 500, 200);
-
+	cout << " photon count: " << photonMapSize << endl;
+	
 #else
 
 	for (uint i = 0; i < photonCount; ++i)

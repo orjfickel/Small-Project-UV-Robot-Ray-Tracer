@@ -30,11 +30,6 @@ bool TriangleIntersect(struct Ray* ray, float3 v1, float3 v2, float3 v3)
 	return true;
 }
 
-bool Test(struct Ray* ray) {
-	ray->dist = 23509.2f;
-	return true;
-}
-
 __kernel void render(__global struct Photon* photonMap, int offset, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
 	__global struct Triangle* vertices, int vertexCount)
 {

@@ -279,31 +279,36 @@ void main()
 	float deltaTime = 0;
 	static int frameNr = 0;
 	static Timer timer;
+	float fpstimer = 0;
 	while (!glfwWindowShouldClose( window ))
 	{
 		deltaTime = min( 500.0f, 1000.0f * timer.elapsed() );
 		timer.reset();
-		//for (int i = 10 - SCRWIDTH; i < SCRWIDTH - 10; ++i)
-		//{
-		//	for (int j = 10 - SCRHEIGHT; j < SCRWIDTH - 10; ++j)
-		//	{
-		//		app->screen->Plot(i, j, MAXUINT);
-		//	}
-		//}
-		app->Tick( deltaTime );
-		// send the rendering result to the screen using OpenGL
-		if (frameNr++ > 1)
-		{
-			renderTarget->CopyFrom( app->screen );
-			shader->Bind();
-			shader->SetInputTexture( 0, "c", renderTarget );
-			glDisable(GL_CULL_FACE);
-			DrawQuad(); //TODO: uncomment to use surface
-			shader->Unbind();
-			glfwSwapBuffers( window );
-			glfwPollEvents();
+		fpstimer += deltaTime;
+		if (fpstimer > 17) { // 60 frames per second?
+			//for (int i = 10 - SCRWIDTH; i < SCRWIDTH - 10; ++i)
+			//{
+			//	for (int j = 10 - SCRHEIGHT; j < SCRWIDTH - 10; ++j)
+			//	{
+			//		app->screen->Plot(i, j, MAXUINT);
+			//	}
+			//}
+			app->Tick(fpstimer);
+			// send the rendering result to the screen using OpenGL
+			if (frameNr++ > 1)
+			{
+				renderTarget->CopyFrom(app->screen);
+				shader->Bind();
+				shader->SetInputTexture(0, "c", renderTarget);
+				glDisable(GL_CULL_FACE);
+				DrawQuad();
+				shader->Unbind();
+				glfwSwapBuffers(window);
+				glfwPollEvents();
+			}
+			if (!running) break;
+			fpstimer = 0;
 		}
-		if (!running) break;
 	}
 	// close down
 	app->Shutdown();

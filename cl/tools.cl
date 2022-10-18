@@ -27,4 +27,9 @@ struct Triangle
 	float v3x, v3y, v3z;
 };
 
+struct LightPos
+{
+	float3 position;
+	float duration;
+};
 // EOF
