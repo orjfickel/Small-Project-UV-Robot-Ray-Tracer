@@ -37,21 +37,31 @@ void UserInterface::DrawUI()
 	Text("Aantal fotonen: %i", rayTracer->photonMapSize);
 	End();
 
-	Begin("Lamp posities", 0);
+	Begin("Parameters", 0);
 	SetWindowFontScale(1.5f);
 
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
-	for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
-	{
-		std::string str = "Position " + std::to_string(i);
-		const char* chars = str.c_str();
-		InputFloat3(chars, rayTracer->lightPositions[i].position.cell);
+
+	Text("Lamp lengte"); SameLine();
+	InputFloat("", &rayTracer->lightLength);
+
+	if (CollapsingHeader("Lamp route")) {
+		for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
+		{
+			Text("Positie %i", i + 1); SameLine();
+			InputFloat3("", rayTracer->lightPositions[i].position.cell);
+			Text("Tijdsduur %i", i + 1); SameLine();
+			InputFloat("", &rayTracer->lightPositions[i].duration);
+		}
 	}
+
 	if (Button("Herbereken UV straling"))
 	{
 		rayTracer->ResetDosageMap();
 		rayTracer->ComputeDosageMap();
 	}
+
+	//ShowDemoWindow();
 	//TODO: configure light length, duration, power, and the min dosage
 	//TODO: add new lights
 	//TODO: save route
