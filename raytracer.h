@@ -33,7 +33,7 @@ namespace Tmpl8
 		float timer = 1000000;
 		Timer timerClock;
 
-		Kernel* generateKernel = 0, * extendKernel = 0, * shadeKernel = 0;
+		Kernel* generateKernel = 0, * extendKernel = 0, * shadeKernel = 0, *countKernel = 0;
 		Buffer* dosageBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0;
 			//*lightPosBuffer = 0;
 		uint dosageBufferID;

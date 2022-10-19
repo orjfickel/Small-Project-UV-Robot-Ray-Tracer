@@ -14,6 +14,7 @@ void RayTracer::Init()
 	// compile and load kernel "render" from file "kernels.cl"
 	generateKernel = new Kernel("generate.cl", "render");
 	extendKernel = new Kernel("extend.cl", "render");
+	countKernel = new Kernel("extend.cl", "count");
 	shadeKernel = new Kernel("shade.cl", "render");
 	//TODO: new shade kernel for determining triangle color & updating opengl texture
 	// create an OpenCL buffer over using bitmap.pixels
@@ -31,15 +32,17 @@ void RayTracer::Init()
 
 	generateKernel->SetArgument(0, rayBuffer);
 
-	extendKernel->SetArgument(0, photonMapBuffer);
-	extendKernel->SetArgument(2, rayBuffer);
-	extendKernel->SetArgument(3, verticesBuffer);
-	extendKernel->SetArgument(4, vertexCount);
+	extendKernel->SetArgument(0, rayBuffer);
+	extendKernel->SetArgument(1, verticesBuffer);
+	extendKernel->SetArgument(2, vertexCount);
+
+	countKernel->SetArgument(0, photonMapBuffer);
+	countKernel->SetArgument(1, rayBuffer);
 
 	shadeKernel->SetArgument(0, photonMapBuffer);
 	shadeKernel->SetArgument(2, dosageBuffer);
 	shadeKernel->SetArgument(3, verticesBuffer);
-
+	
 	verticesBuffer->CopyToDevice();
 }
 
@@ -57,10 +60,13 @@ void RayTracer::ComputeDosageMap()
 		clFinish(Kernel::GetQueue());
 		cout << " generated: " <<  timerClock.elapsed() * 1000.0f << endl;
 		
-		extendKernel->SetArgument(1, photonMapSize);
 		extendKernel->Run(photonsPerLight);
 		clFinish(Kernel::GetQueue());
-		cout << " extended: " <<  timerClock.elapsed() * 1000.0f << endl;
+		cout << " extended: " << timerClock.elapsed() * 1000.0f << endl;
+
+		countKernel->Run(photonsPerLight);
+		clFinish(Kernel::GetQueue());
+		cout << " counted: " << timerClock.elapsed() * 1000.0f << endl;
 
 		//TODO: separate kernel to multiply photoncount per triangle by the timestep and light power?
 		//TODO: why at the ~third to last iteraion do red outliers suddenly show up?

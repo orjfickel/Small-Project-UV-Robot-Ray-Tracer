@@ -10,7 +10,7 @@ struct Ray
 	float dirx, diry, dirz;
 	float origx, origy, origz;
 	float dist;
-	float intensity; // The power transmitted by the UV light
+	int triangleID;
 };
 
 struct Triangle
