@@ -30,7 +30,7 @@ bool TriangleIntersect(struct Ray* ray, float3 v1, float3 v2, float3 v3)
 	return true;
 }
 
-__kernel void render(__global struct Photon* photonMap, int offset, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
+__kernel void render(__global int* triangleDosage, int offset, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
 	__global struct Triangle* vertices, int vertexCount)
 {
 	const int threadID = get_global_id(0);
@@ -52,15 +52,19 @@ __kernel void render(__global struct Photon* photonMap, int offset, __global str
 			triID = i;
 		}
 	}
+	//TODO: either increment photon count for the triangle as a whole for cumulative dosis, or increment a bucket in a histogram of time points for the triangle for the max dosis (largest bucket wins)
+	volatile __global int* triPtr = triangleDosage + triID;
+	atomic_inc(triPtr);
+	// 
 	//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;]
-	struct Photon newPhoton;
-	newPhoton.posx = newray->origx + newray->dirx * closestDist;
-	newPhoton.posy = newray->origy + newray->diry * closestDist;
-	newPhoton.posz = newray->origz + newray->dirz * closestDist;
-	newPhoton.timeStep = 1;
-	newPhoton.timePoint = 0;
-	newPhoton.triangleID = /*(vertexCount/3) - */triID;
-	photonMap[threadID + offset] = newPhoton;
+	//struct Photon newPhoton;
+	//newPhoton.posx = newray->origx + newray->dirx * closestDist;
+	//newPhoton.posy = newray->origy + newray->diry * closestDist;
+	//newPhoton.posz = newray->origz + newray->dirz * closestDist;
+	//newPhoton.timeStep = 1;
+	//newPhoton.timePoint = 0;
+	//newPhoton.triangleID = /*(vertexCount/3) - */triID;
+	//photonMap[threadID + offset] = newPhoton;
 	//if (photonMap[threadID + offset].x > 0) photonMap[threadID + offset] = (float4)(0, 0, 0, 0);
 }
 //

@@ -17,7 +17,7 @@ void RayTracer::Init()
 	shadeKernel = new Kernel("shade.cl", "render");
 	//TODO: new shade kernel for determining triangle color & updating opengl texture
 	// create an OpenCL buffer over using bitmap.pixels
-	photonMapBuffer = new Buffer(6*maxPhotonCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
+	photonMapBuffer = new Buffer(vertexCount / 9, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
 	rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 	//lightPosBuffer = new Buffer(4 * lightPositions.size(), Buffer::DEFAULT, lightPositions.data());
 
@@ -45,6 +45,7 @@ void RayTracer::Init()
 
 void RayTracer::ComputeDosageMap()
 {
+	cout << " beforecompute: " << timerClock.elapsed() * 1000.0f << endl;
 	int photonsPerLight = photonCount / lightPositions.size();
 	for (int i = 0; i < lightPositions.size(); ++i)
 	{
@@ -53,9 +54,16 @@ void RayTracer::ComputeDosageMap()
 		generateKernel->SetArgument(2, lightLength);
 		generateKernel->SetArgument(3, (int)lightPositions.size());
 		generateKernel->Run(photonsPerLight);
+		clFinish(Kernel::GetQueue());
+		cout << " generated: " <<  timerClock.elapsed() * 1000.0f << endl;
 		
 		extendKernel->SetArgument(1, photonMapSize);
 		extendKernel->Run(photonsPerLight);
+		clFinish(Kernel::GetQueue());
+		cout << " extended: " <<  timerClock.elapsed() * 1000.0f << endl;
+
+		//TODO: separate kernel to multiply photoncount per triangle by the timestep and light power?
+		//TODO: why at the ~third to last iteraion do red outliers suddenly show up?
 
 		photonMapSize += photonsPerLight;
 	}
@@ -65,7 +73,9 @@ void RayTracer::ComputeDosageMap()
 	shadeKernel->SetArgument(4, photonMapSize / (int)lightPositions.size());
 	
 	shadeKernel->Run(dosageBuffer, vertexCount / 9);
-	cout << " photon count: " << photonMapSize << endl;
+	clFinish(Kernel::GetQueue());
+	//clFinish(Kernel::GetQueue());//todo
+	cout << " photon count: " << photonMapSize << " delta time: " << timerClock.elapsed() * 1000.0f << endl;
 	
 }
 

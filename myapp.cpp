@@ -165,7 +165,9 @@ void MyApp::BindMesh()
 // -----------------------------------------------------------
 void MyApp::Tick(float deltaTime)
 {
-	timer += deltaTime;
+	cout << " time since last frame: " << deltaTime << endl;
+	rayTracer.timerClock.reset();
+	rayTracer.timer += deltaTime;
 
 	// Update the camera
 	camera.UpdateView(keyPresses, deltaTime);
@@ -183,21 +185,25 @@ void MyApp::Tick(float deltaTime)
 		screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y, MAXUINT, 3);
 	}
 
-	bool updatedMap = (timer > 0 && rayTracer.photonMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
+	bool updatedMap = (rayTracer.timer > 0 && rayTracer.photonMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
 	if (/*timerStart > 100 && */updatedMap) {
-		timer = 0;
 		rayTracer.ComputeDosageMap();
+		rayTracer.timer = 0;
 		//UpdateDosageMap();
 	}
+	cout << " beforedraw: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 	//if ((timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed())) {
 	DrawMesh();
 		//timerStart += deltaTime;
 		//bufferSwapDraw = !bufferSwapDraw;
 	//}
+	cout << " afterdraw: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 }
 
 void MyApp::DrawMesh()
 {
+	//clFinish(Kernel::GetQueue());//todo
+
 	//glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

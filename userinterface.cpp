@@ -57,6 +57,7 @@ void UserInterface::DrawUI()
 
 	if (Button("Herbereken UV straling"))
 	{
+		//TODO: fix reset
 		rayTracer->ResetDosageMap();
 		rayTracer->ComputeDosageMap();
 	}
@@ -66,6 +67,8 @@ void UserInterface::DrawUI()
 	//TODO: add new lights
 	//TODO: save route
 	//TODO: select and move lights with wasd
+
+	//TODO: for debugging: assign each triangle a color based on its normal
 
 	End();
 	Render();

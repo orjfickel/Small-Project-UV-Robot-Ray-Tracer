@@ -48,7 +48,6 @@ public:
 
 	//uint texSize = 0, texWidth, texHeight;
 
-	float timer = 1000000;
 	//float timerStart = 0;
 	//bool bufferSwapDraw = false;
 };

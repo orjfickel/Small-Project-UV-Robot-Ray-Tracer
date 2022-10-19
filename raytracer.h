@@ -26,10 +26,12 @@ namespace Tmpl8
 		vector<LightPos> lightPositions;
 		float lightLength = 1.3f;
 		float floorOffset = -1.5f; //TODO: make lightHeight not just the ypos but the distance from the ground.
-		uint maxPhotonCount = 160000;
-		int photonCount = (int)(maxPhotonCount / 8);
+		int photonCount = 1<<22;
+		uint maxPhotonCount = (uint)(photonCount * 16);
 		int photonMapSize = 0;
 		float lightIntensity = 180 * 10;
+		float timer = 1000000;
+		Timer timerClock;
 
 		Kernel* generateKernel = 0, * extendKernel = 0, * shadeKernel = 0;
 		Buffer* dosageBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0;

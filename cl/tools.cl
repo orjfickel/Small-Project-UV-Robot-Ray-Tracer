@@ -13,13 +13,6 @@ struct Ray
 	float intensity; // The power transmitted by the UV light
 };
 
-struct Photon
-{ // 24 Bytes
-	float posx, posy, posz;//Can be compressed, is only relevant for quick search in kd-tree
-	float timeStep, timePoint;// Delta time and the point in time. timeStep is relevant for cumulative dosis, while timePoint is relevant for grouping for max power.
-	int triangleID;
-};
-
 struct Triangle
 { // 36 Bytes
 	float v1x, v1y, v1z;

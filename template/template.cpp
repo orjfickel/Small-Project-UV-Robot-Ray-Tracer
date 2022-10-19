@@ -283,7 +283,7 @@ void main()
 	float fpstimer = 0;
 	while (!glfwWindowShouldClose( window ))
 	{
-		deltaTime = min( 500.0f, 1000.0f * timer.elapsed() );
+		deltaTime = min( 50000.0f, 1000.0f * timer.elapsed() );
 		timer.reset();
 		fpstimer += deltaTime;
 		if (fpstimer > 17) { // 60 frames per second?

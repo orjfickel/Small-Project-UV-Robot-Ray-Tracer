@@ -1,7 +1,7 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
-__kernel void render(__global struct Photon* photonMap, int photonCount, __global struct Triangle* dosageMap,
+__kernel void render(__global int* triangleDosage, int photonCount, __global struct Triangle* dosageMap,
     __global struct Triangle* vertices, int photonsPerLight)// float power
 {
 	const int threadID = get_global_id(0);
@@ -12,27 +12,30 @@ __kernel void render(__global struct Photon* photonMap, int photonCount, __globa
     float3 v3 = (float3)(tri.v3x, tri.v3y, tri.v3z);
     float3 centerPos = (v1 + v2 + v3) / 3;
 
-    int triID = 0;
+    float3 v1v2 = v1 - v2;
+    float3 v1v3 = v1 - v3;
+    float area = length(cross(v1v2, v1v3)) / 2.0f;
     
-    float minDistSqr = 10000000.0;
-    float minVal = 0.0;
-    float maxRangeSqr = 0.25f;
-    int nearbyPhotons = 0;
-    for (int i = 0; i < photonCount; ++i) {
-        struct Photon photon = photonMap[i];
+    int triID = 0;
+    //float minDistSqr = 10000000.0;
+    //float minVal = 0.0;
+    //float maxRangeSqr = 0.25f;
+    //int nearbyPhotons = 0;
+   // for (int i = 0; i < photonCount; ++i) {
+   //     struct Photon photon = photonMap[i];
 
-        float3 diff = centerPos - (float3)(photon.posx, photon.posy, photon.posz);
-        float distSqr = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;
-        if (distSqr < maxRangeSqr) {
-            nearbyPhotons++;
-            //if (distSqr < minDistSqr) {
-            //    minDistSqr = distSqr;
-            //    triID = photon.triangleID;
-            //}
-        }
-    }    
+   ///*     float3 diff = centerPos - (float3)(photon.posx, photon.posy, photon.posz);
+   //     float distSqr = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;*/
+   //     if (/*distSqr < maxRangeSqr && */threadID == photon.triangleID) {
+   //         nearbyPhotons++;
+   //         //if (distSqr < minDistSqr) {
+   //         //    minDistSqr = distSqr;
+   //         //    triID = photon.triangleID;
+   //         //}
+   //     }
+   // }    
     float maxVal = 1800;
-    float colorDist = (16.0f * nearbyPhotons) / (PI * maxRangeSqr * photonsPerLight);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
+    float colorDist = (16.0f * triangleDosage[threadID]) / (area * photonsPerLight);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
 
     //    0.1f + colorDist * 0.3f, colorDist * 0.9f, colorDist
     float3 f;
