@@ -1,8 +1,8 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
-__kernel void render(__global int* triangleDosage, int photonCount, __global struct Triangle* dosageMap,
-    __global struct Triangle* vertices, int photonsPerLight)// float power
+__kernel void render(__global int* photonMap, __global struct Triangle* dosageMap,
+    __global struct Triangle* vertices, int photonsPerLight, float power, float minDosage)// float power
 {
 	const int threadID = get_global_id(0);
 
@@ -14,7 +14,7 @@ __kernel void render(__global int* triangleDosage, int photonCount, __global str
 
     float3 v1v2 = v1 - v2;
     float3 v1v3 = v1 - v3;
-    float area = length(cross(v1v2, v1v3)) / 2.0f;
+    float area = (length(cross(v1v2, v1v3)) / 2.0f);// convert to square meters
     
     int triID = 0;
     //float minDistSqr = 10000000.0;
@@ -34,12 +34,13 @@ __kernel void render(__global int* triangleDosage, int photonCount, __global str
    //         //}
    //     }
    // }    
-    float maxVal = 1800;
-    float colorDist = (16.0f * triangleDosage[threadID]) / (area * photonsPerLight);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
+   // float minDosage = 4.0f;// J/m^2
+    float maxVal = minDosage * 2;
+    float colorDist = (power * photonMap[threadID]) / (area * photonsPerLight * maxVal);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
 
     //    0.1f + colorDist * 0.3f, colorDist * 0.9f, colorDist
     float3 f;
-    float minDosageColor = 0.3f;
+    float minDosageColor = 0.5f;
     float upperHalfColor = minDosageColor + (1.0 - minDosageColor) / 2;
     float lowerHalfColor = minDosageColor / 2.0f;
     if (colorDist > minDosageColor) {

@@ -19,11 +19,11 @@ void MyApp::Init(GLFWwindow* window, UserInterface* userInterface)
 	seed = time(0);
 
 	userInterface->Init(window, &rayTracer);
+	Kernel::InitCL();
+	cout << "Initialised OpenCL " << endl;
 
 	LoadMesh();
 
-	Kernel::InitCL();
-	cout << "Initialised OpenCL " << endl;
 	BindMesh();
 	rayTracer.Init();
 	//rayTracer.ComputeDosageMap();
@@ -71,14 +71,18 @@ void MyApp::LoadMesh()
 		tempi = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 	}
 
-	rayTracer.vertices = new float[indicesAccessor.count * 3];
+	float* vertices = new float[indicesAccessor.count * 3];
 	for (size_t i = 0; i < indicesAccessor.count; ++i) {
-		rayTracer.vertices[i * 3 + 0] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 0];
-		rayTracer.vertices[i * 3 + 1] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 1];
-		rayTracer.vertices[i * 3 + 2] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2];
+		//cout << " vertexposz: " << positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2] << endl;
+		vertices[i * 3 + 0] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 0];
+		vertices[i * 3 + 1] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 1];
+		vertices[i * 3 + 2] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2];
 	}
 
 	rayTracer.vertexCount = indicesAccessor.count * 3;
+	rayTracer.verticesBuffer = new Buffer(rayTracer.vertexCount, Buffer::DEFAULT, vertices);
+	rayTracer.verticesBuffer->CopyToDevice();
+	delete[] vertices;
 }
 
 /**
@@ -165,7 +169,7 @@ void MyApp::BindMesh()
 // -----------------------------------------------------------
 void MyApp::Tick(float deltaTime)
 {
-	cout << " time since last frame: " << deltaTime << endl;
+	//cout << " time since last frame: " << deltaTime << endl;
 	rayTracer.timerClock.reset();
 	rayTracer.timer += deltaTime;
 
@@ -175,7 +179,7 @@ void MyApp::Tick(float deltaTime)
 	screen->Clear(0);
 	for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
 	{
-		float3 lightPos = rayTracer.lightPositions[i].position;
+		float3 lightPos = make_float3(rayTracer.lightPositions[i].position.x, rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
 		glm::vec4 lightClipPosBottom = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y, lightPos.z, 1);
 		glm::vec4 lightClipPosTop = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y + rayTracer.lightLength, lightPos.z, 1);
 		glm::vec2 lightScreenPosBottom = ((glm::vec2(lightClipPosBottom.x, -lightClipPosBottom.y) / lightClipPosBottom.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
@@ -191,13 +195,13 @@ void MyApp::Tick(float deltaTime)
 		rayTracer.timer = 0;
 		//UpdateDosageMap();
 	}
-	cout << " beforedraw: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
+	//cout << " beforedraw: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 	//if ((timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed())) {
 	DrawMesh();
 		//timerStart += deltaTime;
 		//bufferSwapDraw = !bufferSwapDraw;
 	//}
-	cout << " afterdraw: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
+	//cout << " afterdraw: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 }
 
 void MyApp::DrawMesh()

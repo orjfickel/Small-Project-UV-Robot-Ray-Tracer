@@ -42,16 +42,25 @@ void UserInterface::DrawUI()
 
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
 
+	Text("Lamp sterkte in Watt"); SameLine();
+	InputFloat("##power", &rayTracer->lightIntensity);//TODO: should be int probably
+	Text("Grens minimale dosering in J/m^2"); SameLine();
+	InputFloat("##mindosage", &rayTracer->minDosage);
 	Text("Lamp lengte"); SameLine();
-	InputFloat("", &rayTracer->lightLength);
-
+	InputFloat("##length", &rayTracer->lightLength);
+	Text("Lamp hoogte"); SameLine();
+	InputFloat("##height", &rayTracer->lightHeight);
 	if (CollapsingHeader("Lamp route")) {
 		for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
 		{
 			Text("Positie %i", i + 1); SameLine();
-			InputFloat3("", rayTracer->lightPositions[i].position.cell);
+			InputFloat2(("##position_" + std::to_string(i)).c_str(), rayTracer->lightPositions[i].position.cell);
 			Text("Tijdsduur %i", i + 1); SameLine();
-			InputFloat("", &rayTracer->lightPositions[i].duration);
+			InputFloat(("##duration_" + std::to_string(i)).c_str(), &rayTracer->lightPositions[i].duration);
+		}
+		if (Button("Voeg nieuwe lamp positie toe"))
+		{
+			rayTracer->AddLamp();
 		}
 	}
 
@@ -62,7 +71,7 @@ void UserInterface::DrawUI()
 		rayTracer->ComputeDosageMap();
 	}
 
-	//ShowDemoWindow();
+	ShowDemoWindow();
 	//TODO: configure light length, duration, power, and the min dosage
 	//TODO: add new lights
 	//TODO: save route
