@@ -71,18 +71,17 @@ void MyApp::LoadMesh()
 		tempi = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 	}
 
-	float* vertices = new float[indicesAccessor.count * 3];
+	rayTracer.vertices = new float[indicesAccessor.count * 3];
 	for (size_t i = 0; i < indicesAccessor.count; ++i) {
 		//cout << " vertexposz: " << positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2] << endl;
-		vertices[i * 3 + 0] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 0];
-		vertices[i * 3 + 1] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 1];
-		vertices[i * 3 + 2] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2];
+		rayTracer.vertices[i * 3 + 0] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 0];
+		rayTracer.vertices[i * 3 + 1] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 1];
+		rayTracer.vertices[i * 3 + 2] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2];
 	}
 
 	rayTracer.vertexCount = indicesAccessor.count * 3;
-	rayTracer.verticesBuffer = new Buffer(rayTracer.vertexCount, Buffer::DEFAULT, vertices);
-	rayTracer.verticesBuffer->CopyToDevice();
-	delete[] vertices;
+	rayTracer.verticesBuffer = new Buffer(rayTracer.vertexCount, Buffer::DEFAULT, rayTracer.vertices);
+	rayTracer.verticesBuffer->CopyToDevice();	
 }
 
 /**
@@ -101,6 +100,7 @@ void MyApp::BindMesh()
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), rayTracer.vertices, GL_STATIC_DRAW);
+	delete[] rayTracer.vertices;// Free up memory on host
 	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
 	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 	

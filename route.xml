@@ -1,0 +1,9 @@
+<camera>
+    <lamp sterkte>180</lamp sterkte>
+    <minimale dosering>4</minimale dosering>
+    <lamp lengte>1.3</lamp lengte>
+    <lamp height>-0.89999998</lamp height>
+    <route position x="0.5" position y="0.5" duration="0.5">
+        <lamp position0/>
+    </route>
+</camera>
