@@ -16,13 +16,17 @@ namespace Tmpl8
 		void ComputeDosageMap();
 		void ResetDosageMap();
 		void AddLamp();
+		void SaveRoute(char fileName[32]);
+		void LoadRoute(char fileName[32]);
 
 		float lightLength = 1.3f;
 		float lightHeight = -0.9f; //TODO: make lightHeight not just the ypos but the distance from the ground.
-		int photonCount = 1<<21;
-		uint maxPhotonCount = (uint)(photonCount * 8);
+		int maxPhotonCount = 1 << 24;
+		int photonCount = maxPhotonCount / 4;
 		float lightIntensity = 180;
 		float minDosage = 4;
+		char routeFile[32] = "route.xml";
+		char name[32];
 
 		float* vertices;
 		int vertexCount; // Size of the vertices array. Number of vertices times 3 (1 for every axis) (includes duplicates)
@@ -31,14 +35,13 @@ namespace Tmpl8
 		vector<LightPos> lightPositions;
 		float timer = 1000000;
 		Timer timerClock;
+		bool reachedMaxPhotons;
 
 		Kernel* generateKernel = 0, * extendKernel = 0, * shadeKernel = 0, *resetKernel = 0, * timeStepKernel = 0;
 		Buffer* dosageBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0;
 			//*lightPosBuffer = 0;
 		uint dosageBufferID;
 		int photonMapSize = 0;
-
-		int offset = 0;
 	};
 
 } // namespace Tmpl8

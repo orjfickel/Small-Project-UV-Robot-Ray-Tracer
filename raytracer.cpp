@@ -58,6 +58,8 @@ void RayTracer::Init()
 
 void RayTracer::ComputeDosageMap()
 {
+	clFinish(Kernel::GetQueue());// Make sure previous computation is finished before enqueing the next one
+	cout << " photon count: " << photonMapSize << " delta time: " << timerClock.elapsed() * 1000.0f << endl;
 	//cout << " beforecompute: " << timerClock.elapsed() * 1000.0f << endl;
 	int photonsPerLight = photonCount / lightPositions.size();
 	for (int i = 0; i < lightPositions.size(); ++i)
@@ -90,14 +92,14 @@ void RayTracer::ComputeDosageMap()
 	shadeKernel->SetArgument(5, minDosage);
 	
 	shadeKernel->Run(dosageBuffer, vertexCount / 9);
-	clFinish(Kernel::GetQueue());
 	//clFinish(Kernel::GetQueue());//todo
-	cout << " photon count: " << photonMapSize << " delta time: " << timerClock.elapsed() * 1000.0f << endl;
 	
 }
 
 void RayTracer::ResetDosageMap() {
 	photonMapSize = 0;
+	reachedMaxPhotons = false;
+	photonCount = maxPhotonCount / 4;
 
 	resetKernel->Run(dosageBuffer, vertexCount / 9);
 }
@@ -105,43 +107,55 @@ void RayTracer::ResetDosageMap() {
 #include "tinyxml2.h"
 using namespace tinyxml2;
 
-void Camera::Save()
+void RayTracer::SaveRoute(char fileName[32])
 {
 	XMLDocument doc;
-	XMLNode* root = doc.NewElement("camera");
+	XMLNode* root = doc.NewElement("route");
 	doc.InsertFirstChild(root);
-	XMLElement* viewElem = doc.NewElement("view");
-	viewElem->SetAttribute("m00", view[0][0]);
+	((XMLElement*)root->InsertEndChild(doc.NewElement("lamp_sterkte")))->SetText(lightIntensity);
+	((XMLElement*)root->InsertEndChild(doc.NewElement("minimale_dosering")))->SetText(minDosage);
+	((XMLElement*)root->InsertEndChild(doc.NewElement("lamp_lengte")))->SetText(lightLength);
+	((XMLElement*)root->InsertEndChild(doc.NewElement("lamp_height")))->SetText(lightHeight);
+	XMLElement* viewElem = doc.NewElement("route");
+	for (int i = 0; i < lightPositions.size(); i++)
+	{
+		XMLElement* lightPosElem = doc.NewElement(("lamp_positie_" + std::to_string(i)).c_str());
+		LightPos lightPos = lightPositions[i];
+		lightPosElem->SetAttribute("positie_x", lightPos.position.x);
+		lightPosElem->SetAttribute("positie_y", lightPos.position.x);
+		lightPosElem->SetAttribute("duration", lightPos.position.x);
+
+		viewElem->InsertEndChild(lightPosElem);
+	}
 	root->InsertEndChild(viewElem);
-	((XMLElement*)root->InsertEndChild(doc.NewElement("FOV")))->SetText(FOV);
-	doc.SaveFile(cameraFile);
+	char prefix[64] = "routes/";
+	doc.SaveFile(strcat(prefix, fileName));
 }
 
-void Camera::Load()
+void RayTracer::LoadRoute(char fileName[32])
 {
+	char prefix[64] = "routes/";
 	XMLDocument doc;
-	XMLError result = doc.LoadFile(cameraFile);
+	XMLError result = doc.LoadFile(strcat(prefix, fileName));
 	if (result != XML_SUCCESS) return;
 	XMLNode* root = doc.FirstChild();
 	if (root == nullptr) return;
 	XMLElement* docElem;
-	if ((docElem = root->FirstChildElement("view"))) {
-		docElem->QueryFloatAttribute("m00", &view[0][0]);
-		docElem->QueryFloatAttribute("m01", &view[0][1]);
-		docElem->QueryFloatAttribute("m02", &view[0][2]);
-		docElem->QueryFloatAttribute("m03", &view[0][3]);
-		docElem->QueryFloatAttribute("m10", &view[1][0]);
-		docElem->QueryFloatAttribute("m11", &view[1][1]);
-		docElem->QueryFloatAttribute("m12", &view[1][2]);
-		docElem->QueryFloatAttribute("m13", &view[1][3]);
-		docElem->QueryFloatAttribute("m20", &view[2][0]);
-		docElem->QueryFloatAttribute("m21", &view[2][1]);
-		docElem->QueryFloatAttribute("m22", &view[2][2]);
-		docElem->QueryFloatAttribute("m23", &view[2][3]);
-		docElem->QueryFloatAttribute("m30", &view[3][0]);
-		docElem->QueryFloatAttribute("m31", &view[3][1]);
-		docElem->QueryFloatAttribute("m32", &view[3][2]);
-		docElem->QueryFloatAttribute("m33", &view[3][3]);
+	if ((docElem = root->FirstChildElement("lamp_sterkte"))) docElem->QueryFloatText(&lightIntensity);
+	if ((docElem = root->FirstChildElement("minimale_dosering"))) docElem->QueryFloatText(&minDosage);
+	if ((docElem = root->FirstChildElement("lamp_lengte"))) docElem->QueryFloatText(&lightLength);
+	if ((docElem = root->FirstChildElement("lamp_height"))) docElem->QueryFloatText(&lightHeight);
+
+	if (docElem = doc.NewElement("route")) {
+		for (int i = 0; i < lightPositions.size(); i++)
+		{
+			XMLElement* lightPosElem;
+			if (lightPosElem = doc.NewElement(("lamp_positie_" + std::to_string(i)).c_str())) {
+				LightPos lightPos = lightPositions[i];
+				lightPosElem->QueryFloatAttribute("positie_x", &lightPos.position.x);
+				lightPosElem->QueryFloatAttribute("positie_y", &lightPos.position.x);
+				lightPosElem->QueryFloatAttribute("duration", &lightPos.position.x);
+			}
+		}
 	}
-	if ((docElem = root->FirstChildElement("FOV"))) docElem->QueryFloatText(&FOV);
 }

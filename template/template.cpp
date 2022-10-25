@@ -306,6 +306,7 @@ void main()
 				DrawQuad();
 				shader->Unbind();
 
+				//Draw the UI on top of the quad
 				userInterface.DrawUI();
 
 				glfwSwapBuffers(window);

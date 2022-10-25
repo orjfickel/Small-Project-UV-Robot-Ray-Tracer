@@ -1,9 +1,10 @@
-
 #include "precomp.h"
 
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+//#include <windows.h>
+//#include <stdio.h>
 
 using namespace ImGui;
 
@@ -22,7 +23,8 @@ void UserInterface::Init(GLFWwindow* window, RayTracer* rayTracer)
 	StyleColorsDark(); // or ImGui::StyleColorsClassic();
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
-	
+
+	strcpy(rayTracer->name, rayTracer->routeFile);
 }
 
 void UserInterface::DrawUI()
@@ -41,6 +43,9 @@ void UserInterface::DrawUI()
 	SetWindowFontScale(1.5f);
 
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
+
+	Text("Aantal fotonen"); SameLine();
+	InputInt("##photonCount", &rayTracer->maxPhotonCount);
 
 	Text("Lamp sterkte in Watt"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity);//TODO: should be int probably
@@ -63,19 +68,40 @@ void UserInterface::DrawUI()
 			rayTracer->AddLamp();
 		}
 	}
+	
+	if (Button("Route opslaan"))
+	{
+		ImGui::OpenPopup("my_select_popup");
+		//TODO: give up on standard dialog, just ask for file name and load it...
+	}
+	if (ImGui::BeginPopup("my_select_popup"))
+	{
+		ImGui::Text("Bestand naam:");
+		ImGui::InputText("##edit", rayTracer->name, IM_ARRAYSIZE(rayTracer->name));
+		if (ImGui::Button("Opslaan")) {
+			ImGui::CloseCurrentPopup();
+			rayTracer->SaveRoute(rayTracer->name);
+		}
+		ImGui::EndPopup();
+	}
 
 	if (Button("Herbereken UV straling"))
 	{
-		//TODO: fix reset
 		rayTracer->ResetDosageMap();
-		rayTracer->ComputeDosageMap();
+	}
+	if (Button("Berekening hervatten"))
+	{//TODO: move to separate function
+		rayTracer->reachedMaxPhotons = rayTracer->photonMapSize + rayTracer->photonCount > rayTracer->maxPhotonCount;
+		rayTracer->photonCount = (rayTracer->maxPhotonCount / 4);
 	}
 
 	ShowDemoWindow();
 	//TODO: configure light length, duration, power, and the min dosage
-	//TODO: add new lights
-	//TODO: save route
+	//TODO: allow continueing/pauzing computation
+	//TODO: show notification when done computing
+	//TODO: save the current route automatically and allow saving route to separate file as well
 	//TODO: select and move lights with wasd
+	//TODO: save heatmap automatically and allow saving to separate file as well. Perhaps save into the gltf model?
 
 	//TODO: for debugging: assign each triangle a color based on its normal
 

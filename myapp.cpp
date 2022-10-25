@@ -189,12 +189,14 @@ void MyApp::Tick(float deltaTime)
 		screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y, MAXUINT, 3);
 	}
 
-	bool updatedMap = (rayTracer.timer > 0 && rayTracer.photonMapSize + rayTracer.photonCount <= rayTracer.maxPhotonCount);
-	if (/*timerStart > 100 && */updatedMap) {
-		rayTracer.ComputeDosageMap();
-		rayTracer.timer = 0;
-		//UpdateDosageMap();
+	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already
+		rayTracer.reachedMaxPhotons = rayTracer.photonMapSize + rayTracer.photonCount > rayTracer.maxPhotonCount;
+		if (/*timerStart > 100 && */rayTracer.timer > 0 && !rayTracer.reachedMaxPhotons) {
+			rayTracer.ComputeDosageMap();
+			rayTracer.timer = 0;
+		}
 	}
+
 	//cout << " beforedraw: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 	//if ((timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed())) {
 	DrawMesh();
@@ -206,7 +208,7 @@ void MyApp::Tick(float deltaTime)
 
 void MyApp::DrawMesh()
 {
-	//clFinish(Kernel::GetQueue());//todo
+	//cout << "drawmesh photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 
 	//glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
@@ -221,6 +223,7 @@ void MyApp::DrawMesh()
 	glBindVertexArray(0);
 
 	shader3D->Unbind();
+	//cout << "drawmesh2 photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 }
 
 void MyApp::KeyDown(int key)
