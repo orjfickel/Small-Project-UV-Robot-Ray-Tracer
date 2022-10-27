@@ -193,6 +193,8 @@ void MyApp::Tick(float deltaTime)
 		rayTracer.reachedMaxPhotons = rayTracer.photonMapSize + rayTracer.photonCount > rayTracer.maxPhotonCount;
 		if (/*timerStart > 100 && */rayTracer.timer > 0 && !rayTracer.reachedMaxPhotons) {
 			rayTracer.ComputeDosageMap();
+			clFinish(Kernel::GetQueue());// Make sure previous computation is finished before enqueing the next one
+			cout << "Progress: " << 100.0f * (float)rayTracer.photonMapSize / (float)rayTracer.maxPhotonCount << "% photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 			rayTracer.timer = 0;
 		}
 	}

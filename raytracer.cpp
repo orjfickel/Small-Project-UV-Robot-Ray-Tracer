@@ -58,8 +58,6 @@ void RayTracer::Init()
 
 void RayTracer::ComputeDosageMap()
 {
-	clFinish(Kernel::GetQueue());// Make sure previous computation is finished before enqueing the next one
-	cout << " photon count: " << photonMapSize << " delta time: " << timerClock.elapsed() * 1000.0f << endl;
 	//cout << " beforecompute: " << timerClock.elapsed() * 1000.0f << endl;
 	int photonsPerLight = photonCount / lightPositions.size();
 	for (int i = 0; i < lightPositions.size(); ++i)
@@ -99,7 +97,10 @@ void RayTracer::ComputeDosageMap()
 void RayTracer::ResetDosageMap() {
 	photonMapSize = 0;
 	reachedMaxPhotons = false;
-	photonCount = maxPhotonCount / 4;
+	photonCount = maxPhotonCount / 8;
+	rayBuffer = new Buffer(8 * photonCount, Buffer::DEFAULT);
+	generateKernel->SetArgument(0, rayBuffer);
+	extendKernel->SetArgument(2, rayBuffer);
 
 	resetKernel->Run(dosageBuffer, vertexCount / 9);
 }
@@ -122,8 +123,8 @@ void RayTracer::SaveRoute(char fileName[32])
 		XMLElement* lightPosElem = doc.NewElement(("lamp_positie_" + std::to_string(i)).c_str());
 		LightPos lightPos = lightPositions[i];
 		lightPosElem->SetAttribute("positie_x", lightPos.position.x);
-		lightPosElem->SetAttribute("positie_y", lightPos.position.x);
-		lightPosElem->SetAttribute("duration", lightPos.position.x);
+		lightPosElem->SetAttribute("positie_y", lightPos.position.y);
+		lightPosElem->SetAttribute("duration", lightPos.duration);
 
 		viewElem->InsertEndChild(lightPosElem);
 	}
@@ -144,17 +145,26 @@ void RayTracer::LoadRoute(char fileName[32])
 	if ((docElem = root->FirstChildElement("lamp_sterkte"))) docElem->QueryFloatText(&lightIntensity);
 	if ((docElem = root->FirstChildElement("minimale_dosering"))) docElem->QueryFloatText(&minDosage);
 	if ((docElem = root->FirstChildElement("lamp_lengte"))) docElem->QueryFloatText(&lightLength);
-	if ((docElem = root->FirstChildElement("lamp_height"))) docElem->QueryFloatText(&lightHeight);
+	if ((docElem = root->FirstChildElement("lamp_hoogte"))) docElem->QueryFloatText(&lightHeight);
 
-	if (docElem = doc.NewElement("route")) {
-		for (int i = 0; i < lightPositions.size(); i++)
+	//int routeSize;
+	//if ((docElem = root->FirstChildElement("route_grootte"))) docElem->QueryIntText(&routeSize);
+
+	if (docElem = root->FirstChildElement("route")) {
+		bool foundPos = true;
+		int i = 0;
+		lightPositions.clear();
+		while(foundPos)
 		{
 			XMLElement* lightPosElem;
-			if (lightPosElem = doc.NewElement(("lamp_positie_" + std::to_string(i)).c_str())) {
-				LightPos lightPos = lightPositions[i];
+			foundPos = (lightPosElem = docElem->FirstChildElement(("lamp_positie_" + std::to_string(i)).c_str()));
+			if (foundPos) {
+				LightPos lightPos;
 				lightPosElem->QueryFloatAttribute("positie_x", &lightPos.position.x);
-				lightPosElem->QueryFloatAttribute("positie_y", &lightPos.position.x);
-				lightPosElem->QueryFloatAttribute("duration", &lightPos.position.x);
+				lightPosElem->QueryFloatAttribute("positie_y", &lightPos.position.y);
+				lightPosElem->QueryFloatAttribute("duration", &lightPos.duration);
+				lightPositions.push_back(lightPos);
+				i++;
 			}
 		}
 	}

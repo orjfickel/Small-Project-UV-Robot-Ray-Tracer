@@ -24,7 +24,7 @@ void UserInterface::Init(GLFWwindow* window, RayTracer* rayTracer)
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
 
-	strcpy(rayTracer->name, rayTracer->routeFile);
+	strcpy(rayTracer->newRouteFile, rayTracer->defaultRouteFile);
 }
 
 void UserInterface::DrawUI()
@@ -68,21 +68,35 @@ void UserInterface::DrawUI()
 			rayTracer->AddLamp();
 		}
 	}
-	
+
 	if (Button("Route opslaan"))
 	{
-		ImGui::OpenPopup("my_select_popup");
-		//TODO: give up on standard dialog, just ask for file name and load it...
+		OpenPopup("savePopup");
 	}
-	if (ImGui::BeginPopup("my_select_popup"))
+	if (BeginPopup("savePopup"))
 	{
-		ImGui::Text("Bestand naam:");
-		ImGui::InputText("##edit", rayTracer->name, IM_ARRAYSIZE(rayTracer->name));
-		if (ImGui::Button("Opslaan")) {
-			ImGui::CloseCurrentPopup();
-			rayTracer->SaveRoute(rayTracer->name);
+		Text("Bestand naam:");
+		InputText("##edit", rayTracer->newRouteFile, IM_ARRAYSIZE(rayTracer->newRouteFile));
+		if (Button("Opslaan")) {
+			CloseCurrentPopup();
+			rayTracer->SaveRoute(rayTracer->newRouteFile);
 		}
-		ImGui::EndPopup();
+		EndPopup();
+	}
+	SameLine();
+	if (Button("Route laden"))
+	{
+		OpenPopup("loadPopup");
+	}
+	if (BeginPopup("loadPopup"))
+	{
+		Text("Bestand naam:");
+		InputText("##edit2", rayTracer->newRouteFile, IM_ARRAYSIZE(rayTracer->newRouteFile));
+		if (Button("Laden")) {
+			CloseCurrentPopup();
+			rayTracer->LoadRoute(rayTracer->newRouteFile);
+		}
+		EndPopup();
 	}
 
 	if (Button("Herbereken UV straling"))
@@ -93,6 +107,7 @@ void UserInterface::DrawUI()
 	{//TODO: move to separate function
 		rayTracer->reachedMaxPhotons = rayTracer->photonMapSize + rayTracer->photonCount > rayTracer->maxPhotonCount;
 		rayTracer->photonCount = (rayTracer->maxPhotonCount / 4);
+		rayTracer->rayBuffer = new Buffer(8 * rayTracer->photonCount, Buffer::DEFAULT);
 	}
 
 	ShowDemoWindow();
