@@ -10,10 +10,14 @@ void RayTracer::AddLamp()
 
 void RayTracer::Init()
 {
-	LightPos initLightPos;
-	initLightPos.position = make_float2(0.5f, 0.5f);
-	initLightPos.duration = 1;
-	lightPositions.push_back(initLightPos);
+	LoadRoute(defaultRouteFile);
+
+	if (lightPositions.empty()) { // If no route has previously been saved, initialise with single light
+		LightPos initLightPos;
+		initLightPos.position = make_float2(0.5f, 0.5f);
+		initLightPos.duration = 1;
+		lightPositions.push_back(initLightPos);
+	}
 
 	//initLightPos.position = make_float3(-0.1f, 0.6f + floorOffset, -1.9f);
 	//initLightPos.duration = 1;
@@ -65,7 +69,6 @@ void RayTracer::ComputeDosageMap()
 		float3 lightposition = make_float3(lightPositions[i].position.x, lightHeight, lightPositions[i].position.y);
 		generateKernel->SetArgument(1, lightposition);
 		generateKernel->SetArgument(2, lightLength);
-		generateKernel->SetArgument(3, (int)lightPositions.size());
 		generateKernel->Run(photonsPerLight);
 		//clFinish(Kernel::GetQueue());
 		//cout << " generated: " <<  timerClock.elapsed() * 1000.0f << endl;
@@ -90,8 +93,7 @@ void RayTracer::ComputeDosageMap()
 	shadeKernel->SetArgument(5, minDosage);
 	
 	shadeKernel->Run(dosageBuffer, vertexCount / 9);
-	//clFinish(Kernel::GetQueue());//todo
-	
+	//clFinish(Kernel::GetQueue());//todo	
 }
 
 void RayTracer::ResetDosageMap() {
@@ -130,14 +132,14 @@ void RayTracer::SaveRoute(char fileName[32])
 	}
 	root->InsertEndChild(viewElem);
 	char prefix[64] = "routes/";
-	doc.SaveFile(strcat(prefix, fileName));
+	doc.SaveFile(strcat(strcat(prefix, fileName), ".xml"));
 }
 
 void RayTracer::LoadRoute(char fileName[32])
 {
 	char prefix[64] = "routes/";
 	XMLDocument doc;
-	XMLError result = doc.LoadFile(strcat(prefix, fileName));
+	XMLError result = doc.LoadFile(strcat(strcat(prefix, fileName), ".xml"));
 	if (result != XML_SUCCESS) return;
 	XMLNode* root = doc.FirstChild();
 	if (root == nullptr) return;

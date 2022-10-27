@@ -24,7 +24,6 @@ void UserInterface::Init(GLFWwindow* window, RayTracer* rayTracer)
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
 
-	strcpy(rayTracer->newRouteFile, rayTracer->defaultRouteFile);
 }
 
 void UserInterface::DrawUI()
@@ -111,10 +110,10 @@ void UserInterface::DrawUI()
 	}
 
 	ShowDemoWindow();
-	//TODO: configure light length, duration, power, and the min dosage
 	//TODO: allow continueing/pauzing computation
 	//TODO: show notification when done computing
-	//TODO: save the current route automatically and allow saving route to separate file as well
+	//TODO: save the current route automatically
+	//TODO: allow deleting light positions
 	//TODO: select and move lights with wasd
 	//TODO: save heatmap automatically and allow saving to separate file as well. Perhaps save into the gltf model?
 

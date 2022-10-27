@@ -6,7 +6,7 @@
 static uint SEED;
 
 __kernel void render(__global struct Ray* rays, float3 lightPos, 
-	float lightLength, int lightCount)
+	float lightLength)
 {
 	const int threadID = get_global_id(0);
 

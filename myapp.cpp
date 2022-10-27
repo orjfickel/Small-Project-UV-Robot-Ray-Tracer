@@ -320,6 +320,7 @@ bool MyApp::CameraKeyPressed()
 
 void MyApp::Shutdown()
 {
+	rayTracer.SaveRoute(rayTracer.defaultRouteFile);
 	camera.Save();
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);

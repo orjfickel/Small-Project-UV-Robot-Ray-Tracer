@@ -21,12 +21,12 @@ namespace Tmpl8
 
 		float lightLength = 1.3f;
 		float lightHeight = -0.9f; //TODO: make lightHeight not just the ypos but the distance from the ground.
-		int maxPhotonCount = 1 << 23;
+		int maxPhotonCount = 1 << 25;
 		int photonCount = maxPhotonCount / 8;
 		float lightIntensity = 180;
 		float minDosage = 4;
-		char defaultRouteFile[32] = "route.xml";
-		char newRouteFile[32];
+		char defaultRouteFile[32] = "route";
+		char newRouteFile[32] = "nieuwe_route";
 
 		float* vertices;
 		int vertexCount; // Size of the vertices array. Number of vertices times 3 (1 for every axis) (includes duplicates)
