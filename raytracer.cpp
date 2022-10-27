@@ -56,8 +56,7 @@ void RayTracer::Init()
 	resetKernel->SetArgument(0, photonMapBuffer);
 	resetKernel->SetArgument(1, dosageBuffer);
 
-	timeStepKernel->SetArgument(0, photonMapBuffer);
-
+	//timeStepKernel->SetArgument(0, photonMapBuffer);
 }
 
 void RayTracer::ComputeDosageMap()
@@ -72,12 +71,14 @@ void RayTracer::ComputeDosageMap()
 		generateKernel->Run(photonsPerLight);
 		//clFinish(Kernel::GetQueue());
 		//cout << " generated: " <<  timerClock.elapsed() * 1000.0f << endl;
-		
+
 		extendKernel->SetArgument(1, photonMapSize);
+		extendKernel->SetArgument(5, lightPositions[i].duration);
 		extendKernel->Run(photonsPerLight);
 
-		timeStepKernel->SetArgument(1, lightPositions[i].duration);
-		timeStepKernel->Run(vertexCount / 9);
+		// Every timestep gets accumulated into the same map, so we cannot just multiply the entire thing by timestep (could be possible by dividing by (total timestep - timestep so far))
+		//timeStepKernel->SetArgument(1, lightPositions[i].duration);
+		//timeStepKernel->Run(vertexCount / 9);
 		//clFinish(Kernel::GetQueue());
 		//cout << " extended: " <<  timerClock.elapsed() * 1000.0f << endl;
 

@@ -47,7 +47,7 @@ void __attribute__((always_inline)) atomic_add_d(volatile global double* addr, c
 #endif
 
 __kernel void render(__global double* photonMap, int offset, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
-	__global struct Triangle* vertices, int vertexCount)
+	__global struct Triangle* vertices, int vertexCount, float timeStep)
 {
 	const int threadID = get_global_id(0);
 
@@ -72,7 +72,7 @@ __kernel void render(__global double* photonMap, int offset, __global struct Ray
 	if (triID >= 0) {
 		volatile __global double* triPtr = photonMap + triID;
 		//atomic_inc(triPtr);
-		atomic_add_d(triPtr, pow(M_E_F, -0.6f * closestDist));
+		atomic_add_d(triPtr, (double)timeStep);//pow(M_E_F, -0.6f * closestDist)
 	}
 	// 
 	//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;]

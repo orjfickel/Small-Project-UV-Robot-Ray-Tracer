@@ -40,15 +40,15 @@ void UserInterface::DrawUI()
 
 	Begin("Parameters", 0);
 	SetWindowFontScale(1.5f);
+	PushItemWidth(-2);
 
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
-
 	Text("Aantal fotonen"); SameLine();
 	InputInt("##photonCount", &rayTracer->maxPhotonCount);
 
 	Text("Lamp sterkte in Watt"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity);//TODO: should be int probably
-	Text("Grens minimale dosering in J/m^2"); SameLine();
+	Text("Minimale dosering in J/m^2"); SameLine();
 	InputFloat("##mindosage", &rayTracer->minDosage);
 	Text("Lamp lengte"); SameLine();
 	InputFloat("##length", &rayTracer->lightLength);
@@ -60,12 +60,19 @@ void UserInterface::DrawUI()
 			Text("Positie %i", i + 1); SameLine();
 			InputFloat2(("##position_" + std::to_string(i)).c_str(), rayTracer->lightPositions[i].position.cell);
 			Text("Tijdsduur %i", i + 1); SameLine();
+			PushItemWidth(-120);
 			InputFloat(("##duration_" + std::to_string(i)).c_str(), &rayTracer->lightPositions[i].duration);
+			SameLine();
+			PushItemWidth(-2);
+			if (Button(("Verwijder###delete_" + std::to_string(i)).c_str()))
+			{
+				rayTracer->lightPositions.erase(rayTracer->lightPositions.begin()+i);
+			}
 		}
-		if (Button("Voeg nieuwe lamp positie toe"))
-		{
-			rayTracer->AddLamp();
-		}
+	}
+	if (Button("Voeg nieuwe lamp positie toe"))
+	{
+		rayTracer->AddLamp();
 	}
 
 	if (Button("Route opslaan"))
@@ -102,12 +109,24 @@ void UserInterface::DrawUI()
 	{
 		rayTracer->ResetDosageMap();
 	}
-	if (Button("Berekening hervatten"))
-	{//TODO: move to separate function
-		rayTracer->reachedMaxPhotons = rayTracer->photonMapSize + rayTracer->photonCount > rayTracer->maxPhotonCount;
-		rayTracer->photonCount = (rayTracer->maxPhotonCount / 4);
-		rayTracer->rayBuffer = new Buffer(8 * rayTracer->photonCount, Buffer::DEFAULT);
-	}
+	// UI is unresponsive during computation so this does not work
+	//if (Button("Berekening stoppen"))
+	//{
+	//	rayTracer->reachedMaxPhotons = true;
+	//}
+
+	// For some reason computation becomes significantly slower
+	//if (Button("Berekening hervatten"))
+	//{//TODO: move to separate function
+	//	rayTracer->reachedMaxPhotons = rayTracer->photonMapSize + 100 > rayTracer->maxPhotonCount;
+	//	if (!rayTracer->reachedMaxPhotons) {
+	//		rayTracer->photonCount = min(rayTracer->photonCount,((rayTracer->maxPhotonCount - rayTracer->photonMapSize) / 4));
+	//		//delete rayTracer->rayBuffer;
+	//		//rayTracer->rayBuffer = new Buffer(8 * rayTracer->photonCount, Buffer::DEFAULT);
+	//		//rayTracer->generateKernel->SetArgument(0, rayTracer->rayBuffer);
+	//		//rayTracer->extendKernel->SetArgument(2, rayTracer->rayBuffer);
+	//	}
+	//}
 
 	ShowDemoWindow();
 	//TODO: allow continueing/pauzing computation
