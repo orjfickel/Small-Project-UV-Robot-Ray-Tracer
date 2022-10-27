@@ -32,7 +32,7 @@ void RayTracer::Init()
 	//TODO: new shade kernel for determining triangle color & updating opengl texture
 	// create an OpenCL buffer over using bitmap.pixels
 	photonMapBuffer = new Buffer(2 * vertexCount / 9, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
-	rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
+	//rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 	//lightPosBuffer = new Buffer(4 * lightPositions.size(), Buffer::DEFAULT, lightPositions.data());
 
 	//triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);	
@@ -42,10 +42,10 @@ void RayTracer::Init()
 	// Or otherwise render opengl with fat triangle data after all, but use the compressed data for the OpenCL kernels?
 	dosageBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
 
-	generateKernel->SetArgument(0, rayBuffer);
+	//generateKernel->SetArgument(0, rayBuffer);
 
 	extendKernel->SetArgument(0, photonMapBuffer);
-	extendKernel->SetArgument(2, rayBuffer);
+	//extendKernel->SetArgument(2, rayBuffer);
 	extendKernel->SetArgument(3, verticesBuffer);
 	extendKernel->SetArgument(4, vertexCount);
 
@@ -101,6 +101,7 @@ void RayTracer::ResetDosageMap() {
 	photonMapSize = 0;
 	reachedMaxPhotons = false;
 	photonCount = maxPhotonCount / 8;
+	delete rayBuffer;
 	rayBuffer = new Buffer(8 * photonCount, Buffer::DEFAULT);
 	generateKernel->SetArgument(0, rayBuffer);
 	extendKernel->SetArgument(2, rayBuffer);

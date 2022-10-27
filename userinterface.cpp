@@ -43,8 +43,10 @@ void UserInterface::DrawUI()
 	PushItemWidth(-2);
 
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
-	Text("Aantal fotonen"); SameLine();
-	InputInt("##photonCount", &rayTracer->maxPhotonCount);
+	Text("Aantal fotonen per 1000"); SameLine();
+	int numPhotons = rayTracer->maxPhotonCount / 1024;
+	InputInt("##photonCount", &numPhotons, 10,1000);
+	rayTracer->maxPhotonCount = numPhotons * 1024;
 
 	Text("Lamp sterkte in Watt"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity);//TODO: should be int probably
@@ -109,13 +111,25 @@ void UserInterface::DrawUI()
 	{
 		rayTracer->ResetDosageMap();
 	}
+
+	if (!rayTracer->reachedMaxPhotons || rayTracer->progressTextTimer > 0) {
+		SetNextWindowPos(ImVec2(10, SCRHEIGHT - 40), 0);
+		SetNextWindowSize(ImVec2(150, 0), 0);
+		Begin("progress", 0, ImGuiCond_FirstUseEver | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
+		if (!rayTracer->reachedMaxPhotons) {
+			Text("Vooruitgang: %.2f%%", rayTracer->progress);
+		} else {
+			Text("Berekening klaar");
+		}
+		End();
+	}
 	// UI is unresponsive during computation so this does not work
 	//if (Button("Berekening stoppen"))
 	//{
 	//	rayTracer->reachedMaxPhotons = true;
 	//}
 
-	// For some reason computation becomes significantly slower
+	//TODO: For some reason computation becomes significantly slower
 	//if (Button("Berekening hervatten"))
 	//{//TODO: move to separate function
 	//	rayTracer->reachedMaxPhotons = rayTracer->photonMapSize + 100 > rayTracer->maxPhotonCount;
@@ -129,15 +143,18 @@ void UserInterface::DrawUI()
 	//}
 
 	ShowDemoWindow();
-	//TODO: allow continueing/pauzing computation
-	//TODO: show notification when done computing
-	//TODO: save the current route automatically
-	//TODO: allow deleting light positions
-	//TODO: select and move lights with wasd
+	//TODO: show progress/notification when done computing
+	//TODO: button to show regularly shaded scene, maybe depth per triangle? So that the user can still understand what they are looking at if everything is red.
+	//TODO: select and move lights with wasd. base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
+	//TODO: Dosage to color legend
+	//TODO: max dosage map
+	//TODO: BVH
+	//TODO: light movement interpolate
 	//TODO: save heatmap automatically and allow saving to separate file as well. Perhaps save into the gltf model?
 
 	//TODO: for debugging: assign each triangle a color based on its normal
 
+	//TODO: allow continueing/pauzing computation (not a priority)
 	End();
 	Render();
 	ImGui_ImplOpenGL3_RenderDrawData(GetDrawData());

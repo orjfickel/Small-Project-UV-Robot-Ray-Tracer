@@ -26,6 +26,7 @@ void MyApp::Init(GLFWwindow* window, UserInterface* userInterface)
 
 	BindMesh();
 	rayTracer.Init();
+	//rayTracer.ResetDosageMap();
 	//rayTracer.ComputeDosageMap();
 	//UpdateDosageMap();
 }
@@ -172,6 +173,7 @@ void MyApp::Tick(float deltaTime)
 	//cout << " time since last frame: " << deltaTime << endl;
 	rayTracer.timerClock.reset();
 	rayTracer.timer += deltaTime;
+	if (rayTracer.progressTextTimer > 0) rayTracer.progressTextTimer -= deltaTime;
 
 	// Update the camera
 	camera.UpdateView(keyPresses, deltaTime);
@@ -194,8 +196,12 @@ void MyApp::Tick(float deltaTime)
 		if (/*timerStart > 100 && *//*rayTracer.timer > 0 && */!rayTracer.reachedMaxPhotons) {
 			rayTracer.ComputeDosageMap();
 			clFinish(Kernel::GetQueue());// Make sure previous computation is finished before enqueing the next one
-			cout << "Progress: " << 100.0f * (float)rayTracer.photonMapSize / (float)rayTracer.maxPhotonCount << "% photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
+			rayTracer.progress = 100.0f * (float)rayTracer.photonMapSize / (float)rayTracer.maxPhotonCount;
+			cout << "Progress: " << rayTracer.progress << "% photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 			rayTracer.timer = 0;
+		} else
+		{
+			rayTracer.progressTextTimer = 800;
 		}
 	}
 

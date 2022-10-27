@@ -7,7 +7,7 @@ __kernel void render(__global double* photonMap, __global struct Triangle* dosag
 
     photonMap[threadID] = 0;
 
-    float testColor = 0;
+    double testColor = 0;
     struct Triangle* triColor = &dosageMap[threadID]; 
     triColor->v1x = testColor;//f.x;
     triColor->v1y = testColor;//f.y;
