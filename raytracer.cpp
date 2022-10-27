@@ -31,7 +31,7 @@ void RayTracer::Init()
 	timeStepKernel = new Kernel("timestep.cl", "render");
 	//TODO: new shade kernel for determining triangle color & updating opengl texture
 	// create an OpenCL buffer over using bitmap.pixels
-	photonMapBuffer = new Buffer(vertexCount / 9, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
+	photonMapBuffer = new Buffer(2 * vertexCount / 9, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
 	rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 	//lightPosBuffer = new Buffer(4 * lightPositions.size(), Buffer::DEFAULT, lightPositions.data());
 
