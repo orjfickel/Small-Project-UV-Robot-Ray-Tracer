@@ -18,6 +18,7 @@ void MyApp::Init(GLFWwindow* window, UserInterface* userInterface)
 {
 	seed = time(0);
 
+	this->userInterface = userInterface;
 	userInterface->Init(window, &rayTracer);
 	Kernel::InitCL();
 	cout << "Initialised OpenCL " << endl;
@@ -179,9 +180,15 @@ void MyApp::Tick(float deltaTime)
 	//cout << " time since last frame: " << deltaTime << endl;
 	rayTracer.timer += deltaTime;
 	if (rayTracer.progressTextTimer > 0) rayTracer.progressTextTimer -= deltaTime;
-
-	// Update the camera
-	camera.UpdateView(keyPresses, deltaTime);
+	
+	if (userInterface->selectedLightPos > -1 && userInterface->selectedLightPos < rayTracer.lightPositions.size())
+	{
+		userInterface->MoveLightPos(keyPresses, deltaTime, camera.view);
+	}
+	else {
+		// Update the camera
+		camera.UpdateView(keyPresses, deltaTime);
+	}
 
 	screen->Clear(0);
 	for (int i = 0; i < rayTracer.lightPositions.size(); ++i)

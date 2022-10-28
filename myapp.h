@@ -9,11 +9,6 @@ namespace Tmpl8
 	struct Texture {
 		unsigned int id;
 	};
-    struct KeyPresses
-    {
-        bool wPress, aPress, sPress, dPress, qPress, ePress, upPress, leftPress, downPress, rightPress, shiftPress, leftClick;
-        float moveTimer = 0, timeTillMove = 2;
-    };
 
 class MyApp : public TheApp
 {
@@ -42,6 +37,7 @@ public:
     KeyPresses keyPresses;
 	int2 mousePos;
 	RayTracer rayTracer{};
+	UserInterface* userInterface;
 	Camera camera{};
 
 	unsigned int VAO, VBO;

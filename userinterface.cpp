@@ -58,14 +58,15 @@ void UserInterface::DrawUI()
 	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
 	Text("Lamp hoogte"); SameLine();
 	InputFloat("##height", &rayTracer->lightHeight, 0, 0, "%.2f");
-	if (CollapsingHeader("Lamp route")) {
-		static int selected = -1;
+	if (CollapsingHeader("Lamp route")) {		
 		for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
 		{
 			char buf[32];
 			sprintf(buf, "##Positie %d", i + 1);
-			if (Selectable(buf, selected == i,ImGuiSelectableFlags_AllowItemOverlap,ImVec2(0,50)))
-				selected = i;
+			if (Selectable(buf, selectedLightPos == i,ImGuiSelectableFlags_AllowItemOverlap,ImVec2(0,50)))
+			{
+				selectedLightPos = i;
+			}
 			SetItemAllowOverlap();
 			SameLine();
 			BeginGroup();
@@ -150,6 +151,7 @@ void UserInterface::DrawUI()
 	}
 
 	ShowDemoWindow();
+	//TODO: allow turning camera while moving light
 	//TODO: explain camera controls
 	//TODO: button to show regularly shaded scene, maybe depth per triangle? So that the user can still understand what they are looking at if everything is red.
 	//TODO: select and move lights with wasd. base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
@@ -167,4 +169,27 @@ void UserInterface::DrawUI()
 	ImGui_ImplOpenGL3_RenderDrawData(GetDrawData());
 
 	//rayTracer.lightPos = make_float3(lightPosInput[0], lightPosInput[1], lightPosInput[2]);
+}
+
+void UserInterface::MoveLightPos(KeyPresses keyPresses, float deltaTime, glm::mat4 cameraView)
+{
+	if (keyPresses.leftClick)
+		selectedLightPos = -1;
+
+	float movement = (keyPresses.shiftPress ? 0.015f : 0.005f) * deltaTime;
+
+	float2 moveVec = make_float2(0);
+	if (glm::abs(cameraView[2][2]) < glm::abs(cameraView[0][2])) {// w press should move forward in the dominant axis of the view direction vector
+		if (keyPresses.wPress) { moveVec.x -= movement * glm::sign(cameraView[0][2]); }
+		if (keyPresses.aPress) { moveVec.y += movement * glm::sign(cameraView[0][2]); }
+		if (keyPresses.sPress) { moveVec.x += movement * glm::sign(cameraView[0][2]); }
+		if (keyPresses.dPress) { moveVec.y -= movement * glm::sign(cameraView[0][2]); }
+	} else
+	{
+		if (keyPresses.wPress) { moveVec.y -= movement * glm::sign(cameraView[2][2]); }
+		if (keyPresses.aPress) { moveVec.x -= movement * glm::sign(cameraView[2][2]); }
+		if (keyPresses.sPress) { moveVec.y += movement * glm::sign(cameraView[2][2]); }
+		if (keyPresses.dPress) { moveVec.x += movement * glm::sign(cameraView[2][2]); }
+	}
+	rayTracer->lightPositions[selectedLightPos].position += moveVec;
 }
