@@ -40,36 +40,47 @@ void UserInterface::DrawUI()
 
 	Begin("Parameters", 0);
 	SetWindowFontScale(1.5f);
-	PushItemWidth(-2);
 
+	PushItemWidth(-90);
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
-	Text("Aantal fotonen per 1000"); SameLine();
+	Text("Aantal fotonen"); SameLine();
 	int numPhotons = rayTracer->maxPhotonCount / 1024;
-	InputInt("##photonCount", &numPhotons, 10,1000);
-	rayTracer->maxPhotonCount = numPhotons * 1024;
+	InputInt("##photonCount", &numPhotons, 0,0);
+	rayTracer->maxPhotonCount = (numPhotons > MAXINT / 1024) ? MAXINT : numPhotons * 1024;
+	SameLine(); Text("duizend");
 
+	PushItemWidth(-2);
 	Text("Lamp sterkte in Watt"); SameLine();
-	InputFloat("##power", &rayTracer->lightIntensity);//TODO: should be int probably
+	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");//TODO: should be int probably
 	Text("Minimale dosering in J/m^2"); SameLine();
-	InputFloat("##mindosage", &rayTracer->minDosage);
+	InputFloat("##mindosage", &rayTracer->minDosage, 0, 0, "%.2f");
 	Text("Lamp lengte"); SameLine();
-	InputFloat("##length", &rayTracer->lightLength);
+	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
 	Text("Lamp hoogte"); SameLine();
-	InputFloat("##height", &rayTracer->lightHeight);
+	InputFloat("##height", &rayTracer->lightHeight, 0, 0, "%.2f");
 	if (CollapsingHeader("Lamp route")) {
+		static int selected = -1;
 		for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
 		{
+			char buf[32];
+			sprintf(buf, "##Positie %d", i + 1);
+			if (Selectable(buf, selected == i,ImGuiSelectableFlags_AllowItemOverlap,ImVec2(0,50)))
+				selected = i;
+			SetItemAllowOverlap();
+			SameLine();
+			BeginGroup();
 			Text("Positie %i", i + 1); SameLine();
-			InputFloat2(("##position_" + std::to_string(i)).c_str(), rayTracer->lightPositions[i].position.cell);
+			InputFloat2(("##position_" + std::to_string(i)).c_str(), rayTracer->lightPositions[i].position.cell, "%.2f");
 			Text("Tijdsduur %i", i + 1); SameLine();
 			PushItemWidth(-120);
-			InputFloat(("##duration_" + std::to_string(i)).c_str(), &rayTracer->lightPositions[i].duration);
+			InputFloat(("##duration_" + std::to_string(i)).c_str(), &rayTracer->lightPositions[i].duration, 0, 0, "%.2f");
 			SameLine();
 			PushItemWidth(-2);
 			if (Button(("Verwijder###delete_" + std::to_string(i)).c_str()))
 			{
 				rayTracer->lightPositions.erase(rayTracer->lightPositions.begin()+i);
 			}
+			EndGroup();
 		}
 	}
 	if (Button("Voeg nieuwe lamp positie toe"))
@@ -107,7 +118,7 @@ void UserInterface::DrawUI()
 		EndPopup();
 	}
 
-	if (Button("Herbereken UV straling"))
+	if ((rayTracer->startedComputation && Button("Herbereken UV straling")) || (!rayTracer->startedComputation && Button("Bereken UV straling")))
 	{
 		rayTracer->ResetDosageMap();
 	}
@@ -130,30 +141,26 @@ void UserInterface::DrawUI()
 	//}
 
 	//TODO: For some reason computation becomes significantly slower
-	//if (Button("Berekening hervatten"))
-	//{//TODO: move to separate function
-	//	rayTracer->reachedMaxPhotons = rayTracer->photonMapSize + 100 > rayTracer->maxPhotonCount;
-	//	if (!rayTracer->reachedMaxPhotons) {
-	//		rayTracer->photonCount = min(rayTracer->photonCount,((rayTracer->maxPhotonCount - rayTracer->photonMapSize) / 4));
-	//		//delete rayTracer->rayBuffer;
-	//		//rayTracer->rayBuffer = new Buffer(8 * rayTracer->photonCount, Buffer::DEFAULT);
-	//		//rayTracer->generateKernel->SetArgument(0, rayTracer->rayBuffer);
-	//		//rayTracer->extendKernel->SetArgument(2, rayTracer->rayBuffer);
-	//	}
-	//}
+	bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->photonMapSize + rayTracer->photonCount > rayTracer->maxPhotonCount;
+	if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
+	{//TODO: move to separate function
+		if (Button("Berekening hervatten")) {
+			rayTracer->reachedMaxPhotons = false;
+		}
+	}
 
 	ShowDemoWindow();
-	//TODO: show progress/notification when done computing
+	//TODO: explain camera controls
 	//TODO: button to show regularly shaded scene, maybe depth per triangle? So that the user can still understand what they are looking at if everything is red.
 	//TODO: select and move lights with wasd. base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
 	//TODO: Dosage to color legend
 	//TODO: max dosage map
 	//TODO: BVH
-	//TODO: light movement interpolate
 	//TODO: save heatmap automatically and allow saving to separate file as well. Perhaps save into the gltf model?
 
 	//TODO: for debugging: assign each triangle a color based on its normal
 
+	//TODO: light movement interpolate
 	//TODO: allow continueing/pauzing computation (not a priority)
 	End();
 	Render();

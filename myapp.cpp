@@ -91,7 +91,9 @@ void MyApp::LoadMesh()
 void MyApp::BindMesh()
 {
 	shader3D = new ShaderGL("shader3D.vert", "shader3D.frag", false);
-	
+	//rayTracer.simpleShader = new ShaderGL(
+	//	"#version 330\nin vec3 p;\nin vec3 col;\nuniform mat4 view;uniform mat4 projection;void main(){gl_Position=projection * view * vec4(p, 1.0f);}",
+	//	"#version 330\nout vec4 f;void main(){f=vec4(gl_FragDepth);}", true);
 
 	cout << "Binding the mesh " << endl;
 	glGenVertexArrays(1, &VAO);
@@ -112,11 +114,15 @@ void MyApp::BindMesh()
 	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-  
+
 	shader3D->Bind();
 	camera.projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
 	shader3D->SetInputMatrixGLM("projection", camera.projection);
 	shader3D->Unbind();
+	//rayTracer.simpleShader->Bind();
+	//camera.projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
+	//rayTracer.simpleShader->SetInputMatrixGLM("projection", camera.projection);
+	//rayTracer.simpleShader->Unbind();
 }
 
 //void MyApp::UpdateDosageMap()
@@ -171,7 +177,6 @@ void MyApp::BindMesh()
 void MyApp::Tick(float deltaTime)
 {
 	//cout << " time since last frame: " << deltaTime << endl;
-	rayTracer.timerClock.reset();
 	rayTracer.timer += deltaTime;
 	if (rayTracer.progressTextTimer > 0) rayTracer.progressTextTimer -= deltaTime;
 
@@ -192,13 +197,19 @@ void MyApp::Tick(float deltaTime)
 	}
 
 	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already
+		
 		rayTracer.reachedMaxPhotons = rayTracer.photonMapSize + rayTracer.photonCount > rayTracer.maxPhotonCount;
 		if (/*timerStart > 100 && *//*rayTracer.timer > 0 && */!rayTracer.reachedMaxPhotons) {
 			rayTracer.ComputeDosageMap();
 			clFinish(Kernel::GetQueue());// Make sure previous computation is finished before enqueing the next one
+			if (!rayTracer.heatmapView) rayTracer.heatmapView = true;
 			rayTracer.progress = 100.0f * (float)rayTracer.photonMapSize / (float)rayTracer.maxPhotonCount;
-			cout << "Progress: " << rayTracer.progress << "% photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
+			float time = rayTracer.timerClock.elapsed();
+			rayTracer.compTime += time;
+			cout << "Progress: " << rayTracer.progress << "% photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << 
+				" total time: " << rayTracer.compTime * 1000.0f << endl;
 			rayTracer.timer = 0;
+			rayTracer.timerClock.reset();
 		} else
 		{
 			rayTracer.progressTextTimer = 800;

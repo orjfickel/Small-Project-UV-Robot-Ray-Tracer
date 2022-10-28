@@ -57,12 +57,15 @@ void RayTracer::Init()
 	resetKernel->SetArgument(1, dosageBuffer);
 
 	//timeStepKernel->SetArgument(0, photonMapBuffer);
+	//size_t size = 0;
+	//clGetDeviceInfo(extendKernel->GetDevice(), CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &size, 0);//CL_DEVICE_MAX_WORK_GROUP_SIZE
+	//cout << " CL_DEVICE_MAX_WORK_GROUP_SIZE: " << size << endl;
 }
 
 void RayTracer::ComputeDosageMap()
 {
-	//cout << " beforecompute: " << timerClock.elapsed() * 1000.0f << endl;
-	int photonsPerLight = photonCount / lightPositions.size();
+	//Round down the photons per light to the nearest number divisble by 2, to prevent tanking the performance of the kernels
+	int photonsPerLight = (photonCount / lightPositions.size() & ~1);
 	for (int i = 0; i < lightPositions.size(); ++i)
 	{
 		float3 lightposition = make_float3(lightPositions[i].position.x, lightHeight, lightPositions[i].position.y);
@@ -98,9 +101,15 @@ void RayTracer::ComputeDosageMap()
 }
 
 void RayTracer::ResetDosageMap() {
+	startedComputation = true;
+	compTime = 0;
+	timerClock.reset();
+	SaveRoute(defaultRouteFile);
 	photonMapSize = 0;
 	reachedMaxPhotons = false;
-	photonCount = maxPhotonCount / 8;
+	int testtemp = ((maxPhotonCount / 1024) / 32);
+	photonCount = testtemp * 1024;
+	cout << "photoncount " << photonCount << " temp " << testtemp  << " wtf " << ((maxPhotonCount / 1024) / 32) * 1024 << endl;
 	delete rayBuffer;
 	rayBuffer = new Buffer(8 * photonCount, Buffer::DEFAULT);
 	generateKernel->SetArgument(0, rayBuffer);
