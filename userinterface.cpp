@@ -38,7 +38,7 @@ void UserInterface::DrawUI()
 	Text("Aantal fotonen: %i", rayTracer->photonMapSize);
 	End();
 
-	Begin("Parameters", 0);
+	Begin("Parameters", 0, ImGuiWindowFlags_NoNavInputs);
 	SetWindowFontScale(1.5f);
 
 	PushItemWidth(-90);
@@ -71,7 +71,7 @@ void UserInterface::DrawUI()
 		addedLamp = false;
 	}
 	if (CollapsingHeader("Lamp route")) {
-		BeginChild("lightpositions", ImVec2(0,200));
+		BeginChild("lightpositions", ImVec2(0,220));
 		for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
 		{
 			char buf[32];
@@ -141,9 +141,10 @@ void UserInterface::DrawUI()
 
 	//Progress popup
 	if (!rayTracer->reachedMaxPhotons || rayTracer->progressTextTimer > 0) {
-		SetNextWindowPos(ImVec2(10, SCRHEIGHT - 40), 0);
-		SetNextWindowSize(ImVec2(150, 0), 0);
+		SetNextWindowPos(ImVec2(10, SCRHEIGHT - 50), 0);
+		SetNextWindowSize(ImVec2(220, 0), 0);
 		Begin("progress", 0, ImGuiCond_FirstUseEver | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
+		SetWindowFontScale(1.5f);
 		if (!rayTracer->reachedMaxPhotons) {
 			Text("Vooruitgang: %.2f%%", rayTracer->progress);
 		} else {
@@ -156,14 +157,29 @@ void UserInterface::DrawUI()
 	//{
 	//	rayTracer->reachedMaxPhotons = true;
 	//}	
-
+	Text("");
 	if (!rayTracer->heatmapView && Button("Toon heatmap"))
 		rayTracer->heatmapView = true;
-	else if (rayTracer->heatmapView && Button("Toon diepte"))
+	else if (rayTracer->heatmapView && Button("Toon fotoscan"))
 		rayTracer->heatmapView = false;
 
+	if (!showLights && Button("Toon lamp posities"))
+		showLights = true;
+	else if (showLights && Button("Verberg lamp posities"))
+		showLights = false;
+
+	Begin("hue");
+
+	ImDrawList* draw_list = GetWindowDrawList();
+	ImVec2 panelPos = GetWindowPos();
+	const ImU32 col_hues[4 + 1] = { IM_COL32(255,0,0,255), IM_COL32(255,255,0,255), IM_COL32(0,255,0,255), IM_COL32(0,255,255,255), IM_COL32(0,0,255,255)};
+	float pickerSize = 200;
+	for (int i = 0; i < 4; ++i)
+		draw_list->AddRectFilledMultiColor(ImVec2(panelPos.x + i * (pickerSize / 4), panelPos.y), ImVec2(panelPos.x + (i + 1) * (pickerSize / 4), panelPos.y + 50), col_hues[i], col_hues[i+1], col_hues[i + 1], col_hues[i]);
+
+	End();
+
 	ShowDemoWindow();
-	//TODO: add button to hide / toon lights
 	//TODO: explain camera controls
 	//TODO: button to show regularly shaded scene, maybe depth per triangle? So that the user can still understand what they are looking at if everything is red.
 	//TODO: select and move lights with wasd. base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket

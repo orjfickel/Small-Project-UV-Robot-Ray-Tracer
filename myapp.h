@@ -1,4 +1,5 @@
 #pragma once
+#include <tiny_gltf.h>
 
 namespace Tmpl8
 {
@@ -31,7 +32,8 @@ public:
 	//void UpdateDosageMap();
 	void DrawMesh();
 
-    string modelFile = "assets/testroomopt.glb";
+    string modelFile = "assets/testroomopt2.glb";
+	tinygltf::Model model;
     ShaderGL* shader3D;
 
     KeyPresses keyPresses;
@@ -40,7 +42,8 @@ public:
 	UserInterface* userInterface;
 	Camera camera{};
 
-	unsigned int VAO, VBO;
+	unsigned int VAO, VBO, UVBuffer, textureBuffer;
+	float* uvcoords;
 
 	//uint texSize = 0, texWidth, texHeight;
 

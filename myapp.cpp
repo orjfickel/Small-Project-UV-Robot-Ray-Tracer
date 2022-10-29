@@ -36,7 +36,6 @@ void MyApp::LoadMesh()
 {
 	cout << "Loading mesh " << endl;
 	// Load the mesh (TODO: allow specifying model in gui and load after pushing button)
-	tinygltf::Model model;
 	tinygltf::TinyGLTF loader;
 	string err;
 	string warn;
@@ -55,12 +54,16 @@ void MyApp::LoadMesh()
 	}
 	tinygltf::Primitive& primitive = model.meshes[0].primitives[0];
 	const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
+	const tinygltf::Accessor& texcoordAccessor = model.accessors[primitive.attributes["TEXCOORD_0"]];
 	const tinygltf::Accessor& indicesAccessor = model.accessors[primitive.indices];
 	const tinygltf::BufferView& positionBufferView = model.bufferViews[positionAccessor.bufferView];
+	const tinygltf::BufferView& texcoordBufferView = model.bufferViews[texcoordAccessor.bufferView];
 	const tinygltf::BufferView& indicesBufferView = model.bufferViews[indicesAccessor.bufferView];
 	const tinygltf::Buffer& positionBuffer = model.buffers[positionBufferView.buffer];
+	const tinygltf::Buffer& texcoordBuffer = model.buffers[texcoordBufferView.buffer];
 	const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
 	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
+	const float* texcoords = reinterpret_cast<const float*>(&texcoordBuffer.data[texcoordBufferView.byteOffset + texcoordAccessor.byteOffset]);
 	const unsigned short* temps;
 	const unsigned int* tempi;
 	bool shortIndices = indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
@@ -74,11 +77,14 @@ void MyApp::LoadMesh()
 	}
 
 	rayTracer.vertices = new float[indicesAccessor.count * 3];
+	uvcoords = new float[indicesAccessor.count * 2];
 	for (size_t i = 0; i < indicesAccessor.count; ++i) {
 		//cout << " vertexposz: " << positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2] << endl;
 		rayTracer.vertices[i * 3 + 0] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 0];
 		rayTracer.vertices[i * 3 + 1] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 1];
 		rayTracer.vertices[i * 3 + 2] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2];
+		uvcoords[i * 2 + 0] = texcoords[(shortIndices ? temps[i] : tempi[i]) * 2 + 0];
+		uvcoords[i * 2 + 1] = texcoords[(shortIndices ? temps[i] : tempi[i]) * 2 + 1];
 	}
 
 	rayTracer.vertexCount = indicesAccessor.count * 3;
@@ -92,17 +98,20 @@ void MyApp::LoadMesh()
 void MyApp::BindMesh()
 {
 	shader3D = new ShaderGL("shader3D.vert", "shader3D.frag", false);
-	//rayTracer.simpleShader = new ShaderGL("simpleshader.vert", "simpleshader.frag", false);
+	rayTracer.simpleShader = new ShaderGL("simpleshader.vert", "simpleshader.frag", false);
 
 	cout << "Binding the mesh " << endl;
-	glGenVertexArrays(1, &VAO);
+	glGenVertexArrays(1, &VAO); 
 	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &UVBuffer);
 	glGenBuffers(1, &rayTracer.dosageBufferID);
 
 	glBindVertexArray(VAO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), rayTracer.vertices, GL_STATIC_DRAW);
 	delete[] rayTracer.vertices;// Free up memory on host
+	glBindBuffer(GL_ARRAY_BUFFER, UVBuffer);
+	glBufferData(GL_ARRAY_BUFFER, (rayTracer.vertexCount * 2 / 3) * sizeof(float), uvcoords, GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
 	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 	
@@ -110,18 +119,71 @@ void MyApp::BindMesh()
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
+	glBindBuffer(GL_ARRAY_BUFFER, UVBuffer);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+	if (model.textures.size() > 0) {
+		tinygltf::Texture& tex = model.textures[model.materials[0].pbrMetallicRoughness.baseColorTexture.index];
+
+		if (tex.source > -1) {
+
+			glGenTextures(1, &textureBuffer);
+
+			tinygltf::Image& image = model.images[tex.source];
+
+			glBindTexture(GL_TEXTURE_2D, textureBuffer);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+			GLenum format = GL_RGBA;
+
+			if (image.component == 1) {
+				format = GL_RED;
+			}
+			else if (image.component == 2) {
+				format = GL_RG;
+			}
+			else if (image.component == 3) {
+				format = GL_RGB;
+			}
+			else {
+				// ???
+			}
+
+			GLenum type = GL_UNSIGNED_BYTE;
+			if (image.bits == 8) {
+				// ok
+			}
+			else if (image.bits == 16) {
+				type = GL_UNSIGNED_SHORT;
+			}
+			else {
+				// ???
+			}
+
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
+				format, type, &image.image.at(0));
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+	}
+
+	camera.projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
 
 	shader3D->Bind();
-	camera.projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
 	shader3D->SetInputMatrixGLM("projection", camera.projection);
 	shader3D->Unbind();
-	//rayTracer.simpleShader->Bind();
-	//camera.projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
-	//rayTracer.simpleShader->SetInputMatrixGLM("projection", camera.projection);
-	//rayTracer.simpleShader->Unbind();
+	rayTracer.simpleShader->Bind();
+	rayTracer.simpleShader->SetInt("tex", 0);
+	rayTracer.simpleShader->SetInputMatrixGLM("projection", camera.projection);
+	rayTracer.simpleShader->Unbind();
 }
 
 //void MyApp::UpdateDosageMap()
@@ -189,18 +251,20 @@ void MyApp::Tick(float deltaTime)
 
 	screen->Clear(0);
 	//TODO: move to separate function
-	for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
-	{
-		float3 lightPos = make_float3(rayTracer.lightPositions[i].position.x, rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
-		glm::vec4 lightClipPosBottom = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y, lightPos.z, 1);
-		glm::vec4 lightClipPosTop = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y + rayTracer.lightLength, lightPos.z, 1);
-		glm::vec2 lightScreenPosBottom = ((glm::vec2(lightClipPosBottom.x, -lightClipPosBottom.y) / lightClipPosBottom.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
-		glm::vec2 lightScreenPosTop = ((glm::vec2(lightClipPosTop.x, -lightClipPosTop.y) / lightClipPosTop.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
-		//cout << "lightpos " << lightScreenPosBottom.x << " y " << lightScreenPosBottom.y << endl;
-		
-		screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y, 
-			userInterface->selectedLightPos == i ?  255 | 170 << 8 | 170 << 16 | 255 << 24
-													: 255 | 255 << 8 | 255 << 16 | 255 << 24, 3);
+	if (userInterface->showLights) {
+		for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
+		{
+			float3 lightPos = make_float3(rayTracer.lightPositions[i].position.x, rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
+			glm::vec4 lightClipPosBottom = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y, lightPos.z, 1);
+			glm::vec4 lightClipPosTop = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y + rayTracer.lightLength, lightPos.z, 1);
+			glm::vec2 lightScreenPosBottom = ((glm::vec2(lightClipPosBottom.x, -lightClipPosBottom.y) / lightClipPosBottom.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
+			glm::vec2 lightScreenPosTop = ((glm::vec2(lightClipPosTop.x, -lightClipPosTop.y) / lightClipPosTop.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
+			//cout << "lightpos " << lightScreenPosBottom.x << " y " << lightScreenPosBottom.y << endl;
+
+			screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y,
+				userInterface->selectedLightPos == i ? 255 | 170 << 8 | 170 << 16 | 255 << 24
+				: 255 | 255 << 8 | 255 << 16 | 255 << 24, 3);
+		}
 	}
 
 	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already
@@ -240,11 +304,15 @@ void MyApp::DrawMesh()
 	glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
 	ShaderGL* shader;
-	//if (rayTracer.heatmapView)
+	if (rayTracer.heatmapView)
 		shader = shader3D;
-	//else
-	//	shader = rayTracer.simpleShader;
+	else {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureBuffer);
+		shader = rayTracer.simpleShader;
+	}
 
 	shader->Bind();
 
