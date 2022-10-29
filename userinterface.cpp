@@ -49,6 +49,14 @@ void UserInterface::DrawUI()
 	rayTracer->maxPhotonCount = (numPhotons > MAXINT / 1024) ? MAXINT : numPhotons * 1024;
 	SameLine(); Text("duizend");
 
+	bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->photonMapSize + rayTracer->photonCount > rayTracer->maxPhotonCount;
+	if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
+	{
+		if (Button("Berekening hervatten")) {
+			rayTracer->reachedMaxPhotons = false;
+		}
+	}
+
 	PushItemWidth(-2);
 	Text("Lamp sterkte in Watt"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");//TODO: should be int probably
@@ -58,7 +66,12 @@ void UserInterface::DrawUI()
 	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
 	Text("Lamp hoogte"); SameLine();
 	InputFloat("##height", &rayTracer->lightHeight, 0, 0, "%.2f");
-	if (CollapsingHeader("Lamp route")) {		
+	if (addedLamp) {
+		SetNextTreeNodeOpen(true);
+		addedLamp = false;
+	}
+	if (CollapsingHeader("Lamp route")) {
+		BeginChild("lightpositions", ImVec2(0,200));
 		for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
 		{
 			char buf[32];
@@ -72,7 +85,7 @@ void UserInterface::DrawUI()
 			BeginGroup();
 			Text("Positie %i", i + 1); SameLine();
 			InputFloat2(("##position_" + std::to_string(i)).c_str(), rayTracer->lightPositions[i].position.cell, "%.2f");
-			Text("Tijdsduur %i", i + 1); SameLine();
+			Text("Tijdsduur"); SameLine();
 			PushItemWidth(-120);
 			InputFloat(("##duration_" + std::to_string(i)).c_str(), &rayTracer->lightPositions[i].duration, 0, 0, "%.2f");
 			SameLine();
@@ -83,10 +96,12 @@ void UserInterface::DrawUI()
 			}
 			EndGroup();
 		}
+		EndChild();
 	}
 	if (Button("Voeg nieuwe lamp positie toe"))
 	{
 		rayTracer->AddLamp();
+		addedLamp = true;
 	}
 
 	if (Button("Route opslaan"))
@@ -124,6 +139,7 @@ void UserInterface::DrawUI()
 		rayTracer->ResetDosageMap();
 	}
 
+	//Progress popup
 	if (!rayTracer->reachedMaxPhotons || rayTracer->progressTextTimer > 0) {
 		SetNextWindowPos(ImVec2(10, SCRHEIGHT - 40), 0);
 		SetNextWindowSize(ImVec2(150, 0), 0);
@@ -139,19 +155,15 @@ void UserInterface::DrawUI()
 	//if (Button("Berekening stoppen"))
 	//{
 	//	rayTracer->reachedMaxPhotons = true;
-	//}
+	//}	
 
-	//TODO: For some reason computation becomes significantly slower
-	bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->photonMapSize + rayTracer->photonCount > rayTracer->maxPhotonCount;
-	if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
-	{//TODO: move to separate function
-		if (Button("Berekening hervatten")) {
-			rayTracer->reachedMaxPhotons = false;
-		}
-	}
+	if (!rayTracer->heatmapView && Button("Toon heatmap"))
+		rayTracer->heatmapView = true;
+	else if (rayTracer->heatmapView && Button("Toon diepte"))
+		rayTracer->heatmapView = false;
 
 	ShowDemoWindow();
-	//TODO: allow turning camera while moving light
+	//TODO: add button to hide / toon lights
 	//TODO: explain camera controls
 	//TODO: button to show regularly shaded scene, maybe depth per triangle? So that the user can still understand what they are looking at if everything is red.
 	//TODO: select and move lights with wasd. base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket

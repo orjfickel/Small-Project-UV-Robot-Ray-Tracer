@@ -192,8 +192,11 @@
     <None Include="README.md" />
     <None Include="reset.cl" />
     <None Include="shade.cl" />
+    <None Include="shadedepth.cl" />
     <None Include="shader3D.frag" />
     <None Include="shader3D.vert" />
+    <None Include="simpleshader.frag" />
+    <None Include="simpleshader.vert" />
     <None Include="template\LICENSE" />
     <None Include="timestep.cl" />
   </ItemGroup>

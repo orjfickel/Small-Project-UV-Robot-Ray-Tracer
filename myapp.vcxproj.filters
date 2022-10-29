@@ -82,8 +82,6 @@
     <None Include="cl\kernels.cl">
       <Filter>template\cl</Filter>
     </None>
-    <None Include="shader3D.vert" />
-    <None Include="shader3D.frag" />
     <None Include="generate.cl">
       <Filter>Kernels</Filter>
     </None>
@@ -97,6 +95,21 @@
       <Filter>Kernels</Filter>
     </None>
     <None Include="timestep.cl">
+      <Filter>Kernels</Filter>
+    </None>
+    <None Include="shader3D.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shader3D.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="simpleshader.frag">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="simpleshader.vert">
+      <Filter>shaders</Filter>
+    </None>
+    <None Include="shadedepth.cl">
       <Filter>Kernels</Filter>
     </None>
   </ItemGroup>
@@ -115,6 +128,9 @@
     </Filter>
     <Filter Include="Kernels">
       <UniqueIdentifier>{6971663e-14ba-4a22-bf1d-fe9e02ca769d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="shaders">
+      <UniqueIdentifier>{ded04ce8-972a-41e4-92db-bc5c93a3df06}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

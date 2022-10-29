@@ -118,6 +118,11 @@ void RayTracer::ResetDosageMap() {
 	resetKernel->Run(dosageBuffer, vertexCount / 9);
 }
 
+void ComputeDepthMap()
+{
+	
+}
+
 #include "tinyxml2.h"
 using namespace tinyxml2;
 

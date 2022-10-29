@@ -92,9 +92,7 @@ void MyApp::LoadMesh()
 void MyApp::BindMesh()
 {
 	shader3D = new ShaderGL("shader3D.vert", "shader3D.frag", false);
-	//rayTracer.simpleShader = new ShaderGL(
-	//	"#version 330\nin vec3 p;\nin vec3 col;\nuniform mat4 view;uniform mat4 projection;void main(){gl_Position=projection * view * vec4(p, 1.0f);}",
-	//	"#version 330\nout vec4 f;void main(){f=vec4(gl_FragDepth);}", true);
+	//rayTracer.simpleShader = new ShaderGL("simpleshader.vert", "simpleshader.frag", false);
 
 	cout << "Binding the mesh " << endl;
 	glGenVertexArrays(1, &VAO);
@@ -180,17 +178,17 @@ void MyApp::Tick(float deltaTime)
 	//cout << " time since last frame: " << deltaTime << endl;
 	rayTracer.timer += deltaTime;
 	if (rayTracer.progressTextTimer > 0) rayTracer.progressTextTimer -= deltaTime;
-	
-	if (userInterface->selectedLightPos > -1 && userInterface->selectedLightPos < rayTracer.lightPositions.size())
+
+	bool moveLightPos = userInterface->selectedLightPos > -1 && userInterface->selectedLightPos < rayTracer.lightPositions.size();
+	if (moveLightPos)
 	{
 		userInterface->MoveLightPos(keyPresses, deltaTime, camera.view);
 	}
-	else {
-		// Update the camera
-		camera.UpdateView(keyPresses, deltaTime);
-	}
+	// Update the camera
+	camera.UpdateView(keyPresses, deltaTime, !moveLightPos);
 
 	screen->Clear(0);
+	//TODO: move to separate function
 	for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
 	{
 		float3 lightPos = make_float3(rayTracer.lightPositions[i].position.x, rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
@@ -200,7 +198,9 @@ void MyApp::Tick(float deltaTime)
 		glm::vec2 lightScreenPosTop = ((glm::vec2(lightClipPosTop.x, -lightClipPosTop.y) / lightClipPosTop.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
 		//cout << "lightpos " << lightScreenPosBottom.x << " y " << lightScreenPosBottom.y << endl;
 		
-		screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y, MAXUINT, 3);
+		screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y, 
+			userInterface->selectedLightPos == i ?  255 | 170 << 8 | 170 << 16 | 255 << 24
+													: 255 | 255 << 8 | 255 << 16 | 255 << 24, 3);
 	}
 
 	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already
@@ -219,7 +219,7 @@ void MyApp::Tick(float deltaTime)
 			rayTracer.timerClock.reset();
 		} else
 		{
-			rayTracer.progressTextTimer = 800;
+			rayTracer.progressTextTimer = 1000;
 		}
 	}
 
@@ -239,16 +239,22 @@ void MyApp::DrawMesh()
 	//glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	
-	shader3D->Bind();
 
-	shader3D->SetInputMatrixGLM("view", camera.view);
+	ShaderGL* shader;
+	//if (rayTracer.heatmapView)
+		shader = shader3D;
+	//else
+	//	shader = rayTracer.simpleShader;
+
+	shader->Bind();
+
+	shader->SetInputMatrixGLM("view", camera.view);
 	glEnable(GL_CULL_FACE);
 	glBindVertexArray(VAO);
 	glDrawArrays(GL_TRIANGLES, 0, rayTracer.vertexCount);
 	glBindVertexArray(0);
 
-	shader3D->Unbind();
+	shader->Unbind();
 	//cout << "drawmesh2 photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 }
 

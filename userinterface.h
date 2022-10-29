@@ -17,5 +17,6 @@ namespace Tmpl8
 
 		RayTracer* rayTracer;
 		int selectedLightPos = -1;
+		bool addedLamp = false;
 	};
 }

@@ -10,7 +10,7 @@ namespace Tmpl8
 {
 public:
 	Camera();
-	void UpdateView(KeyPresses keyPresses, float deltaTime);
+	void UpdateView(KeyPresses keyPresses, float deltaTime, bool allowMovement);
 	void Save();
 	void Load();
 
