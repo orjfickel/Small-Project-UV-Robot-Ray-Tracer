@@ -40,16 +40,13 @@ void UserInterface::DrawUI()
 
 	Begin("Parameters", 0, ImGuiWindowFlags_NoNavInputs);
 	SetWindowFontScale(1.5f);
-
-	PushItemWidth(-90);
+	PushItemWidth(-2);
+	
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
-	Text("Aantal fotonen"); SameLine();
-	int numPhotons = rayTracer->maxPhotonCount / 1024;
-	InputInt("##photonCount", &numPhotons, 0,0);
-	rayTracer->maxPhotonCount = (numPhotons > MAXINT / 1024) ? MAXINT : numPhotons * 1024;
-	SameLine(); Text("duizend");
+	Text("Aantal iteraties"); SameLine();
+	InputInt("##photonCount", &rayTracer->maxIterations, 0,0);
 
-	bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->photonMapSize + rayTracer->photonCount > rayTracer->maxPhotonCount;
+	bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->currIterations >= rayTracer->maxIterations;
 	if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
 	{
 		if (Button("Berekening hervatten")) {
@@ -57,7 +54,6 @@ void UserInterface::DrawUI()
 		}
 	}
 
-	PushItemWidth(-2);
 	Text("Lamp sterkte in Watt"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");//TODO: should be int probably
 	Text("Minimale dosering in J/m^2"); SameLine();

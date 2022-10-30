@@ -21,8 +21,9 @@ namespace Tmpl8
 
 		float lightLength = 1.3f;
 		float lightHeight = -0.9f; //TODO: make lightHeight not just the ypos but the distance from the ground.
-		int photonCount;
-		int maxPhotonCount = 13189 * 1024;// -80 00000 + 10000000;(2<<12) mc 13192 pcl 411648 pch 421887
+		int photonCount = 1<<19;
+		int maxIterations = 32;
+		int currIterations;
 		float lightIntensity = 180;
 		float minDosage = 4;
 		char defaultRouteFile[32] = "route";

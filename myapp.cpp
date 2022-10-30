@@ -267,22 +267,24 @@ void MyApp::Tick(float deltaTime)
 		}
 	}
 
-	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already
-		
-		rayTracer.reachedMaxPhotons = rayTracer.photonMapSize + rayTracer.photonCount > rayTracer.maxPhotonCount;
-		if (/*timerStart > 100 && *//*rayTracer.timer > 0 && */!rayTracer.reachedMaxPhotons) {
+	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already		
+		rayTracer.reachedMaxPhotons = rayTracer.currIterations >= rayTracer.maxIterations;
+		if (!rayTracer.reachedMaxPhotons) {
 			rayTracer.ComputeDosageMap();
-			clFinish(Kernel::GetQueue());// Make sure previous computation is finished before enqueing the next one
 			if (!rayTracer.heatmapView) rayTracer.heatmapView = true;
-			rayTracer.progress = 100.0f * (float)rayTracer.photonMapSize / (float)rayTracer.maxPhotonCount;
+			rayTracer.currIterations++;
+			rayTracer.progress = 100.0f * (float)rayTracer.currIterations / (float)rayTracer.maxIterations;
+
+			clFinish(Kernel::GetQueue());// Make sure heatmap computation is finished
 			float time = rayTracer.timerClock.elapsed();
 			rayTracer.compTime += time;
 			cout << "Progress: " << rayTracer.progress << "% photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << 
 				" total time: " << rayTracer.compTime * 1000.0f << endl;
 			rayTracer.timer = 0;
 			rayTracer.timerClock.reset();
-		} else
+		} else // We have reached the max number of iterations
 		{
+			// Set the timer to display the "computation done" popup text
 			rayTracer.progressTextTimer = 1000;
 		}
 	}

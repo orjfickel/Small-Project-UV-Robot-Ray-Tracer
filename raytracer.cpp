@@ -107,9 +107,7 @@ void RayTracer::ResetDosageMap() {
 	SaveRoute(defaultRouteFile);
 	photonMapSize = 0;
 	reachedMaxPhotons = false;
-	int testtemp = ((maxPhotonCount / 1024) / 32);
-	photonCount = testtemp * 1024;
-	cout << "photoncount " << photonCount << " temp " << testtemp  << " wtf " << ((maxPhotonCount / 1024) / 32) * 1024 << endl;
+	currIterations = 0;
 	delete rayBuffer;
 	rayBuffer = new Buffer(8 * photonCount, Buffer::DEFAULT);
 	generateKernel->SetArgument(0, rayBuffer);
