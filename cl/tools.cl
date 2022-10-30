@@ -10,14 +10,22 @@ struct Ray
 	float dirx, diry, dirz;
 	float origx, origy, origz;
 	float dist;
-	float intensity; // The power transmitted by the UV light
+	uint triID;
 };
 
 struct Triangle
-{ // 36 Bytes
+{
+	float v0x, v0y, v0z, dummy1;
+	float v1x, v1y, v1z, dummy2;
+	float v2x, v2y, v2z, dummy3;
+	float cx, cy, cz, dummy4;
+};
+
+struct TriangleColor
+{
+	float v0x, v0y, v0z;
 	float v1x, v1y, v1z;
 	float v2x, v2y, v2z;
-	float v3x, v3y, v3z;
 };
 
 struct LightPos
@@ -26,19 +34,12 @@ struct LightPos
 	float duration;
 };
 
-//// From https://stackoverflow.com/questions/70821319/opencl-sum-cl-khr-fp64-double-values-into-a-single-number/70822133#70822133
-//#ifdef cl_khr_int64_base_atomics
-//#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
-//void __attribute__((always_inline)) atomic_add_d(volatile global double* addr, const double val) {
-//	union {
-//		ulong  u64;
-//		double f64;
-//	} next, expected, current;
-//	current.f64 = *addr;
-//	do {
-//		next.f64 = (expected.f64 = current.f64) + val; // ...*val for atomic_mul_d()
-//		current.u64 = atom_cmpxchg((volatile global ulong*)addr, expected.u64, next.u64);
-//	} while (current.u64 != expected.u64);
-//}
-//#endif
+struct BVHNode
+{
+	float minx, miny, minz;
+	int leftFirst;
+	float maxx, maxy, maxz;
+	int triCount;
+};
+
 // EOF

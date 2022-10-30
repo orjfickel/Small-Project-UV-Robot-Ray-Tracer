@@ -7,7 +7,15 @@ namespace Tmpl8
 		float2 position;
 		float duration;
 	};
-	//bool TriangleIntersect(Ray& ray, float3 v1, float3 v2, float3 v3, float& u, float& v);
+
+	__declspec(align(64)) struct Tri
+	{
+		// union each float3 with a 16-byte __m128 for faster BVH construction
+		union { float3 vertex0; __m128 v0; };
+		union { float3 vertex1; __m128 v1; };
+		union { float3 vertex2; __m128 v2; };
+		union { float3 centroid; __m128 centroid4; }; // total size: 64 bytes
+	};
 
 	enum ViewMode { dosage, maxpower, texture };
 
@@ -32,8 +40,10 @@ namespace Tmpl8
 		char defaultRouteFile[32] = "route";
 		char newRouteFile[32] = "nieuwe_route";
 
+		Tri* triangles;
+		int triangleCount;
 		float* vertices;
-		int vertexCount; // Size of the vertices array. Number of vertices times 3 (1 for every axis) (includes duplicates)
+		int vertexCount; // Size of the triangles array. Number of vertices times 3 (1 for every axis) (includes duplicates)
 		float4* dosageMap;
 		int2 workSize;
 		vector<LightPos> lightPositions;

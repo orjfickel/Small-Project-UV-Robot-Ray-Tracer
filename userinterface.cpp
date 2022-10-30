@@ -34,7 +34,7 @@ void UserInterface::DrawUI()
 	NewFrame();
 	Begin("Statistieken", 0);
 	SetWindowFontScale(1.5f);
-	Text("Aantal driehoeken: %u", rayTracer->vertexCount / 3);
+	Text("Aantal driehoeken: %u", rayTracer->triangleCount);
 	Text("Aantal fotonen: %i", rayTracer->photonMapSize);
 	End();
 
@@ -195,10 +195,10 @@ void UserInterface::DrawUI()
 	ShowDemoWindow();
 	//TODO: Maybe update after each separate light calculation
 	//TODO: explain camera controls
-	//TODO: base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
 	//TODO: Dosage to color legend
 	//TODO: max dosage map
 	//TODO: BVH
+	//TODO: base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
 	//TODO: save heatmap automatically and allow saving to separate file as well. Perhaps save into the gltf model?
 
 	//TODO: for debugging: assign each triangle a color based on its normal

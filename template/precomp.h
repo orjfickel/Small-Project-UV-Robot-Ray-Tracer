@@ -1249,6 +1249,7 @@ public:
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
 #include "userinterface.h"
+#include "bvh.h"
 
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp

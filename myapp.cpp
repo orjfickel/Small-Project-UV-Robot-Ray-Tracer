@@ -76,19 +76,45 @@ void MyApp::LoadMesh()
 		tempi = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 	}
 
+	rayTracer.triangles = new Tri[indicesAccessor.count / 3];
 	rayTracer.vertices = new float[indicesAccessor.count * 3];
 	uvcoords = new float[indicesAccessor.count * 2];
-	for (size_t i = 0; i < indicesAccessor.count; ++i) {
+	for (size_t i = 0; i < indicesAccessor.count/3; ++i) {
 		//cout << " vertexposz: " << positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2] << endl;
-		rayTracer.vertices[i * 3 + 0] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 0];
-		rayTracer.vertices[i * 3 + 1] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 1];
-		rayTracer.vertices[i * 3 + 2] = positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2];
-		uvcoords[i * 2 + 0] = texcoords[(shortIndices ? temps[i] : tempi[i]) * 2 + 0];
-		uvcoords[i * 2 + 1] = texcoords[(shortIndices ? temps[i] : tempi[i]) * 2 + 1];
+		Tri* triangle = &rayTracer.triangles[i];
+		int v1ID = i * 3 + 0, v2ID = i * 3 + 1, v3ID = i * 3 + 2;
+		triangle->vertex0 = make_float3(
+			positions[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 3 + 0],
+			positions[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 3 + 1],
+			positions[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 3 + 2]);
+		triangle->vertex1 = make_float3(
+			positions[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 3 + 0],
+			positions[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 3 + 1],
+			positions[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 3 + 2]);
+		triangle->vertex2 = make_float3(
+			positions[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 3 + 0],
+			positions[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 3 + 1],
+			positions[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 3 + 2]);
+		rayTracer.vertices[i * 9 + 0] = triangle->vertex0.x;
+		rayTracer.vertices[i * 9 + 1] = triangle->vertex0.y;
+		rayTracer.vertices[i * 9 + 2] = triangle->vertex0.z;
+		rayTracer.vertices[i * 9 + 3] = triangle->vertex1.x;
+		rayTracer.vertices[i * 9 + 4] = triangle->vertex1.y;
+		rayTracer.vertices[i * 9 + 5] = triangle->vertex1.z;
+		rayTracer.vertices[i * 9 + 6] = triangle->vertex2.x;
+		rayTracer.vertices[i * 9 + 7] = triangle->vertex2.y;
+		rayTracer.vertices[i * 9 + 8] = triangle->vertex2.z;
+		uvcoords[i * 6 + 0] = texcoords[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 2 + 0];
+		uvcoords[i * 6 + 1] = texcoords[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 2 + 1];
+		uvcoords[i * 6 + 2] = texcoords[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 2 + 0];
+		uvcoords[i * 6 + 3] = texcoords[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 2 + 1];
+		uvcoords[i * 6 + 4] = texcoords[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 2 + 0];
+		uvcoords[i * 6 + 5] = texcoords[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 2 + 1];
 	}
 
 	rayTracer.vertexCount = indicesAccessor.count * 3;
-	rayTracer.verticesBuffer = new Buffer(rayTracer.vertexCount, Buffer::DEFAULT, rayTracer.vertices);
+	rayTracer.triangleCount = indicesAccessor.count / 3;
+	rayTracer.verticesBuffer = new Buffer(rayTracer.triangleCount * 16, Buffer::DEFAULT, rayTracer.triangles);
 	rayTracer.verticesBuffer->CopyToDevice();	
 }
 

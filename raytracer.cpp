@@ -31,9 +31,9 @@ void RayTracer::Init()
 	accumulateKernel = new Kernel("accumulate.cl", "render");
 
 	// create an OpenCL buffer over using bitmap.pixels
-	photonMapBuffer = new Buffer(2 * vertexCount / 9, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
-	maxPhotonMapBuffer = new Buffer(2 * vertexCount / 9, Buffer::DEFAULT);
-	tempPhotonMapBuffer = new Buffer(vertexCount / 9, Buffer::DEFAULT);
+	photonMapBuffer = new Buffer(2 * triangleCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
+	maxPhotonMapBuffer = new Buffer(2 * triangleCount, Buffer::DEFAULT);
+	tempPhotonMapBuffer = new Buffer(triangleCount, Buffer::DEFAULT);
 	//rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 	//lightPosBuffer = new Buffer(4 * lightPositions.size(), Buffer::DEFAULT, lightPositions.data());
 
@@ -49,7 +49,7 @@ void RayTracer::Init()
 	extendKernel->SetArgument(0, tempPhotonMapBuffer);
 	//extendKernel->SetArgument(2, rayBuffer);
 	extendKernel->SetArgument(3, verticesBuffer);
-	extendKernel->SetArgument(4, vertexCount);
+	extendKernel->SetArgument(4, triangleCount);
 
 	shadeKernel->SetArgument(1, colorBuffer);
 	shadeKernel->SetArgument(2, verticesBuffer);
@@ -91,7 +91,7 @@ void RayTracer::ComputeDosageMap()
 		//cout << " extended: " <<  timerClock.elapsed() * 1000.0f << endl;
 
 		accumulateKernel->SetArgument(3, lightPositions[i].duration);
-		accumulateKernel->Run(vertexCount / 9);
+		accumulateKernel->Run(triangleCount);
 
 		//cout << " accumul: " << timerClock.elapsed() * 1000.0f << endl;
 		//TODO: separate kernel to multiply photoncount per triangle by the timestep and light power?
@@ -123,7 +123,7 @@ void RayTracer::Shade()
 		shadeKernel->SetArgument(5, minDosage);
 	}
 
-	shadeKernel->Run(colorBuffer, vertexCount / 9);
+	shadeKernel->Run(colorBuffer, triangleCount);
 }
 
 void RayTracer::ResetDosageMap() {
@@ -139,7 +139,7 @@ void RayTracer::ResetDosageMap() {
 	generateKernel->SetArgument(0, rayBuffer);
 	extendKernel->SetArgument(2, rayBuffer);
 
-	resetKernel->Run(colorBuffer, vertexCount / 9);
+	resetKernel->Run(colorBuffer, triangleCount);
 }
 
 #include "tinyxml2.h"
