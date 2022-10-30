@@ -53,6 +53,8 @@ void UserInterface::DrawUI()
 			rayTracer->reachedMaxPhotons = false;
 		}
 	}
+	Text("Aantal photonen per iteraties"); SameLine();
+	InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
 
 	Text("Lamp sterkte in Watt"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");//TODO: should be int probably
@@ -152,12 +154,27 @@ void UserInterface::DrawUI()
 	//if (Button("Berekening stoppen"))
 	//{
 	//	rayTracer->reachedMaxPhotons = true;
-	//}	
+	//}
 	Text("");
-	if (!rayTracer->heatmapView && Button("Toon heatmap"))
-		rayTracer->heatmapView = true;
-	else if (rayTracer->heatmapView && Button("Toon fotoscan"))
-		rayTracer->heatmapView = false;
+
+	if (Selectable("Toon fotoscan", rayTracer->viewMode == texture))
+	{
+		rayTracer->viewMode = texture;
+	}
+	if (Selectable("Toon dosis", rayTracer->viewMode == dosage))
+	{
+		rayTracer->viewMode = dosage;
+		rayTracer->Shade();
+	}
+	if (Selectable("Toon max energie", rayTracer->viewMode == maxpower))
+	{
+		if (rayTracer->maxIterations > 1)
+		{
+			//TODO: pop up text warning that max power should be calculated in 1 iteration. Also add this when (re)compute is called.
+		} 
+		rayTracer->viewMode = maxpower;
+		rayTracer->Shade();
+	}
 
 	if (!showLights && Button("Toon lamp posities"))
 		showLights = true;
@@ -176,9 +193,9 @@ void UserInterface::DrawUI()
 	End();
 
 	ShowDemoWindow();
+	//TODO: Maybe update after each separate light calculation
 	//TODO: explain camera controls
-	//TODO: button to show regularly shaded scene, maybe depth per triangle? So that the user can still understand what they are looking at if everything is red.
-	//TODO: select and move lights with wasd. base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
+	//TODO: base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
 	//TODO: Dosage to color legend
 	//TODO: max dosage map
 	//TODO: BVH

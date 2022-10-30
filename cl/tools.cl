@@ -25,4 +25,20 @@ struct LightPos
 	float3 position;
 	float duration;
 };
+
+//// From https://stackoverflow.com/questions/70821319/opencl-sum-cl-khr-fp64-double-values-into-a-single-number/70822133#70822133
+//#ifdef cl_khr_int64_base_atomics
+//#pragma OPENCL EXTENSION cl_khr_int64_base_atomics : enable
+//void __attribute__((always_inline)) atomic_add_d(volatile global double* addr, const double val) {
+//	union {
+//		ulong  u64;
+//		double f64;
+//	} next, expected, current;
+//	current.f64 = *addr;
+//	do {
+//		next.f64 = (expected.f64 = current.f64) + val; // ...*val for atomic_mul_d()
+//		current.u64 = atom_cmpxchg((volatile global ulong*)addr, expected.u64, next.u64);
+//	} while (current.u64 != expected.u64);
+//}
+//#endif
 // EOF

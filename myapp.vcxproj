@@ -186,6 +186,7 @@
     <ClInclude Include="userinterface.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="accumulate.cl" />
     <None Include="cl\kernels.cl" />
     <None Include="extend.cl" />
     <None Include="generate.cl" />

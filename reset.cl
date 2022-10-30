@@ -1,11 +1,12 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
-__kernel void render(__global double* photonMap, __global struct Triangle* dosageMap)
+__kernel void render(__global double* photonMap, __global double* maxPhotonMap, __global struct Triangle* dosageMap)
 {
     const int threadID = get_global_id(0);
 
     photonMap[threadID] = 0;
+    maxPhotonMap[threadID] = 0;
 
     double testColor = 0;
     struct Triangle* triColor = &dosageMap[threadID]; 

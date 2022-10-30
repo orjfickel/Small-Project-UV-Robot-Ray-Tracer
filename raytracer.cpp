@@ -28,10 +28,12 @@ void RayTracer::Init()
 	extendKernel = new Kernel("extend.cl", "render");
 	shadeKernel = new Kernel("shade.cl", "render");
 	resetKernel = new Kernel("reset.cl", "render");
-	timeStepKernel = new Kernel("timestep.cl", "render");
-	//TODO: new shade kernel for determining triangle color & updating opengl texture
+	accumulateKernel = new Kernel("accumulate.cl", "render");
+
 	// create an OpenCL buffer over using bitmap.pixels
 	photonMapBuffer = new Buffer(2 * vertexCount / 9, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
+	maxPhotonMapBuffer = new Buffer(2 * vertexCount / 9, Buffer::DEFAULT);
+	tempPhotonMapBuffer = new Buffer(vertexCount / 9, Buffer::DEFAULT);
 	//rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 	//lightPosBuffer = new Buffer(4 * lightPositions.size(), Buffer::DEFAULT, lightPositions.data());
 
@@ -40,21 +42,25 @@ void RayTracer::Init()
 	//TODO: since one vertex belongs to multiple faces, we cannot give it a single color, as it would be wrongly interpolated in the fragment shader.
 	//		Therefore a texture map should be used and sent to the fragment shader after all...
 	// Or otherwise render opengl with fat triangle data after all, but use the compressed data for the OpenCL kernels?
-	dosageBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
+	colorBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
 
 	//generateKernel->SetArgument(0, rayBuffer);
 
-	extendKernel->SetArgument(0, photonMapBuffer);
+	extendKernel->SetArgument(0, tempPhotonMapBuffer);
 	//extendKernel->SetArgument(2, rayBuffer);
 	extendKernel->SetArgument(3, verticesBuffer);
 	extendKernel->SetArgument(4, vertexCount);
 
-	shadeKernel->SetArgument(0, photonMapBuffer);
-	shadeKernel->SetArgument(1, dosageBuffer);
+	shadeKernel->SetArgument(1, colorBuffer);
 	shadeKernel->SetArgument(2, verticesBuffer);
 
 	resetKernel->SetArgument(0, photonMapBuffer);
-	resetKernel->SetArgument(1, dosageBuffer);
+	resetKernel->SetArgument(1, maxPhotonMapBuffer);
+	resetKernel->SetArgument(2, colorBuffer);
+
+	accumulateKernel->SetArgument(0, photonMapBuffer);
+	accumulateKernel->SetArgument(1, maxPhotonMapBuffer);
+	accumulateKernel->SetArgument(2, tempPhotonMapBuffer);
 
 	//timeStepKernel->SetArgument(0, photonMapBuffer);
 	//size_t size = 0;
@@ -65,7 +71,7 @@ void RayTracer::Init()
 void RayTracer::ComputeDosageMap()
 {
 	//Round down the photons per light to the nearest number divisble by 2, to prevent tanking the performance of the kernels
-	int photonsPerLight = (photonCount / lightPositions.size() & ~1);
+	int photonsPerLight = ((photonCount / lightPositions.size()) & ~1);
 	for (int i = 0; i < lightPositions.size(); ++i)
 	{
 		float3 lightposition = make_float3(lightPositions[i].position.x, lightHeight, lightPositions[i].position.y);
@@ -76,7 +82,6 @@ void RayTracer::ComputeDosageMap()
 		//cout << " generated: " <<  timerClock.elapsed() * 1000.0f << endl;
 
 		extendKernel->SetArgument(1, photonMapSize);
-		extendKernel->SetArgument(5, lightPositions[i].duration);
 		extendKernel->Run(photonsPerLight);
 
 		// Every timestep gets accumulated into the same map, so we cannot just multiply the entire thing by timestep (could be possible by dividing by (total timestep - timestep so far))
@@ -85,19 +90,40 @@ void RayTracer::ComputeDosageMap()
 		//clFinish(Kernel::GetQueue());
 		//cout << " extended: " <<  timerClock.elapsed() * 1000.0f << endl;
 
+		accumulateKernel->SetArgument(3, lightPositions[i].duration);
+		accumulateKernel->Run(vertexCount / 9);
+
+		//cout << " accumul: " << timerClock.elapsed() * 1000.0f << endl;
 		//TODO: separate kernel to multiply photoncount per triangle by the timestep and light power?
 		//TODO: why at the ~third to last iteraion do red outliers suddenly show up?
 
 		photonMapSize += photonsPerLight;
 	}
-	// The number of photons per area should be divided by the number of photons per light,
-	// as each photon carries a fraction of a single light's power
-	shadeKernel->SetArgument(3, photonMapSize / (int)lightPositions.size());
-	shadeKernel->SetArgument(4, lightIntensity);
-	shadeKernel->SetArgument(5, minDosage);
-	
-	shadeKernel->Run(dosageBuffer, vertexCount / 9);
+	Shade();
+	//cout << " shed: " << timerClock.elapsed() * 1000.0f << endl;
 	//clFinish(Kernel::GetQueue());//todo	
+}
+
+void RayTracer::Shade()
+{
+	shadeKernel->SetArgument(4, lightIntensity);
+	if (viewMode == maxpower)
+	{
+		shadeKernel->SetArgument(0, maxPhotonMapBuffer);
+		// Only the number of photons per light of a single iteration
+		shadeKernel->SetArgument(3, (int)((photonCount / lightPositions.size()) & ~1));//TODO: move to compute only once to prevent bugs etc
+		shadeKernel->SetArgument(5, minPower);
+	}
+	else
+	{
+		shadeKernel->SetArgument(0, photonMapBuffer);
+		// The number of photons per area should be divided by the number of photons per light,
+		// as each photon carries a fraction of a single light's power
+		shadeKernel->SetArgument(3, photonMapSize / (int)lightPositions.size());
+		shadeKernel->SetArgument(5, minDosage);
+	}
+
+	shadeKernel->Run(colorBuffer, vertexCount / 9);
 }
 
 void RayTracer::ResetDosageMap() {
@@ -113,12 +139,7 @@ void RayTracer::ResetDosageMap() {
 	generateKernel->SetArgument(0, rayBuffer);
 	extendKernel->SetArgument(2, rayBuffer);
 
-	resetKernel->Run(dosageBuffer, vertexCount / 9);
-}
-
-void ComputeDepthMap()
-{
-	
+	resetKernel->Run(colorBuffer, vertexCount / 9);
 }
 
 #include "tinyxml2.h"

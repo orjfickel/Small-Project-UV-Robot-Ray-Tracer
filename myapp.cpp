@@ -107,25 +107,23 @@ void MyApp::BindMesh()
 	glGenBuffers(1, &rayTracer.dosageBufferID);
 
 	glBindVertexArray(VAO);
+
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), rayTracer.vertices, GL_STATIC_DRAW);
 	delete[] rayTracer.vertices;// Free up memory on host
-	glBindBuffer(GL_ARRAY_BUFFER, UVBuffer);
-	glBufferData(GL_ARRAY_BUFFER, (rayTracer.vertexCount * 2 / 3) * sizeof(float), uvcoords, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
-	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-	
-	// vertex positions
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
 	glBindBuffer(GL_ARRAY_BUFFER, UVBuffer);
+	glBufferData(GL_ARRAY_BUFFER, (rayTracer.vertexCount * 2 / 3) * sizeof(float), uvcoords, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(1);
 	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
 	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
+	glBufferData(GL_ARRAY_BUFFER, rayTracer.vertexCount * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
+		
 	if (model.textures.size() > 0) {
 		tinygltf::Texture& tex = model.textures[model.materials[0].pbrMetallicRoughness.baseColorTexture.index];
 
@@ -271,7 +269,7 @@ void MyApp::Tick(float deltaTime)
 		rayTracer.reachedMaxPhotons = rayTracer.currIterations >= rayTracer.maxIterations;
 		if (!rayTracer.reachedMaxPhotons) {
 			rayTracer.ComputeDosageMap();
-			if (!rayTracer.heatmapView) rayTracer.heatmapView = true;
+			if (rayTracer.viewMode == texture) rayTracer.viewMode = dosage;
 			rayTracer.currIterations++;
 			rayTracer.progress = 100.0f * (float)rayTracer.currIterations / (float)rayTracer.maxIterations;
 
@@ -306,9 +304,8 @@ void MyApp::DrawMesh()
 	glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-
 	ShaderGL* shader;
-	if (rayTracer.heatmapView)
+	if (rayTracer.viewMode != texture)
 		shader = shader3D;
 	else {
 		glActiveTexture(GL_TEXTURE0);

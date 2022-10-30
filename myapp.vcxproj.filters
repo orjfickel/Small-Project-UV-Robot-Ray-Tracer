@@ -112,6 +112,9 @@
     <None Include="shadedepth.cl">
       <Filter>Kernels</Filter>
     </None>
+    <None Include="accumulate.cl">
+      <Filter>Kernels</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="template">

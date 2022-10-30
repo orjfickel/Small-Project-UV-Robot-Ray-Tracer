@@ -1,8 +1,27 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
-__kernel void render(__global double* photonMap, __global struct Triangle* dosageMap,
-    __global struct Triangle* vertices, int photonsPerLight, float power, float minDosage)// float power
+float3 greyscale_to_heatmap(float intensity) {
+    float minDosageColor = 0.5f;
+    float upperHalfColor = minDosageColor + (1.0 - minDosageColor) / 2;
+    float lowerHalfColor = minDosageColor / 2.0f;
+    if (intensity > minDosageColor) {
+        if (intensity > upperHalfColor)
+            return (float3)(1.0f, (1.0f - intensity) / (1.0f - upperHalfColor), 0);
+        else
+            return (float3)((intensity - minDosageColor) / (upperHalfColor - minDosageColor), 1.0f, 0);
+    }
+    else {
+        if (intensity > lowerHalfColor)
+            return (float3)(0, 1.0f, (minDosageColor - intensity) / (minDosageColor - lowerHalfColor));
+        else
+            return (float3)(0, (intensity) / (lowerHalfColor), 1.0f);
+    }
+    return intensity;
+}
+
+__kernel void render(__global double* photonMap, __global struct Triangle* colorMap,
+    __global struct Triangle* vertices, int photonsPerLight, float power, float minValue)
 {
 	const int threadID = get_global_id(0);
 
@@ -14,71 +33,25 @@ __kernel void render(__global double* photonMap, __global struct Triangle* dosag
 
     float3 v1v2 = v1 - v2;
     float3 v1v3 = v1 - v3;
-    float area = (length(cross(v1v2, v1v3)) / 2.0f);// convert to square meters
+    float area = (length(cross(v1v2, v1v3)) / 2.0f);
     
     int triID = 0;
-    //float minDistSqr = 10000000.0;
-    //float minVal = 0.0;
-    //float maxRangeSqr = 0.25f;
-    //int nearbyPhotons = 0;
-   // for (int i = 0; i < photonCount; ++i) {
-   //     struct Photon photon = photonMap[i];
+    float maxValue = minValue * 2;
+    float normValue = (power * photonMap[threadID]) / (area * photonsPerLight * maxValue);
 
-   ///*     float3 diff = centerPos - (float3)(photon.posx, photon.posy, photon.posz);
-   //     float distSqr = diff.x * diff.x + diff.y * diff.y + diff.z * diff.z;*/
-   //     if (/*distSqr < maxRangeSqr && */threadID == photon.triangleID) {
-   //         nearbyPhotons++;
-   //         //if (distSqr < minDistSqr) {
-   //         //    minDistSqr = distSqr;
-   //         //    triID = photon.triangleID;
-   //         //}
-   //     }
-   // }    
-   // float minDosage = 4.0f;// J/m^2
-    float maxVal = minDosage * 2;
-    float colorDist = (power * photonMap[threadID]) / (area * photonsPerLight * maxVal);//TODO: replace 9.0 with the power stored in the photon, and divide by maxVal to scale color.
-
-    //    0.1f + colorDist * 0.3f, colorDist * 0.9f, colorDist
-    float3 f;
-    float minDosageColor = 0.5f;
-    float upperHalfColor = minDosageColor + (1.0 - minDosageColor) / 2;
-    float lowerHalfColor = minDosageColor / 2.0f;
-    if (colorDist > minDosageColor) {
-        if (colorDist > upperHalfColor)
-            f = (float3)(1.0f, (1.0f - colorDist) / (1.0f - upperHalfColor), 0);
-        else
-            f = (float3)((colorDist - minDosageColor) / (upperHalfColor - minDosageColor), 1.0f, 0);
-    }
-    else {
-        if (colorDist > lowerHalfColor)
-            f = (float3)(0, 1.0f, (minDosageColor - colorDist) / (minDosageColor - lowerHalfColor));
-        else
-            f = (float3)(0, (colorDist) / (lowerHalfColor), 1.0f);
-    }
+    float3 color = greyscale_to_heatmap(normValue);
 
     //TODO: better to use float3 for better cache aligned accesses?
-    struct Triangle* triColor = &dosageMap[threadID];
-    triColor->v1x = f.x;
-    triColor->v1y = f.y;
-    triColor->v1z = f.z;
-    triColor->v2x = f.x;
-    triColor->v2y = f.y;
-    triColor->v2z = f.z;
-    triColor->v3x = f.x;
-    triColor->v3y = f.y;
-    triColor->v3z = f.z;
-
-    //float testColor = triID == threadID ? 0.9f : 0.1f;// triID / 100000.0f;
-    //triColor->v1x = testColor;//f.x;
-    //triColor->v1y = testColor;//f.y;
-    //triColor->v1z = testColor;//f.z;
-    //triColor->v2x = testColor;//f.x;
-    //triColor->v2y = testColor;//f.y;
-    //triColor->v2z = testColor;//f.z;
-    //triColor->v3x = testColor;//f.x;
-    //triColor->v3y = testColor;//f.y;
-    //triColor->v3z = testColor;//f.z;
-
+    struct Triangle* triColor = &colorMap[threadID];
+    triColor->v1x = color.x;
+    triColor->v1y = color.y;
+    triColor->v1z = color.z;
+    triColor->v2x = color.x;
+    triColor->v2y = color.y;
+    triColor->v2z = color.z;
+    triColor->v3x = color.x;
+    triColor->v3y = color.y;
+    triColor->v3z = color.z;
 }
 
 // EOF
