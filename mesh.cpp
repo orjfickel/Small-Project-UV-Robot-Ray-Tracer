@@ -85,4 +85,6 @@ void Mesh::LoadMesh(string modelFile)
 
 	vertexCount = indicesAccessor.count * 3;
 	triangleCount = indicesAccessor.count / 3;
+
+	bvh = new BVH(this);
 }

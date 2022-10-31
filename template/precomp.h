@@ -1244,13 +1244,13 @@ public:
 
 #define GPU_RAYTRACING 1;
 
+#include "bvh.h"
 #include "mesh.h"
 #include "raytracer.h"
 #include "camera.h"
 #include "glm/glm.hpp"
 #include "glm/ext.hpp"
 #include "userinterface.h"
-#include "bvh.h"
 
 // InstructionSet.cpp
 // Compile by using: cl /EHsc /W4 InstructionSet.cpp

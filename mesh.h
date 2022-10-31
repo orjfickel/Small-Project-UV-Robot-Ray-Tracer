@@ -22,6 +22,8 @@ namespace Tmpl8
 		float* vertices;
 		int vertexCount; // Size of the triangles array. Number of vertices times 3 (1 for every axis) (includes duplicates)
 		float* uvcoords;
+
+		BVH* bvh = 0;
 	};
 
 };
