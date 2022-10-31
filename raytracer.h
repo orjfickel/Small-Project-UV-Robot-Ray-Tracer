@@ -23,8 +23,8 @@ namespace Tmpl8
 
 		float lightLength = 1.3f;
 		float lightHeight = -0.9f; //TODO: make lightHeight not just the ypos but the distance from the ground.
-		int photonCount = (1<<19);
-		int maxIterations = 32;
+		int photonCount = (1<<25);
+		int maxIterations = 1;
 		int currIterations;
 		float lightIntensity = 180;
 		float minDosage = 4, minPower = 4;
@@ -45,7 +45,7 @@ namespace Tmpl8
 		bool startedComputation = false;
 
 		Kernel* generateKernel = 0, * extendKernel = 0, * shadeKernel = 0, *resetKernel = 0, * accumulateKernel = 0;
-		Buffer* colorBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0, * tempPhotonMapBuffer = 0, *maxPhotonMapBuffer;
+		Buffer* colorBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0, * tempPhotonMapBuffer = 0, *maxPhotonMapBuffer, * bvhNodesBuffer, *triIdxBuffer;
 			//*lightPosBuffer = 0;
 		uint dosageBufferID;
 		int photonMapSize = 0;

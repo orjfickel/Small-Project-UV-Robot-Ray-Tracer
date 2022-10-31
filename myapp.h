@@ -29,6 +29,9 @@ public:
 
 	void BindMesh();
 	void DrawMesh();
+	void Draw3DLine(glm::vec3 bottom, glm::vec3 top, uint color);
+	uint greyscale_to_heatmap(float intensity);
+	void drawBVH();
 	//void UpdateDosageMap();
 
     string modelFile = "assets/testroomopt2.glb";

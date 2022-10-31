@@ -1047,7 +1047,7 @@ Buffer::Buffer( unsigned int N, unsigned int t, void* ptr )
 	{
 		size = N;
 		textureID = 0; // not representing a texture
-		deviceBuffer = clCreateBuffer( Kernel::GetContext(), rwFlags, size * 4, 0, 0 );
+		deviceBuffer = clCreateBuffer( Kernel::GetContext(), rwFlags, size, 0, 0 );
 		hostBuffer = (uint*)ptr;
 	} else if ((t & (TEXTURE | TARGET)) == 0)
 	{
@@ -1086,7 +1086,7 @@ Buffer::~Buffer()
 void Buffer::CopyToDevice( bool blocking )
 {
 	cl_int error;
-	CHECKCL( error = clEnqueueWriteBuffer( Kernel::GetQueue(), deviceBuffer, blocking, 0, size * 4, hostBuffer, 0, 0, 0 ) );
+	CHECKCL( error = clEnqueueWriteBuffer( Kernel::GetQueue(), deviceBuffer, blocking, 0, size, hostBuffer, 0, 0, 0 ) );
 }
 
 // CopyToDevice2 method (uses 2nd queue)
@@ -1094,7 +1094,7 @@ void Buffer::CopyToDevice( bool blocking )
 void Buffer::CopyToDevice2( bool blocking, cl_event* eventToSet, const size_t s )
 {
 	cl_int error;
-	CHECKCL( error = clEnqueueWriteBuffer( Kernel::GetQueue2(), deviceBuffer, blocking ? CL_TRUE : CL_FALSE, 0, s == 0 ? (size * 4) : (s * 4), hostBuffer, 0, 0, eventToSet ) );
+	CHECKCL( error = clEnqueueWriteBuffer( Kernel::GetQueue2(), deviceBuffer, blocking ? CL_TRUE : CL_FALSE, 0, s == 0 ? (size) : (s), hostBuffer, 0, 0, eventToSet ) );
 }
 
 // CopyFromDevice method
@@ -1102,15 +1102,15 @@ void Buffer::CopyToDevice2( bool blocking, cl_event* eventToSet, const size_t s 
 void Buffer::CopyFromDevice( bool blocking )
 {
 	cl_int error;
-	if (!hostBuffer) hostBuffer = new uint[size], ownData = true;
-	CHECKCL( error = clEnqueueReadBuffer( Kernel::GetQueue(), deviceBuffer, blocking, 0, size * 4, hostBuffer, 0, 0, 0 ) );
+	if (!hostBuffer) hostBuffer = new uint[size/4], ownData = true;
+	CHECKCL( error = clEnqueueReadBuffer( Kernel::GetQueue(), deviceBuffer, blocking, 0, size, hostBuffer, 0, 0, 0 ) );
 }
 
 // CopyTo
 // ----------------------------------------------------------------------------
 void Buffer::CopyTo( Buffer* buffer )
 {
-	clEnqueueCopyBuffer( Kernel::GetQueue(), deviceBuffer, buffer->deviceBuffer, 0, 0, size * 4, 0, 0, 0 );
+	clEnqueueCopyBuffer( Kernel::GetQueue(), deviceBuffer, buffer->deviceBuffer, 0, 0, size, 0, 0, 0 );
 }
 
 // Clear
@@ -1119,11 +1119,11 @@ void Buffer::Clear()
 {
 	uint value = 0;
 #if 0
-	memset( hostBuffer, 0, size * 4 );
+	memset( hostBuffer, 0, size );
 	CopyToDevice();
 #else
 	cl_int error;
-	CHECKCL( error = clEnqueueFillBuffer( Kernel::GetQueue(), deviceBuffer, &value, 4, 0, size * 4, 0, 0, 0 ) );
+	CHECKCL( error = clEnqueueFillBuffer( Kernel::GetQueue(), deviceBuffer, &value, 4, 0, size, 0, 0, 0 ) );
 #endif
 }
 
@@ -1543,7 +1543,7 @@ void Kernel::Run( Buffer* buffer, const int count, cl_event* eventToWaitFor, cl_
 		CHECKCL( error = clEnqueueNDRangeKernel( queue, kernel, 1, 0, &workSize, 0, eventToWaitFor ? 1 : 0, eventToWaitFor, eventToSet ) );
 		//cl_int error;
 		//float* temp = new float[count*3];//TODO:remove
-		//CHECKCL(error = clEnqueueReadBuffer(Kernel::GetQueue(), buffer->deviceBuffer, true, 0, count*3 * 4, temp, 0, 0, 0));
+		//CHECKCL(error = clEnqueueReadBuffer(Kernel::GetQueue(), buffer->deviceBuffer, true, 0, count*3, temp, 0, 0, 0));
 		//for (int i = 0; i < count; ++i)
 		//{
 		//	cout << "temp " << temp[i] << endl;

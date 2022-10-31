@@ -55,20 +55,27 @@ void IntersectTri(struct Ray* ray, struct Triangle* tri, const uint triID)
 
 float IntersectAABB(struct Ray* ray, struct BVHNode* node)
 {
-	float tx1 = (node->minx - ray->origx) * ray->dirx, tx2 = (node->maxx - ray->origx) * ray->dirx;
+	float tx1 = (node->minx - ray->origx) / ray->dirx, tx2 = (node->maxx - ray->origx) / ray->dirx;
 	float tmin = min(tx1, tx2), tmax = max(tx1, tx2);
-	float ty1 = (node->miny - ray->origy) * ray->diry, ty2 = (node->maxy - ray->origy) * ray->diry;
+	float ty1 = (node->miny - ray->origy) / ray->diry, ty2 = (node->maxy - ray->origy) / ray->diry;
 	tmin = max(tmin, min(ty1, ty2)), tmax = min(tmax, max(ty1, ty2));
-	float tz1 = (node->minz - ray->origz) * ray->dirz, tz2 = (node->maxz - ray->origz) * ray->dirz;
+	float tz1 = (node->minz - ray->origz) / ray->dirz, tz2 = (node->maxz - ray->origz) / ray->dirz;
 	tmin = max(tmin, min(tz1, tz2)), tmax = min(tmax, max(tz1, tz2));
 	if (tmax >= tmin && tmin < ray->dist && tmax > 0) return tmin; else return 1e30f;
 }
+
 
 void BVHIntersect(struct Ray* ray, /*uint instanceIdx,*/
 	struct Triangle* tri, struct BVHNode* bvhNode, uint* triIdx)
 {
 	struct BVHNode* node = &bvhNode[0], * stack[32];
 	uint stackPtr = 0;
+	int level = 0;
+	//ray->dist = 1e30f;
+	//int* doublelevel[16];
+	//for (int i = 0; i < 16; i++) {
+	//	doublelevel[i] = 0;
+	//}
 	while (1)
 	{
 		if (node->triCount > 0) // isLeaf()
@@ -79,12 +86,33 @@ void BVHIntersect(struct Ray* ray, /*uint instanceIdx,*/
 				IntersectTri(ray, &tri[triID], triID);
 			}
 			if (stackPtr == 0) break; else node = stack[--stackPtr];
+			//if (doublelevel[level] == 0)
+			//	level--;
+			//else
+			//	doublelevel[level]--;
 			continue;
 		}
 		struct BVHNode* child1 = &bvhNode[node->leftFirst];
 		struct BVHNode* child2 = &bvhNode[node->leftFirst + 1];
 		float dist1 = IntersectAABB(ray, child1);
 		float dist2 = IntersectAABB(ray, child2);
+
+		//TODO: It seems like all the nodes together do cover all the triangle primitives, but the bounding boxes are off? 
+		// The cross gets wider if tmax >= tmin is applied looser for the aabb intersection.
+
+		//if (child1->triCount > 0 || bvhNode[child1->leftFirst].triCount > 0 || bvhNode[bvhNode[child1->leftFirst].leftFirst].triCount > 0 || 
+		//	bvhNode[bvhNode[bvhNode[child1->leftFirst].leftFirst].leftFirst].triCount > 0 ||
+		//	bvhNode[bvhNode[bvhNode[bvhNode[child1->leftFirst].leftFirst].leftFirst].leftFirst].triCount > 0)
+		//	dist1 = 1;
+		//if (child2->triCount > 0 || bvhNode[child2->leftFirst].triCount > 0 || bvhNode[bvhNode[child2->leftFirst].leftFirst].triCount > 0 ||
+		//	bvhNode[bvhNode[bvhNode[child2->leftFirst].leftFirst].leftFirst].triCount > 0 ||
+		//	bvhNode[bvhNode[bvhNode[bvhNode[child2->leftFirst].leftFirst].leftFirst].leftFirst].triCount > 0)
+		//	dist2 = 1;
+		//if (level > 8)
+		//{
+		//	dist1 = 1;
+		//	dist2 = 1;
+		//}
 		if (dist1 > dist2)
 		{
 			float d = dist1; dist1 = dist2; dist2 = d;
@@ -93,42 +121,67 @@ void BVHIntersect(struct Ray* ray, /*uint instanceIdx,*/
 		if (dist1 == 1e30f)
 		{
 			if (stackPtr == 0) break; else node = stack[--stackPtr];
+			//if (doublelevel[level] == 0)
+			//	level--;
+			//else
+			//	doublelevel[level]--;
 		}
 		else
 		{
+			//level++;
 			node = child1;
-			if (dist2 != 1e30f) stack[stackPtr++] = child2;
+			if (dist2 != 1e30f) {
+				stack[stackPtr++] = child2; 
+				//doublelevel[level]++;
+			}
 		}
+		level++;
+		//test++;
+		//if (test > 1000000)
+		//	break;
 	}
+	//stackPtr = 1;
+	//if (stackPtr == -21)// Even if this is guaranteed false, simply evaluating it results in a black dosage map...
+	//	ray->triID = 90;
 }
 
 __kernel void render(__global int* tempPhotonMap, int offset, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
-	__global struct Triangle* vertices, int triangleCount)
+	__global struct Triangle* triangles, __global struct BVHNode* bvhNodes, __global uint* idxData, int triangleCount)
 {
 	const int threadID = get_global_id(0);
 
 	struct Ray* newray = rays + threadID;
+	//newray
 
-	float closestDist = 1000000;
-	int triID = -1;
-	for (int i = 0; i < triangleCount; i++)
-	{
-		struct Triangle tri = vertices[i];
-		bool hit = TriangleIntersect(newray, (float3)(tri.v0x, tri.v0y, tri.v0z),
-			(float3)(tri.v1x, tri.v1y, tri.v1z), (float3)(tri.v2x, tri.v2y, tri.v2z));
-		//bool hit = TriangleIntersect(newray, (float3)(0, 1, 2),
-		//	(float3)(2, 1, 0), (float3)(2, 3, 1));
-		if (hit && newray->dist > 0 && newray->dist < closestDist)
-		{
-			closestDist = newray->dist;
-			triID = i;
-		}
-	}
-	//TODO: either increment photon count for the triangle as a whole for cumulative dosis, or increment a bucket in a histogram of time points for the triangle for the max dosis (largest bucket wins)
-	if (triID >= 0) {
-		volatile __global int* triPtr = tempPhotonMap + triID;
+	//Memory is being messed with between threads? Since only 1 thread gets stuck but running all of them creates black dosage map
+	//if (threadID == 1)//Test for only 1 thread
+	BVHIntersect(newray, triangles, bvhNodes, idxData);
+
+
+	//float closestDist = 1000000;
+	//int triID = -1;
+	//for (int i = 0; i < triangleCount; i++)
+	//{
+	//	//struct Triangle tri = &triangles[i];
+	//	/*bool hit = */IntersectTri(newray, &triangles[i], i);
+	//	//bool hit = TriangleIntersect(newray, (float3)(0, 1, 2),
+	//	//	(float3)(2, 1, 0), (float3)(2, 3, 1));
+	//	//if (hit && newray->dist > 0 && newray->dist < closestDist)
+	//	//{
+	//	//	closestDist = newray->dist;
+	//	//	newray->triID = i;
+	//	//}
+	//}
+
+	// If the ray hit something, increment that triangle's photon count
+	if (newray->dist != 1e30f) {
+		volatile __global int* triPtr = tempPhotonMap + newray->triID;// ;
 		atomic_inc(triPtr);
 	}
+	/*else {
+		volatile __global int* triPtr = tempPhotonMap + threadID / 1000;
+		atomic_inc(triPtr);
+	}*/
 	// 
 	//cout << "intensity " << lightIntensity << " distsqr " << (closestDist * closestDist) << endl;]
 	//struct Photon newPhoton;

@@ -23,8 +23,6 @@ void RayTracer::Init(Mesh* mesh)
 	//initLightPos.position = make_float3(-0.1f, 0.6f + floorOffset, -1.9f);
 	//initLightPos.duration = 1;
 	//lightPositions.push_back(initLightPos);
-	verticesBuffer = new Buffer(mesh->triangleCount * 16, Buffer::DEFAULT, mesh->triangles);
-	verticesBuffer->CopyToDevice();
 
 	// compile and load kernel "render" from file "kernels.cl"
 	generateKernel = new Kernel("generate.cl", "render");
@@ -33,15 +31,18 @@ void RayTracer::Init(Mesh* mesh)
 	resetKernel = new Kernel("reset.cl", "render");
 	accumulateKernel = new Kernel("accumulate.cl", "render");
 
-	// create an OpenCL buffer over using bitmap.pixels
-	photonMapBuffer = new Buffer(2 * mesh->triangleCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
-	maxPhotonMapBuffer = new Buffer(2 * mesh->triangleCount, Buffer::DEFAULT);
-	tempPhotonMapBuffer = new Buffer(mesh->triangleCount, Buffer::DEFAULT);
-	//rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
-	//lightPosBuffer = new Buffer(4 * lightPositions.size(), Buffer::DEFAULT, lightPositions.data());
-
-	//triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);	
+	verticesBuffer = new Buffer(mesh->triangleCount * sizeof(Tri), Buffer::DEFAULT, mesh->triangles);
+	verticesBuffer->CopyToDevice();
 	
+	bvhNodesBuffer = new Buffer(mesh->bvh->nodesUsed * sizeof(BVHNode), Buffer::DEFAULT, mesh->bvh->bvhNode);
+	triIdxBuffer = new Buffer(mesh->triangleCount * sizeof(uint), Buffer::DEFAULT, mesh->bvh->triIdx);
+	bvhNodesBuffer->CopyToDevice();
+	triIdxBuffer->CopyToDevice();
+
+	photonMapBuffer = new Buffer(sizeof(double) * mesh->triangleCount, Buffer::DEFAULT);
+	maxPhotonMapBuffer = new Buffer(sizeof(double) * mesh->triangleCount, Buffer::DEFAULT);
+	tempPhotonMapBuffer = new Buffer(sizeof(int) * mesh->triangleCount, Buffer::DEFAULT);
+
 	colorBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
 
 	//generateKernel->SetArgument(0, rayBuffer);
@@ -49,7 +50,9 @@ void RayTracer::Init(Mesh* mesh)
 	extendKernel->SetArgument(0, tempPhotonMapBuffer);
 	//extendKernel->SetArgument(2, rayBuffer);
 	extendKernel->SetArgument(3, verticesBuffer);
-	extendKernel->SetArgument(4, mesh->triangleCount);
+	extendKernel->SetArgument(4, bvhNodesBuffer);
+	extendKernel->SetArgument(5, triIdxBuffer);
+	extendKernel->SetArgument(6, mesh->triangleCount);
 
 	shadeKernel->SetArgument(1, colorBuffer);
 	shadeKernel->SetArgument(2, verticesBuffer);
@@ -135,7 +138,7 @@ void RayTracer::ResetDosageMap() {
 	reachedMaxPhotons = false;
 	currIterations = 0;
 	delete rayBuffer;
-	rayBuffer = new Buffer(8 * photonCount, Buffer::DEFAULT);
+	rayBuffer = new Buffer(32 * photonCount, Buffer::DEFAULT);
 	generateKernel->SetArgument(0, rayBuffer);
 	extendKernel->SetArgument(2, rayBuffer);
 

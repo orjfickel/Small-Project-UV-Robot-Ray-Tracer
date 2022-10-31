@@ -23,7 +23,7 @@ void BVH::Build()
 	// assign all triangles to root node
 	BVHNode& root = bvhNode[0];
 	root.leftFirst = 0, root.triCount = mesh->triangleCount;
-	float3 centroidMin, centroidMax;
+	float3_strict centroidMin, centroidMax;
 	UpdateNodeBounds(0, centroidMin, centroidMax);
 	// subdivide recursively
 	buildStackPtr = 0;
@@ -36,28 +36,21 @@ void BVH::Build()
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < N; i++)
 	{
-		float3 cmin = buildStack[i].centroidMin, cmax = buildStack[i].centroidMax;
+		float3_strict cmin = buildStack[i].centroidMin, cmax = buildStack[i].centroidMax;
 		Subdivide(buildStack[i].nodeIdx, 99, nodePtr[i], cmin, cmax);
 	}
 	nodesUsed = mesh->triangleCount * 2 + 64;
 }
 
-void BVH::Subdivide(uint nodeIdx, uint depth, uint& nodePtr, float3& centroidMin, float3& centroidMax)
+void BVH::Subdivide(uint nodeIdx, uint depth, uint& nodePtr, float3_strict& centroidMin, float3_strict& centroidMax)
 {
 	BVHNode& node = bvhNode[nodeIdx];
 	// determine split axis using SAH
 	int axis, splitPos;
 	float splitCost = FindBestSplitPlane(node, axis, splitPos, centroidMin, centroidMax);
 	// terminate recursion
-	if (subdivToOnePrim)
-	{
-		if (node.triCount == 1) return;
-	}
-	else
-	{
-		float nosplitCost = node.CalculateNodeCost();
-		if (splitCost >= nosplitCost) return;
-	}
+	float nosplitCost = node.CalculateNodeCost();
+	if (splitCost >= nosplitCost) return;
 	// in-place partition
 	int i = node.leftFirst;
 	int j = i + node.triCount - 1;
@@ -101,7 +94,7 @@ void BVH::Subdivide(uint nodeIdx, uint depth, uint& nodePtr, float3& centroidMin
 	else Subdivide(rightChildIdx, depth + 1, nodePtr, centroidMin, centroidMax);
 }
 
-float BVH::FindBestSplitPlane(BVHNode& node, int& axis, int& splitPos, float3& centroidMin, float3& centroidMax)
+float BVH::FindBestSplitPlane(BVHNode& node, int& axis, int& splitPos, float3_strict& centroidMin, float3_strict& centroidMax)
 {
 	float bestCost = 1e30f;
 	for (int a = 0; a < 3; a++)
@@ -184,7 +177,7 @@ float BVH::FindBestSplitPlane(BVHNode& node, int& axis, int& splitPos, float3& c
 	return bestCost;
 }
 
-void BVH::UpdateNodeBounds(uint nodeIdx, float3& centroidMin, float3& centroidMax)
+void BVH::UpdateNodeBounds(uint nodeIdx, float3_strict& centroidMin, float3_strict& centroidMax)
 {
 	BVHNode& node = bvhNode[nodeIdx];
 #ifdef USE_SSE
@@ -202,13 +195,13 @@ void BVH::UpdateNodeBounds(uint nodeIdx, float3& centroidMin, float3& centroidMa
 	__m128 mask4 = _mm_cmpeq_ps(_mm_setzero_ps(), _mm_set_ps(1, 0, 0, 0));
 	node.aabbMin4 = _mm_blendv_ps(node.aabbMin4, min4, mask4);
 	node.aabbMax4 = _mm_blendv_ps(node.aabbMax4, max4, mask4);
-	centroidMin = *(float3*)&cmin4;
-	centroidMax = *(float3*)&cmax4;
+	centroidMin = *(float3_strict*)&cmin4;
+	centroidMax = *(float3_strict*)&cmax4;
 #else
-	node.aabbMin = float3(1e30f);
-	node.aabbMax = float3(-1e30f);
-	centroidMin = float3(1e30f);
-	centroidMax = float3(-1e30f);
+	node.aabbMin = float3_strict(1e30f);
+	node.aabbMax = float3_strict(-1e30f);
+	centroidMin = float3_strict(1e30f);
+	centroidMax = float3_strict(-1e30f);
 	for (uint first = node.leftFirst, i = 0; i < node.triCount; i++)
 	{
 		uint leafTriIdx = triIdx[first + i];

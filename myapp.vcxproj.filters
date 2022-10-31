@@ -87,19 +87,19 @@
       <Filter>template\cl</Filter>
     </None>
     <None Include="generate.cl">
-      <Filter>Kernels</Filter>
+      <Filter>kernels</Filter>
     </None>
     <None Include="extend.cl">
-      <Filter>Kernels</Filter>
+      <Filter>kernels</Filter>
     </None>
     <None Include="shade.cl">
-      <Filter>Kernels</Filter>
+      <Filter>kernels</Filter>
     </None>
     <None Include="reset.cl">
-      <Filter>Kernels</Filter>
+      <Filter>kernels</Filter>
     </None>
     <None Include="timestep.cl">
-      <Filter>Kernels</Filter>
+      <Filter>kernels</Filter>
     </None>
     <None Include="shader3D.frag">
       <Filter>shaders</Filter>
@@ -114,10 +114,10 @@
       <Filter>shaders</Filter>
     </None>
     <None Include="shadedepth.cl">
-      <Filter>Kernels</Filter>
+      <Filter>kernels</Filter>
     </None>
     <None Include="accumulate.cl">
-      <Filter>Kernels</Filter>
+      <Filter>kernels</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -133,11 +133,11 @@
     <Filter Include="tinyxml2">
       <UniqueIdentifier>{72b3d47d-a3af-42b4-9e31-0fc725d7dc25}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Kernels">
-      <UniqueIdentifier>{6971663e-14ba-4a22-bf1d-fe9e02ca769d}</UniqueIdentifier>
-    </Filter>
     <Filter Include="shaders">
       <UniqueIdentifier>{ded04ce8-972a-41e4-92db-bc5c93a3df06}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="kernels">
+      <UniqueIdentifier>{6971663e-14ba-4a22-bf1d-fe9e02ca769d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>

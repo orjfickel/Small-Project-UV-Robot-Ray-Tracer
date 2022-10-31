@@ -172,6 +172,88 @@ void MyApp::BindMesh()
 //	
 //}
 
+void MyApp::Draw3DLine(glm::vec3 bottom, glm::vec3 top, uint color)
+{
+	glm::vec4 lightClipPosBottom = camera.projection * camera.view * glm::vec4(bottom, 1);
+	glm::vec4 lightClipPosTop = camera.projection * camera.view * glm::vec4(top, 1);
+	glm::vec2 lightScreenPosBottom = ((glm::vec2(lightClipPosBottom.x, -lightClipPosBottom.y) / lightClipPosBottom.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
+	glm::vec2 lightScreenPosTop = ((glm::vec2(lightClipPosTop.x, -lightClipPosTop.y) / lightClipPosTop.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
+	screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y,
+		color, 3);
+}
+uint MyApp::greyscale_to_heatmap(float intensity) {
+	float minDosageColor = 0.5f;
+	float upperHalfColor = minDosageColor + (1.0 - minDosageColor) / 2;
+	float lowerHalfColor = minDosageColor / 2.0f;
+	if (intensity > minDosageColor) {
+		if (intensity > upperHalfColor)
+			return (255 | ((int)((1.0f - intensity) / (1.0f - upperHalfColor)) << 8) | 0 << 16 | 255 << 24);
+		else
+			return (int)((intensity - minDosageColor) / (upperHalfColor - minDosageColor)) | 255 << 8 | 0 << 16 | 255 << 24;
+	}
+	else {
+		if (intensity > lowerHalfColor)
+			return (0 | 255 << 8 | (int)((minDosageColor - intensity) / (minDosageColor - lowerHalfColor)) << 16 | 255 << 24);
+		else
+			return (0 | ((int)((intensity) / (lowerHalfColor)) << 8) | 255 << 16 | 255 << 24);
+	}
+}
+void MyApp::drawBVH()
+{
+	static bool firsttime = true;
+	BVHNode* node = &mesh.bvh->bvhNode[0], * stack[64], * newstack[64];
+	int stackPtr = 0, newStackPtr = 0;
+	stack[stackPtr] = node;
+	int levels = 8;
+	for (int i = 0; i < levels; ++i)
+	{
+		while (stackPtr >= 0)
+		{
+			node = stack[stackPtr--];
+			//cout << "nodex " << node->aabbMin.x << " nodey " << node->aabbMin.y << " nodez " << node->aabbMin.z
+			//	<< " maxx " << node->aabbMax.x << " maxy " << node->aabbMax.y << " maxz " << node->aabbMax.z << " tricount " << node->triCount << endl;
+			uint color = greyscale_to_heatmap((float)i / levels);
+			Draw3DLine(glm::vec3(node->aabbMin.x, node->aabbMin.y, node->aabbMin.z), glm::vec3(node->aabbMax.x, node->aabbMin.y, node->aabbMin.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMin.x, node->aabbMin.y, node->aabbMin.z), glm::vec3(node->aabbMin.x, node->aabbMin.y, node->aabbMax.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMax.x, node->aabbMin.y, node->aabbMax.z), glm::vec3(node->aabbMax.x, node->aabbMin.y, node->aabbMin.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMax.x, node->aabbMin.y, node->aabbMax.z), glm::vec3(node->aabbMin.x, node->aabbMin.y, node->aabbMax.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMin.x, node->aabbMax.y, node->aabbMin.z), glm::vec3(node->aabbMax.x, node->aabbMax.y, node->aabbMin.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMin.x, node->aabbMax.y, node->aabbMin.z), glm::vec3(node->aabbMin.x, node->aabbMax.y, node->aabbMax.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMax.x, node->aabbMax.y, node->aabbMax.z), glm::vec3(node->aabbMax.x, node->aabbMax.y, node->aabbMin.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMax.x, node->aabbMax.y, node->aabbMax.z), glm::vec3(node->aabbMin.x, node->aabbMax.y, node->aabbMax.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMin.x, node->aabbMin.y, node->aabbMin.z), glm::vec3(node->aabbMin.x, node->aabbMax.y, node->aabbMin.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMax.x, node->aabbMin.y, node->aabbMin.z), glm::vec3(node->aabbMax.x, node->aabbMax.y, node->aabbMin.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMin.x, node->aabbMin.y, node->aabbMax.z), glm::vec3(node->aabbMin.x, node->aabbMax.y, node->aabbMax.z),
+				color);
+			Draw3DLine(glm::vec3(node->aabbMax.x, node->aabbMin.y, node->aabbMax.z), glm::vec3(node->aabbMax.x, node->aabbMax.y, node->aabbMax.z),
+				color);
+
+			if (node->triCount > 0 || newStackPtr >= 3)
+				break;
+			newstack[newStackPtr++] = &mesh.bvh->bvhNode[node->leftFirst];
+			newstack[newStackPtr++] = &mesh.bvh->bvhNode[node->leftFirst + 1];
+			if (firsttime)
+				cout << "bvhdraw " << node->leftFirst << " stack " << stackPtr << " new " << newStackPtr << endl;
+		}
+		for (int j = 0; j < 64; ++j)
+		{
+			stack[j] = newstack[j];
+		}
+		stackPtr = newStackPtr - 1;
+		newStackPtr = 0;
+	}
+	firsttime = false;
+}
 // -----------------------------------------------------------
 // Main application tick function - Executed once per frame
 // -----------------------------------------------------------
@@ -194,18 +276,16 @@ void MyApp::Tick(float deltaTime)
 	if (userInterface->showLights) {
 		for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
 		{
-			float3 lightPos = make_float3(rayTracer.lightPositions[i].position.x, rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
-			glm::vec4 lightClipPosBottom = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y, lightPos.z, 1);
-			glm::vec4 lightClipPosTop = camera.projection * camera.view * glm::vec4(lightPos.x, lightPos.y + rayTracer.lightLength, lightPos.z, 1);
-			glm::vec2 lightScreenPosBottom = ((glm::vec2(lightClipPosBottom.x, -lightClipPosBottom.y) / lightClipPosBottom.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
-			glm::vec2 lightScreenPosTop = ((glm::vec2(lightClipPosTop.x, -lightClipPosTop.y) / lightClipPosTop.w + glm::vec2(1)) / 2.0f) * glm::vec2(SCRWIDTH, SCRHEIGHT);
-			//cout << "lightpos " << lightScreenPosBottom.x << " y " << lightScreenPosBottom.y << endl;
-
-			screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y,
+			glm::vec3 bottompos = glm::vec3(rayTracer.lightPositions[i].position.x, rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
+			Draw3DLine(bottompos,
+				bottompos + glm::vec3(0, rayTracer.lightLength, 0),
 				userInterface->selectedLightPos == i ? 255 | 170 << 8 | 170 << 16 | 255 << 24
-				: 255 | 255 << 8 | 255 << 16 | 255 << 24, 3);
+				: 255 | 255 << 8 | 255 << 16 | 255 << 24);
 		}
+
 	}
+	//cout << "BVH " << mesh.bvh->nodesUsed << " tricount " << mesh.triangleCount << endl;
+	//drawBVH();
 
 	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already		
 		rayTracer.reachedMaxPhotons = rayTracer.currIterations >= rayTracer.maxIterations;

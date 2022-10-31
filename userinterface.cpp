@@ -44,7 +44,7 @@ void UserInterface::DrawUI()
 	
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
 	Text("Aantal iteraties"); SameLine();
-	InputInt("##photonCount", &rayTracer->maxIterations, 0,0);
+	InputInt("##iterations", &rayTracer->maxIterations, 1,0);
 
 	bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->currIterations >= rayTracer->maxIterations;
 	if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
@@ -53,7 +53,7 @@ void UserInterface::DrawUI()
 			rayTracer->reachedMaxPhotons = false;
 		}
 	}
-	Text("Aantal photonen per iteraties"); SameLine();
+	Text("Fotonen per iteratie"); SameLine();
 	InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
 
 	Text("Lamp sterkte in Watt"); SameLine();
@@ -193,6 +193,7 @@ void UserInterface::DrawUI()
 	End();
 
 	ShowDemoWindow();
+	//TODO: test many lights
 	//TODO: Maybe update after each separate light calculation
 	//TODO: explain camera controls
 	//TODO: Dosage to color legend

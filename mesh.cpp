@@ -54,15 +54,15 @@ void Mesh::LoadMesh(string modelFile)
 		//cout << " vertexposz: " << positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2] << endl;
 		Tri* triangle = &triangles[i];
 		int v1ID = i * 3 + 0, v2ID = i * 3 + 1, v3ID = i * 3 + 2;
-		triangle->vertex0 = make_float3(
+		triangle->vertex0 = make_float3_strict(
 			positions[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 3 + 0],
 			positions[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 3 + 1],
 			positions[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 3 + 2]);
-		triangle->vertex1 = make_float3(
+		triangle->vertex1 = make_float3_strict(
 			positions[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 3 + 0],
 			positions[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 3 + 1],
 			positions[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 3 + 2]);
-		triangle->vertex2 = make_float3(
+		triangle->vertex2 = make_float3_strict(
 			positions[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 3 + 0],
 			positions[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 3 + 1],
 			positions[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 3 + 2]);
@@ -87,4 +87,15 @@ void Mesh::LoadMesh(string modelFile)
 	triangleCount = indicesAccessor.count / 3;
 
 	bvh = new BVH(this);
+	cout << "BVH " << bvh->nodesUsed << " tricount " << triangleCount << endl;
+	BVHNode* node = bvh->bvhNode;
+	for (int i = 0; i < 1000; ++i)
+	{
+		cout << "nodex " << node->aabbMin.x << " nodey " << node->aabbMin.y << " nodez " << node->aabbMin.z
+			<< " maxx " << node->aabbMax.x << " maxy " << node->aabbMax.y << " maxz " << node->aabbMax.z << " tricount " << node->triCount << endl;
+
+		if (node->triCount > 0)
+			break;
+		node = &bvh->bvhNode[node->leftFirst];
+	}
 }

@@ -31,9 +31,12 @@ __kernel void render(__global struct Ray* rays, float3 lightPos,
 	//	dir = (float3)(RandomFloat(&seed) * 2 - 1, RandomFloat(&seed) * 2 - 1, RandomFloat(&seed) * 2 - 1);
 	//}
 	//dir = normalize(dir);
+	//float length = sqrt(dirx * dirx + diry * diry + dirz * dirz);
 	newray.dirx = dirx;
 	newray.diry = diry;
 	newray.dirz = dirz;
+	newray.dist = 1e30f;
+	newray.triID = 0;
 
 	rays[threadID] = newray;
 	
