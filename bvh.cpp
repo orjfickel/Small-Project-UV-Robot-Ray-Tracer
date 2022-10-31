@@ -1,87 +1,28 @@
 #include "precomp.h"
 //
-//BVH::BVH(int triCount)
+//BVH::BVH(Mesh* mesh)
 //{
 //	//mesh = triMesh;
-//	bvhNode = (BVHNode*)_aligned_malloc(sizeof(BVHNode) * triCount * 2 + 64, 64);
-//	triIdx = new uint[triCount];
+//	this->mesh = mesh;
+//	bvhNode = (BVHNode*)_aligned_malloc(sizeof(BVHNode) * mesh->triangleCount * 2 + 64, 64);
+//	triIdx = new uint[mesh->triangleCount];
 //	Build();
-//}
-//
-//void BVH::Intersect(Ray& ray, uint instanceIdx)
-//{
-//	BVHNode* node = &bvhNode[0], * stack[64];
-//	uint stackPtr = 0;
-//	while (1)
-//	{
-//		if (node->isLeaf())
-//		{
-//			for (uint i = 0; i < node->triCount; i++)
-//			{
-//				uint instPrim = (instanceIdx << 20) + triIdx[node->leftFirst + i];
-//				IntersectTri(ray, mesh->tri[instPrim & 0xfffff /* 20 bits */], instPrim);
-//			}
-//			if (stackPtr == 0) break; else node = stack[--stackPtr];
-//			continue;
-//		}
-//		BVHNode* child1 = &bvhNode[node->leftFirst];
-//		BVHNode* child2 = &bvhNode[node->leftFirst + 1];
-//#ifdef USE_SSE
-//		float dist1 = IntersectAABB_SSE(ray, child1->aabbMin4, child1->aabbMax4);
-//		float dist2 = IntersectAABB_SSE(ray, child2->aabbMin4, child2->aabbMax4);
-//#else
-//		float dist1 = IntersectAABB(ray, child1->aabbMin, child1->aabbMax);
-//		float dist2 = IntersectAABB(ray, child2->aabbMin, child2->aabbMax);
-//#endif
-//		if (dist1 > dist2) { swap(dist1, dist2); swap(child1, child2); }
-//		if (dist1 == 1e30f)
-//		{
-//			if (stackPtr == 0) break; else node = stack[--stackPtr];
-//		}
-//		else
-//		{
-//			node = child1;
-//			if (dist2 != 1e30f) stack[stackPtr++] = child2;
-//		}
-//	}
-//}
-//
-//void BVH::Refit()
-//{
-//	Timer t;
-//	for (int i = nodesUsed - 1; i >= 0; i--) if (i != 1)
-//	{
-//		BVHNode& node = bvhNode[i];
-//		if (node.isLeaf())
-//		{
-//			// leaf node: adjust bounds to contained triangles
-//			float3 dummy1, dummy2; // we don't need centroid bounds here
-//			UpdateNodeBounds(i, dummy1, dummy2);
-//			continue;
-//		}
-//		// interior node: adjust bounds to child node bounds
-//		BVHNode& leftChild = bvhNode[node.leftFirst];
-//		BVHNode& rightChild = bvhNode[node.leftFirst + 1];
-//		node.aabbMin = fminf(leftChild.aabbMin, rightChild.aabbMin);
-//		node.aabbMax = fmaxf(leftChild.aabbMax, rightChild.aabbMax);
-//	}
-//	printf("BVH refitted in %.2fms\n", t.elapsed() * 1000);
 //}
 //
 //void BVH::Build()
 //{
 //	// reset node pool
 //	nodesUsed = 2;
-//	memset(bvhNode, 0, mesh->triCount * 2 * sizeof(BVHNode));
+//	memset(bvhNode, 0, mesh->triangleCount * 2 * sizeof(BVHNode));
 //	// populate triangle index array
-//	for (int i = 0; i < mesh->triCount; i++) triIdx[i] = i;
+//	for (int i = 0; i < mesh->triangleCount; i++) triIdx[i] = i;
 //	// calculate triangle centroids for partitioning
-//	Tri* tri = mesh->tri;
-//	for (int i = 0; i < mesh->triCount; i++)
-//		mesh->tri[i].centroid = (tri[i].vertex0 + tri[i].vertex1 + tri[i].vertex2) * 0.3333f;
+//	Tri* tri = mesh->triangles;
+//	for (int i = 0; i < mesh->triangleCount; i++)
+//		mesh->triangles[i].centroid = (tri[i].vertex0 + tri[i].vertex1 + tri[i].vertex2) * 0.3333f;
 //	// assign all triangles to root node
 //	BVHNode& root = bvhNode[0];
-//	root.leftFirst = 0, root.triCount = mesh->triCount;
+//	root.leftFirst = 0, root.triCount = mesh->triangleCount;
 //	float3 centroidMin, centroidMax;
 //	UpdateNodeBounds(0, centroidMin, centroidMax);
 //	// subdivide recursively
@@ -98,7 +39,7 @@
 //		float3 cmin = buildStack[i].centroidMin, cmax = buildStack[i].centroidMax;
 //		Subdivide(buildStack[i].nodeIdx, 99, nodePtr[i], cmin, cmax);
 //	}
-//	nodesUsed = mesh->triCount * 2 + 64;
+//	nodesUsed = mesh->triangleCount * 2 + 64;
 //}
 //
 //void BVH::Subdivide(uint nodeIdx, uint depth, uint& nodePtr, float3& centroidMin, float3& centroidMax)
@@ -124,7 +65,7 @@
 //	while (i <= j)
 //	{
 //		// use the exact calculation we used for binning to prevent rare inaccuracies
-//		int binIdx = min(BINS - 1, (int)((mesh->tri[triIdx[i]].centroid[axis] - centroidMin[axis]) * scale));
+//		int binIdx = min(BINS - 1, (int)((mesh->triangles[triIdx[i]].centroid[axis] - centroidMin[axis]) * scale));
 //		if (binIdx < splitPos) i++; else swap(triIdx[i], triIdx[j--]);
 //	}
 //	// abort split if one of the sides is empty
@@ -180,7 +121,7 @@
 //			count[i] = 0;
 //		for (uint i = 0; i < node.triCount; i++)
 //		{
-//			Tri& triangle = mesh->tri[triIdx[node.leftFirst + i]];
+//			Tri& triangle = mesh->triangles[triIdx[node.leftFirst + i]];
 //			int binIdx = min(BINS - 1, (int)((triangle.centroid[a] - boundsMin) * scale));
 //			count[binIdx]++;
 //			min4[binIdx] = _mm_min_ps(min4[binIdx], triangle.v0);
@@ -210,7 +151,7 @@
 //		struct Bin { aabb bounds; int triCount = 0; } bin[BINS];
 //		for (uint i = 0; i < node.triCount; i++)
 //		{
-//			Tri& triangle = mesh->tri[triIdx[node.leftFirst + i]];
+//			Tri& triangle = mesh->triangles[triIdx[node.leftFirst + i]];
 //			int binIdx = min(BINS - 1, (int)((triangle.centroid[a] - boundsMin) * scale));
 //			bin[binIdx].triCount++;
 //			bin[binIdx].bounds.grow(triangle.vertex0);
@@ -251,7 +192,7 @@
 //	__m128 cmin4 = _mm_set_ps1(1e30f), cmax4 = _mm_set_ps1(-1e30f);
 //	for (uint first = node.leftFirst, i = 0; i < node.triCount; i++)
 //	{
-//		Tri& leafTri = mesh->tri[triIdx[first + i]];
+//		Tri& leafTri = mesh->triangles[triIdx[first + i]];
 //		min4 = _mm_min_ps(min4, leafTri.v0), max4 = _mm_max_ps(max4, leafTri.v0);
 //		min4 = _mm_min_ps(min4, leafTri.v1), max4 = _mm_max_ps(max4, leafTri.v1);
 //		min4 = _mm_min_ps(min4, leafTri.v2), max4 = _mm_max_ps(max4, leafTri.v2);
@@ -271,7 +212,7 @@
 //	for (uint first = node.leftFirst, i = 0; i < node.triCount; i++)
 //	{
 //		uint leafTriIdx = triIdx[first + i];
-//		Tri& leafTri = mesh->tri[leafTriIdx];
+//		Tri& leafTri = mesh->triangles[leafTriIdx];
 //		node.aabbMin = fminf(node.aabbMin, leafTri.vertex0);
 //		node.aabbMin = fminf(node.aabbMin, leafTri.vertex1);
 //		node.aabbMin = fminf(node.aabbMin, leafTri.vertex2);

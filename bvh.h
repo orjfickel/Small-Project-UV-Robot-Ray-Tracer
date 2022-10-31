@@ -30,15 +30,13 @@ struct BVHNode
 //	};
 //public:
 //	BVH() = default;
-//	BVH(int triCount);
+//	BVH(Mesh* mesh);
 //	void Build();
-//	void Refit();
-//	void Intersect(Ray& ray, uint instanceIdx);
 //private:
 //	void Subdivide(uint nodeIdx, uint depth, uint& nodePtr, float3& centroidMin, float3& centroidMax);
 //	void UpdateNodeBounds(uint nodeIdx, float3& centroidMin, float3& centroidMax);
 //	float FindBestSplitPlane(BVHNode& node, int& axis, int& splitPos, float3& centroidMin, float3& centroidMax);
-//	Tri* triangles = 0;
+//	Mesh* mesh;
 //public:
 //	uint* triIdx = 0;
 //	uint nodesUsed;

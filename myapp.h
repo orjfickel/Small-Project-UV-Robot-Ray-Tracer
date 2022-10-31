@@ -27,14 +27,13 @@ public:
     void KeyDown(int key);
 	bool CameraKeyPressed();
 
-	void LoadMesh();
 	void BindMesh();
-	//void UpdateDosageMap();
 	void DrawMesh();
+	//void UpdateDosageMap();
 
     string modelFile = "assets/testroomopt2.glb";
-	tinygltf::Model model;
     ShaderGL* shader3D;
+	Mesh mesh;
 
     KeyPresses keyPresses;
 	int2 mousePos;
@@ -43,7 +42,6 @@ public:
 	Camera camera{};
 
 	unsigned int VAO, VBO, UVBuffer, textureBuffer;
-	float* uvcoords;
 
 	//uint texSize = 0, texWidth, texHeight;
 

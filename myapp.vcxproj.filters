@@ -30,6 +30,7 @@
     </ClCompile>
     <ClCompile Include="userinterface.cpp" />
     <ClCompile Include="bvh.cpp" />
+    <ClCompile Include="mesh.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="template\common.h">
@@ -73,6 +74,7 @@
     </ClInclude>
     <ClInclude Include="userinterface.h" />
     <ClInclude Include="bvh.h" />
+    <ClInclude Include="mesh.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="template\LICENSE">

@@ -8,8 +8,9 @@ void RayTracer::AddLamp()
 	lightPositions.push_back(initLightPos);
 }
 
-void RayTracer::Init()
+void RayTracer::Init(Mesh* mesh)
 {
+	this->mesh = mesh;
 	LoadRoute(defaultRouteFile);
 
 	if (lightPositions.empty()) { // If no route has previously been saved, initialise with single light
@@ -22,6 +23,8 @@ void RayTracer::Init()
 	//initLightPos.position = make_float3(-0.1f, 0.6f + floorOffset, -1.9f);
 	//initLightPos.duration = 1;
 	//lightPositions.push_back(initLightPos);
+	verticesBuffer = new Buffer(mesh->triangleCount * 16, Buffer::DEFAULT, mesh->triangles);
+	verticesBuffer->CopyToDevice();
 
 	// compile and load kernel "render" from file "kernels.cl"
 	generateKernel = new Kernel("generate.cl", "render");
@@ -31,17 +34,14 @@ void RayTracer::Init()
 	accumulateKernel = new Kernel("accumulate.cl", "render");
 
 	// create an OpenCL buffer over using bitmap.pixels
-	photonMapBuffer = new Buffer(2 * triangleCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
-	maxPhotonMapBuffer = new Buffer(2 * triangleCount, Buffer::DEFAULT);
-	tempPhotonMapBuffer = new Buffer(triangleCount, Buffer::DEFAULT);
+	photonMapBuffer = new Buffer(2 * mesh->triangleCount, Buffer::DEFAULT);//Texture not necessary as per triangle dosage can be done with OpenCL as well.
+	maxPhotonMapBuffer = new Buffer(2 * mesh->triangleCount, Buffer::DEFAULT);
+	tempPhotonMapBuffer = new Buffer(mesh->triangleCount, Buffer::DEFAULT);
 	//rayBuffer = new Buffer(8*photonCount, Buffer::DEFAULT);//*8 because buffer is in uints
 	//lightPosBuffer = new Buffer(4 * lightPositions.size(), Buffer::DEFAULT, lightPositions.data());
 
 	//triangleBuffer = new Buffer(triangleCount, Buffer::DEFAULT, triangles);	
-
-	//TODO: since one vertex belongs to multiple faces, we cannot give it a single color, as it would be wrongly interpolated in the fragment shader.
-	//		Therefore a texture map should be used and sent to the fragment shader after all...
-	// Or otherwise render opengl with fat triangle data after all, but use the compressed data for the OpenCL kernels?
+	
 	colorBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
 
 	//generateKernel->SetArgument(0, rayBuffer);
@@ -49,7 +49,7 @@ void RayTracer::Init()
 	extendKernel->SetArgument(0, tempPhotonMapBuffer);
 	//extendKernel->SetArgument(2, rayBuffer);
 	extendKernel->SetArgument(3, verticesBuffer);
-	extendKernel->SetArgument(4, triangleCount);
+	extendKernel->SetArgument(4, mesh->triangleCount);
 
 	shadeKernel->SetArgument(1, colorBuffer);
 	shadeKernel->SetArgument(2, verticesBuffer);
@@ -91,7 +91,7 @@ void RayTracer::ComputeDosageMap()
 		//cout << " extended: " <<  timerClock.elapsed() * 1000.0f << endl;
 
 		accumulateKernel->SetArgument(3, lightPositions[i].duration);
-		accumulateKernel->Run(triangleCount);
+		accumulateKernel->Run(mesh->triangleCount);
 
 		//cout << " accumul: " << timerClock.elapsed() * 1000.0f << endl;
 		//TODO: separate kernel to multiply photoncount per triangle by the timestep and light power?
@@ -123,7 +123,7 @@ void RayTracer::Shade()
 		shadeKernel->SetArgument(5, minDosage);
 	}
 
-	shadeKernel->Run(colorBuffer, triangleCount);
+	shadeKernel->Run(colorBuffer, mesh->triangleCount);
 }
 
 void RayTracer::ResetDosageMap() {
@@ -139,7 +139,7 @@ void RayTracer::ResetDosageMap() {
 	generateKernel->SetArgument(0, rayBuffer);
 	extendKernel->SetArgument(2, rayBuffer);
 
-	resetKernel->Run(colorBuffer, triangleCount);
+	resetKernel->Run(colorBuffer, mesh->triangleCount);
 }
 
 #include "tinyxml2.h"

@@ -1244,6 +1244,7 @@ public:
 
 #define GPU_RAYTRACING 1;
 
+#include "mesh.h"
 #include "raytracer.h"
 #include "camera.h"
 #include "glm/glm.hpp"

@@ -34,7 +34,7 @@ void UserInterface::DrawUI()
 	NewFrame();
 	Begin("Statistieken", 0);
 	SetWindowFontScale(1.5f);
-	Text("Aantal driehoeken: %u", rayTracer->triangleCount);
+	Text("Aantal driehoeken: %u", rayTracer->mesh->triangleCount);
 	Text("Aantal fotonen: %i", rayTracer->photonMapSize);
 	End();
 
