@@ -10,7 +10,7 @@ __kernel void render(__global struct Ray* rays, float3 lightPos,
 {
 	const int threadID = get_global_id(0);
 
-	uint seed = WangHash((threadID + 1) * 17 + lightPos.x * 13 + lightPos.y * 7 + lightPos.z * 11 + SEED);
+	uint seed = WangHash(threadID * 17 + 1 + lightPos.x * 13 + lightPos.y * 7 + lightPos.z * 11 + (SEED >> 15));
 	
 	struct Ray newray;
 	//struct LightPos lightPos = lightPositions[(int)(RandomFloat(&seed) * (lightCount-1))];
@@ -21,20 +21,21 @@ __kernel void render(__global struct Ray* rays, float3 lightPos,
 
 	// Generate random y component and random horizontal angle, then determine corresponding x and z components.
 	float diry = RandomFloat(&seed) * 2.0f - 1.0f;
-	double dirxz = sqrt(1.0 - (double)diry * diry);
-	double angle = (double)RandomFloat(&seed) * 2.0 * M_PI;
-	float dirx = (float)(cos(angle) * dirxz);
-	float dirz = (float)(sin(angle) * dirxz);
+	double dirxzlength = sqrt(1.0 - (double)diry * (double)diry);
 
-	//float3 dir = (float3)(RandomFloat(&seed) * 2 - 1, RandomFloat(&seed) * 2 - 1, RandomFloat(&seed) * 2 - 1);//TODO: dependent on light normal? Cosine distribution
-	//while (dot(dir, dir) > 1) { // Keep generating random cube vectors until we find one within the sphere
-	//	dir = (float3)(RandomFloat(&seed) * 2 - 1, RandomFloat(&seed) * 2 - 1, RandomFloat(&seed) * 2 - 1);
-	//}
-	//dir = normalize(dir);
-	//float length = sqrt(dirx * dirx + diry * diry + dirz * dirz);
-	newray.dirx = dirx;
+	//double angle = (double)RandomFloat(&seed) * 2.0 * M_PI;
+	//float dirx = (float)(cos(angle) * dirxz);
+	//float dirz = (float)(sin(angle) * dirxz);
+
+	double2 dirxz = (double2)(RandomFloat(&seed) * 2 - 1, RandomFloat(&seed) * 2 - 1);
+	while (dot(dirxz, dirxz) > 1) { // Keep generating random square vectors until we find one within the circle
+		dirxz = (double2)(RandomFloat(&seed) * 2 - 1, RandomFloat(&seed) * 2 - 1);
+	}
+	dirxz = dirxz * (dirxzlength / sqrt(dirxz.x * dirxz.x + dirxz.y * dirxz.y));
+
+	newray.dirx = dirxz.x;
 	newray.diry = diry;
-	newray.dirz = dirz;
+	newray.dirz = dirxz.y;
 	newray.dist = 1e30f;
 	newray.triID = 0;
 

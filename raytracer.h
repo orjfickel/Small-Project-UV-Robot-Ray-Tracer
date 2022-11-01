@@ -23,7 +23,7 @@ namespace Tmpl8
 
 		float lightLength = 1.3f;
 		float lightHeight = -0.9f; //TODO: make lightHeight not just the ypos but the distance from the ground.
-		int photonCount = (1<<25);
+		int photonCount = (1<<18);
 		int maxIterations = 1;
 		int currIterations;
 		float lightIntensity = 180;
