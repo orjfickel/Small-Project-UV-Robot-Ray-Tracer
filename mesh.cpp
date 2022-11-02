@@ -46,7 +46,7 @@ void Mesh::LoadMesh(string modelFile)
 		cout << "Loading unsigned int type indices " << endl;
 		tempi = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 	}
-
+	
 	triangles = new Tri[indicesAccessor.count / 3];
 	vertices = new float[indicesAccessor.count * 3];
 	uvcoords = new float[indicesAccessor.count * 2];
@@ -86,6 +86,21 @@ void Mesh::LoadMesh(string modelFile)
 	vertexCount = indicesAccessor.count * 3;
 	triangleCount = indicesAccessor.count / 3;
 
+	//// Determine floor height
+	//float floorHeight;
+	//int binCount = 8;
+	//float maxVal = 4.0f, minVal = -4.0f;
+	//int* heightHistogram = new int[binCount];
+	//for (int i = 0; i < vertexCount / 3; ++i)
+	//{
+	//	for (int j = 0; j < binCount; ++j)
+	//	{
+	//		if (vertices[i * 3 + 1] < (j+1) * (maxVal) / binCount && vertices[i * 3 + 1] > j * maxVal / binCount)
+	//		{
+	//			heightHistogram[j]++;
+	//		}
+	//	}
+	//}
 
 	cout << "vert " << vertexCount << " tricount " << triangleCount << endl;
 	bvh = new BVH(this);

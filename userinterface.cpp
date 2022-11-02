@@ -56,12 +56,16 @@ void UserInterface::DrawUI()
 	if (showControls) {
 		Begin("Uitleg", &showControls, ImGuiWindowFlags_NoNavInputs);
 		SetWindowFontScale(1.5f);
+		PushTextWrapPos(GetFontSize() * 35.0f);
 		Text("Gebruik de WASDQE toetsen om de camera te bewegen");
 		Text("Gebruik de pijltjes toetsen om de camera te draaien");
 		Text("Om een een route te maken, klik op \"Lamp positie toevoegen\"");
-		Text("Selecteer een van de lampen uit de lijst, en gebruik WASD \nom de lamp te verplaatsen");
-		Text("Pas de overige parameters aan en klik op \"Berekenen\" om \nde straling heatmap te tonen");
-		Text("De heatmap toont de cumulatieve of maximale UV straling die \nelke driehoek in het 3D model heeft ontvangen");
+		Text("Selecteer een van de lampen uit de lijst, en gebruik WASD om de lamp te verplaatsen");
+		Text("Pas de overige parameters aan en klik op \"Bereken UV straling\" om de straling heatmap te tonen");
+		Text("De heatmap toont de cumulatieve of maximale UV straling die elke driehoek in het 3D model heeft ontvangen");
+		Text("Voor een zo accuraat mogelijk beeld, zorg dat het aantal fotonen hoog genoeg is zodat er minimale verandering"
+			" te zien is wanneer je een aantal keer op \"Herbereken UV straling\" klikt");
+		PopTextWrapPos();
 		End();
 	}
 
@@ -79,6 +83,11 @@ void UserInterface::DrawUI()
 	HelpMarker("Meer fotonen zorgen voor minder ruis in de berekening");
 	SameLine();
 	InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
+	rayTracer->photonCount = min(1 << 26, rayTracer->photonCount);
+	if (rayTracer->photonCount > 1 << 26 || rayTracer->photonCount < 1)
+	{
+		rayTracer->photonCount = 1 << 26;
+	}
 
 	Text("Aantal iteraties"); SameLine();
 	InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
