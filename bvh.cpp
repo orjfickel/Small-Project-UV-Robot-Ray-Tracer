@@ -4,7 +4,7 @@ BVH::BVH(Mesh* mesh)
 {
 	//mesh = triMesh;
 	this->mesh = mesh;
-	bvhNode = (BVHNode*)_aligned_malloc(sizeof(BVHNode) * mesh->triangleCount * 2 + 64, 64);
+	bvhNode = (BVHNode*)_aligned_malloc(sizeof(BVHNode) * mesh->triangleCount * 2 + 0, 64);
 	triIdx = new uint[mesh->triangleCount];
 	Build();
 }
@@ -39,7 +39,7 @@ void BVH::Build()
 		float3_strict cmin = buildStack[i].centroidMin, cmax = buildStack[i].centroidMax;
 		Subdivide(buildStack[i].nodeIdx, 99, nodePtr[i], cmin, cmax);
 	}
-	nodesUsed = mesh->triangleCount * 2 + 64;
+	nodesUsed = mesh->triangleCount * 2 + 0;
 }
 
 void BVH::Subdivide(uint nodeIdx, uint depth, uint& nodePtr, float3_strict& centroidMin, float3_strict& centroidMax)

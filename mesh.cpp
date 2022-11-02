@@ -85,10 +85,10 @@ void Mesh::LoadMesh(string modelFile)
 
 	vertexCount = indicesAccessor.count * 3;
 	triangleCount = indicesAccessor.count / 3;
-
+	cout << "vert " << vertexCount << " tricount " << triangleCount << endl;
 	bvh = new BVH(this);
 	cout << "BVH " << bvh->nodesUsed << " tricount " << triangleCount << endl;
-	BVHNode* node = bvh->bvhNode;
+	/*BVHNode* node = bvh->bvhNode;
 	for (int i = 0; i < 1000; ++i)
 	{
 		cout << "nodex " << node->aabbMin.x << " nodey " << node->aabbMin.y << " nodez " << node->aabbMin.z
@@ -97,5 +97,5 @@ void Mesh::LoadMesh(string modelFile)
 		if (node->triCount > 0)
 			break;
 		node = &bvh->bvhNode[node->leftFirst];
-	}
+	}*/
 }

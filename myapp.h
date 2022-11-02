@@ -34,7 +34,7 @@ public:
 	void drawBVH();
 	//void UpdateDosageMap();
 
-    string modelFile = "assets/testroomopt2.glb";
+    string modelFile = "assets/C046_1.glb";
     ShaderGL* shader3D;
 	Mesh mesh;
 

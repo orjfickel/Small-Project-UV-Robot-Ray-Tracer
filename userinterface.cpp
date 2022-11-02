@@ -56,10 +56,14 @@ void UserInterface::DrawUI()
 	Text("Fotonen per iteratie"); SameLine();
 	InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
 
-	Text("Lamp sterkte in Watt"); SameLine();
+	Text("Lamp sterkte (W)"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");//TODO: should be int probably
-	Text("Minimale dosering in J/m^2"); SameLine();
+	Text("Minimale dosis (J/m^2)"); SameLine();
 	InputFloat("##mindosage", &rayTracer->minDosage, 0, 0, "%.2f");
+	Text("Minimale bestralings-\nsterkte (W/m^2)"); SameLine();
+	ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 10));
+	InputFloat("##minpower", &rayTracer->minPower, 0, 0, "%.2f");
+	ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() - 5));
 	Text("Lamp lengte"); SameLine();
 	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
 	Text("Lamp hoogte"); SameLine();
@@ -93,6 +97,7 @@ void UserInterface::DrawUI()
 				rayTracer->lightPositions.erase(rayTracer->lightPositions.begin()+i);
 			}
 			EndGroup();
+			ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 5));
 		}
 		EndChild();
 	}
@@ -161,18 +166,22 @@ void UserInterface::DrawUI()
 	{
 		rayTracer->viewMode = texture;
 	}
-	if (Selectable("Toon dosis", rayTracer->viewMode == dosage))
+	if (Selectable("Toon totale dosis", rayTracer->viewMode == dosage))
 	{
 		rayTracer->viewMode = dosage;
+		if (!rayTracer->startedComputation)
+			rayTracer->ResetDosageMap();
 		rayTracer->Shade();
 	}
-	if (Selectable("Toon max energie", rayTracer->viewMode == maxpower))
+	if (Selectable("Toon max bestralingssterkte", rayTracer->viewMode == maxpower))
 	{
 		if (rayTracer->maxIterations > 1)
 		{
 			//TODO: pop up text warning that max power should be calculated in 1 iteration. Also add this when (re)compute is called.
 		} 
 		rayTracer->viewMode = maxpower;
+		if (!rayTracer->startedComputation)
+			rayTracer->ResetDosageMap();
 		rayTracer->Shade();
 	}
 
@@ -181,29 +190,45 @@ void UserInterface::DrawUI()
 	else if (showLights && Button("Verberg lamp posities"))
 		showLights = false;
 
-	Begin("hue");
+
+	static float pickerSize = 420;
+	static int halfnumberwidth = 25;
+	float rainbowHeight = 60, lineHeight = 50, numberHeight = 30;
+	SetNextWindowPos(ImVec2(SCRWIDTH - pickerSize - 2 * halfnumberwidth - 10, SCRHEIGHT - rainbowHeight - 45), 0);
+	SetNextWindowSize(ImVec2(pickerSize + 2 * halfnumberwidth, rainbowHeight + 35), 0);
+	Begin(rayTracer->viewMode == maxpower ? "Maximale bestralingssterkte (W/m^2)" : "Cumulatieve dosis (J/m^2)", 0, ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
+	SetWindowFontScale(1.5f);
 
 	ImDrawList* draw_list = GetWindowDrawList();
 	ImVec2 panelPos = GetWindowPos();
-	const ImU32 col_hues[4 + 1] = { IM_COL32(255,0,0,255), IM_COL32(255,255,0,255), IM_COL32(0,255,0,255), IM_COL32(0,255,255,255), IM_COL32(0,0,255,255)};
-	float pickerSize = 200;
-	for (int i = 0; i < 4; ++i)
-		draw_list->AddRectFilledMultiColor(ImVec2(panelPos.x + i * (pickerSize / 4), panelPos.y), ImVec2(panelPos.x + (i + 1) * (pickerSize / 4), panelPos.y + 50), col_hues[i], col_hues[i+1], col_hues[i + 1], col_hues[i]);
+	const ImU32 col_hues[4 + 1] = { IM_COL32(0,0,255,255), IM_COL32(0,255,255,255), IM_COL32(0,255,0,255), IM_COL32(255,255,0,255), IM_COL32(255,0,0,255)};
 
+	for (int i = 0; i < 4; ++i)
+		draw_list->AddRectFilledMultiColor(ImVec2(panelPos.x + i * (pickerSize / 4) + halfnumberwidth, panelPos.y+ rainbowHeight), ImVec2(panelPos.x + (i + 1) * (pickerSize / 4) + halfnumberwidth, panelPos.y + rainbowHeight + 25), col_hues[i], col_hues[i+1], col_hues[i + 1], col_hues[i]);
+
+	static int numberCount = 4;
+	for (int i = 0; i <= numberCount; i++)
+	{
+		char buf[16];
+		sprintf(buf, "%.2f", i * (rayTracer->viewMode == maxpower ? rayTracer->minPower : rayTracer->minDosage) * 2.0f / numberCount);
+		draw_list->AddText(ImVec2(panelPos.x + i * ((pickerSize) / numberCount) + 5, panelPos.y + numberHeight), 0xFFFFFFFF,buf);
+	}
+
+	int lineCount = numberCount * 2;
+	for (int i = 0; i <= lineCount; i++)
+	{
+		float posx = panelPos.x + i * ((pickerSize) / lineCount) + halfnumberwidth;
+		draw_list->AddLine(ImVec2(posx, panelPos.y + lineHeight), ImVec2(posx, panelPos.y + lineHeight + 10), 0xFFFFFFFF);
+	}
 	End();
 
 	ShowDemoWindow();
-	//TODO: test many lights
-	//TODO: Maybe update after each separate light calculation
 	//TODO: explain camera controls
-	//TODO: Dosage to color legend
-	//TODO: max dosage map
-	//TODO: BVH
+	//TODO: Dosage to color legend and power to color legend
 	//TODO: base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
+
 	//TODO: save heatmap automatically and allow saving to separate file as well. Perhaps save into the gltf model?
-
 	//TODO: for debugging: assign each triangle a color based on its normal
-
 	//TODO: light movement interpolate
 	//TODO: allow continueing/pauzing computation (not a priority)
 	End();
