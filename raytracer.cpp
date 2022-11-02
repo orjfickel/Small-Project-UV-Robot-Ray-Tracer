@@ -25,11 +25,11 @@ void RayTracer::Init(Mesh* mesh)
 	//lightPositions.push_back(initLightPos);
 
 	// compile and load kernel "render" from file "kernels.cl"
-	generateKernel = new Kernel("generate.cl", "render");
-	extendKernel = new Kernel("extend.cl", "render");
-	shadeKernel = new Kernel("shade.cl", "render");
-	resetKernel = new Kernel("reset.cl", "render");
-	accumulateKernel = new Kernel("accumulate.cl", "render");
+	generateKernel = new Kernel("cl/generate.cl", "render");
+	extendKernel = new Kernel("cl/extend.cl", "render");
+	shadeKernel = new Kernel("cl/shade.cl", "render");
+	resetKernel = new Kernel("cl/reset.cl", "render");
+	accumulateKernel = new Kernel("cl/accumulate.cl", "render");
 
 	verticesBuffer = new Buffer(mesh->triangleCount * sizeof(Tri), Buffer::DEFAULT, mesh->triangles);
 	verticesBuffer->CopyToDevice();

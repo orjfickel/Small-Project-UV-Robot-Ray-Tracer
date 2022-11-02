@@ -42,8 +42,8 @@ void MyApp::Init(GLFWwindow* window, UserInterface* userInterface)
  */
 void MyApp::BindMesh()
 {
-	shader3D = new ShaderGL("shader3D.vert", "shader3D.frag", false);
-	rayTracer.simpleShader = new ShaderGL("simpleshader.vert", "simpleshader.frag", false);
+	shader3D = new ShaderGL("shaders/shader3D.vert", "shaders/shader3D.frag", false);
+	rayTracer.simpleShader = new ShaderGL("shaders/simpleshader.vert", "shaders/simpleshader.frag", false);
 
 	cout << "Binding the mesh " << endl;
 	glGenVertexArrays(1, &VAO); 

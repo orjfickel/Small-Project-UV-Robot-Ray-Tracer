@@ -19,5 +19,6 @@ namespace Tmpl8
 		int selectedLightPos = -1;
 		bool addedLamp = false;
 		bool showLights = true;
+		bool showControls = true;
 	};
 }

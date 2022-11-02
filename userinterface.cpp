@@ -26,6 +26,21 @@ void UserInterface::Init(GLFWwindow* window, RayTracer* rayTracer)
 
 }
 
+static void HelpMarker(const char* desc)
+{
+	ImGui::SameLine();
+	ImGui::TextDisabled("(?)");
+	if (ImGui::IsItemHovered())
+	{
+		ImGui::BeginTooltip();
+		SetWindowFontScale(1.5f);
+		ImGui::PushTextWrapPos(ImGui::GetFontSize() * 35.0f);
+		ImGui::TextUnformatted(desc);
+		ImGui::PopTextWrapPos();
+		ImGui::EndTooltip();
+	}
+}
+
 void UserInterface::DrawUI()
 {
 	//TODO: ensure it is drawn in front of the lights
@@ -38,13 +53,43 @@ void UserInterface::DrawUI()
 	Text("Aantal fotonen: %i", rayTracer->photonMapSize);
 	End();
 
+	if (showControls) {
+		Begin("Uitleg", &showControls, ImGuiWindowFlags_NoNavInputs);
+		SetWindowFontScale(1.5f);
+		Text("Gebruik de WASDQE toetsen om de camera te bewegen");
+		Text("Gebruik de pijltjes toetsen om de camera te draaien");
+		Text("Om een een route te maken, klik op \"Lamp positie toevoegen\"");
+		Text("Selecteer een van de lampen uit de lijst, en gebruik WASD \nom de lamp te verplaatsen");
+		Text("Pas de overige parameters aan en klik op \"Berekenen\" om \nde straling heatmap te tonen");
+		Text("De heatmap toont de cumulatieve of maximale UV straling die \nelke driehoek in het 3D model heeft ontvangen");
+		End();
+	}
+
 	Begin("Parameters", 0, ImGuiWindowFlags_NoNavInputs);
 	SetWindowFontScale(1.5f);
 	PushItemWidth(-2);
+
+	if (Button("Handleiding"))
+	{
+		showControls = !showControls;
+	}
 	
 	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
+	Text("Fotonen per iteratie"); 
+	HelpMarker("Meer fotonen zorgen voor minder ruis in de berekening");
+	SameLine();
+	InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
+
 	Text("Aantal iteraties"); SameLine();
-	InputInt("##iterations", &rayTracer->maxIterations, 1,0);
+	InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
+
+	if(rayTracer->maxIterations > 1)
+	{
+		Text("Note: de max bestralingssterkte \nmap werkt slechts voor 1 iteratie ");
+	} else if (rayTracer->maxIterations < 1)
+	{
+		rayTracer->maxIterations = 1;
+	}
 
 	bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->currIterations >= rayTracer->maxIterations;
 	if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
@@ -53,17 +98,19 @@ void UserInterface::DrawUI()
 			rayTracer->reachedMaxPhotons = false;
 		}
 	}
-	Text("Fotonen per iteratie"); SameLine();
-	InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
 
-	Text("Lamp sterkte (W)"); SameLine();
+	Text("Lamp sterkte (W)");
+	HelpMarker("Hoe veel energie de lamp uitstraalt"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");//TODO: should be int probably
-	Text("Minimale dosis (J/m^2)"); SameLine();
+	Text("Minimale dosis (J/m^2)");
+	HelpMarker("De dosis die groen wordt aangegeven"); SameLine();
 	InputFloat("##mindosage", &rayTracer->minDosage, 0, 0, "%.2f");
-	Text("Minimale bestralings-\nsterkte (W/m^2)"); SameLine();
-	ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 10));
+	//PushTextWrapPos(GetFontSize() * 15.0f);
+	Text("Minimale bestralings- \nsterkte (W/m^2)");
+	HelpMarker("De bestralingssterkte die groen wordt aangegeven"); SameLine();
+	//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 10));
 	InputFloat("##minpower", &rayTracer->minPower, 0, 0, "%.2f");
-	ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() - 5));
+	//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() - 5));
 	Text("Lamp lengte"); SameLine();
 	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
 	Text("Lamp hoogte"); SameLine();
@@ -72,7 +119,9 @@ void UserInterface::DrawUI()
 		SetNextTreeNodeOpen(true);
 		addedLamp = false;
 	}
-	if (CollapsingHeader("Lamp route")) {
+	bool tempOpen = CollapsingHeader("Lamp route");
+	HelpMarker("Selecteer een positie om met WASD te verplaatsen");
+	if (tempOpen) {
 		BeginChild("lightpositions", ImVec2(0,220));
 		for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
 		{
@@ -101,10 +150,11 @@ void UserInterface::DrawUI()
 		}
 		EndChild();
 	}
-	if (Button("Voeg nieuwe lamp positie toe"))
+	if (Button("Lamp positie toevoegen"))
 	{
 		rayTracer->AddLamp();
 		addedLamp = true;
+		selectedLightPos = rayTracer->lightPositions.size() - 1;
 	}
 
 	if (Button("Route opslaan"))
@@ -155,30 +205,27 @@ void UserInterface::DrawUI()
 		}
 		End();
 	}
-	// UI is unresponsive during computation so this does not work
-	//if (Button("Berekening stoppen"))
-	//{
-	//	rayTracer->reachedMaxPhotons = true;
-	//}
 	Text("");
 
-	if (Selectable("Toon fotoscan", rayTracer->viewMode == texture))
+	tempOpen = Selectable("Toon fotoscan", rayTracer->viewMode == texture);
+	HelpMarker("De kamer gekleurd zoals met de camera is ingescand");
+	if (tempOpen)
 	{
 		rayTracer->viewMode = texture;
 	}
-	if (Selectable("Toon totale dosis", rayTracer->viewMode == dosage))
+	tempOpen = Selectable("Toon totale dosis", rayTracer->viewMode == dosage);
+	HelpMarker("De cumulatieve dosis UV straling dat elk oppervlak heeft ontvangen");
+	if (tempOpen)
 	{
 		rayTracer->viewMode = dosage;
 		if (!rayTracer->startedComputation)
 			rayTracer->ResetDosageMap();
 		rayTracer->Shade();
 	}
-	if (Selectable("Toon max bestralingssterkte", rayTracer->viewMode == maxpower))
+	tempOpen = Selectable("Toon max bestralingssterkte", rayTracer->viewMode == maxpower);
+	HelpMarker("De maximale UV straling dat elk oppervlak heeft ontvangen");
+	if (tempOpen)
 	{
-		if (rayTracer->maxIterations > 1)
-		{
-			//TODO: pop up text warning that max power should be calculated in 1 iteration. Also add this when (re)compute is called.
-		} 
 		rayTracer->viewMode = maxpower;
 		if (!rayTracer->startedComputation)
 			rayTracer->ResetDosageMap();
@@ -190,7 +237,7 @@ void UserInterface::DrawUI()
 	else if (showLights && Button("Verberg lamp posities"))
 		showLights = false;
 
-
+	// Draw the heatmap color legend
 	static float pickerSize = 420;
 	static int halfnumberwidth = 25;
 	float rainbowHeight = 60, lineHeight = 50, numberHeight = 30;
