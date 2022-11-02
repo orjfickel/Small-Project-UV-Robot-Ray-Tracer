@@ -85,6 +85,8 @@ void Mesh::LoadMesh(string modelFile)
 
 	vertexCount = indicesAccessor.count * 3;
 	triangleCount = indicesAccessor.count / 3;
+
+
 	cout << "vert " << vertexCount << " tricount " << triangleCount << endl;
 	bvh = new BVH(this);
 	cout << "BVH " << bvh->nodesUsed << " tricount " << triangleCount << endl;

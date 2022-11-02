@@ -190,20 +190,20 @@
     <ClInclude Include="userinterface.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="accumulate.cl" />
+    <None Include="cl\accumulate.cl" />
+    <None Include="cl\extend.cl" />
+    <None Include="cl\generate.cl" />
     <None Include="cl\kernels.cl" />
-    <None Include="extend.cl" />
-    <None Include="generate.cl" />
+    <None Include="cl\reset.cl" />
+    <None Include="cl\shade.cl" />
+    <None Include="cl\shadedepth.cl" />
+    <None Include="cl\timestep.cl" />
     <None Include="README.md" />
-    <None Include="reset.cl" />
-    <None Include="shade.cl" />
-    <None Include="shadedepth.cl" />
-    <None Include="shader3D.frag" />
-    <None Include="shader3D.vert" />
-    <None Include="simpleshader.frag" />
-    <None Include="simpleshader.vert" />
+    <None Include="shaders\shader3D.frag" />
+    <None Include="shaders\shader3D.vert" />
+    <None Include="shaders\simpleshader.frag" />
+    <None Include="shaders\simpleshader.vert" />
     <None Include="template\LICENSE" />
-    <None Include="timestep.cl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

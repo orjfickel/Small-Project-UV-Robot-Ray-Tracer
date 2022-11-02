@@ -86,37 +86,37 @@
     <None Include="cl\kernels.cl">
       <Filter>template\cl</Filter>
     </None>
-    <None Include="generate.cl">
-      <Filter>kernels</Filter>
-    </None>
-    <None Include="extend.cl">
-      <Filter>kernels</Filter>
-    </None>
-    <None Include="shade.cl">
-      <Filter>kernels</Filter>
-    </None>
-    <None Include="reset.cl">
-      <Filter>kernels</Filter>
-    </None>
-    <None Include="timestep.cl">
-      <Filter>kernels</Filter>
-    </None>
-    <None Include="shader3D.frag">
+    <None Include="shaders\shader3D.frag">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shader3D.vert">
+    <None Include="shaders\shader3D.vert">
       <Filter>shaders</Filter>
     </None>
-    <None Include="simpleshader.frag">
+    <None Include="shaders\simpleshader.frag">
       <Filter>shaders</Filter>
     </None>
-    <None Include="simpleshader.vert">
+    <None Include="shaders\simpleshader.vert">
       <Filter>shaders</Filter>
     </None>
-    <None Include="shadedepth.cl">
+    <None Include="cl\timestep.cl">
       <Filter>kernels</Filter>
     </None>
-    <None Include="accumulate.cl">
+    <None Include="cl\reset.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="cl\shade.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="cl\shadedepth.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="cl\generate.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="cl\extend.cl">
+      <Filter>kernels</Filter>
+    </None>
+    <None Include="cl\accumulate.cl">
       <Filter>kernels</Filter>
     </None>
   </ItemGroup>

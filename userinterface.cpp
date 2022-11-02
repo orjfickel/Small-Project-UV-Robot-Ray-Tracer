@@ -224,7 +224,6 @@ void UserInterface::DrawUI()
 
 	ShowDemoWindow();
 	//TODO: explain camera controls
-	//TODO: Dosage to color legend and power to color legend
 	//TODO: base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
 
 	//TODO: save heatmap automatically and allow saving to separate file as well. Perhaps save into the gltf model?

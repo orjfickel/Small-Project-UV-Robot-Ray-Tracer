@@ -26,9 +26,11 @@ void MyApp::Init(GLFWwindow* window, UserInterface* userInterface)
 	mesh.LoadMesh(modelFile);
 
 	BindMesh();
-	rayTracer.Init(&mesh);
+	// Free up memory on host
+	delete[] mesh.vertices;
 
-	delete[] mesh.vertices;// Free up memory on host
+	rayTracer.Init(&mesh);
+	
 	//rayTracer.ResetDosageMap();
 	//rayTracer.ComputeDosageMap();
 	//UpdateDosageMap();
