@@ -61,10 +61,9 @@ void UserInterface::DrawUI()
 		Text("Gebruik de pijltjes toetsen om de camera te draaien");
 		Text("Om een een route te maken, klik op \"Lamp positie toevoegen\"");
 		Text("Selecteer een van de lampen uit de lijst, en gebruik WASD om de lamp te verplaatsen");
-		Text("Pas de overige parameters aan en klik op \"Bereken UV straling\" om de straling heatmap te tonen");
-		Text("De heatmap toont de cumulatieve of maximale UV straling die elke driehoek in het 3D model heeft ontvangen");
-		Text("Voor een zo accuraat mogelijk beeld, zorg dat het aantal fotonen hoog genoeg is zodat er minimale verandering"
-			" te zien is wanneer je een aantal keer op \"Herbereken UV straling\" klikt");
+		Text("Pas de overige parameters aan en klik op \"Bereken UV straling\" om de heatmap van de straling te tonen");
+		Text("De heatmap toont de cumulatieve of maximale UV straling die elke driehoek in het 3D model heeft ontvangen, vanuit de discrete lamp posities");
+		Text("Om de kleur van de heatmap te schalen, open het kopje \"Geavanceerd\" en pas de drempelwaarde(s) aan");
 		PopTextWrapPos();
 		End();
 	}
@@ -78,58 +77,20 @@ void UserInterface::DrawUI()
 		showControls = !showControls;
 	}
 	
-	//ImGui::Text("Vertex count: %u", rayTracer.vertexCount);
-	Text("Fotonen per iteratie"); 
-	HelpMarker("Meer fotonen zorgen voor minder ruis in de berekening");
-	SameLine();
-	InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
-	rayTracer->photonCount = min(1 << 26, rayTracer->photonCount);
-	if (rayTracer->photonCount > 1 << 26 || rayTracer->photonCount < 1)
-	{
-		rayTracer->photonCount = 1 << 26;
-	}
-
-	Text("Aantal iteraties"); SameLine();
-	InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
-
-	if(rayTracer->maxIterations > 1)
-	{
-		Text("Note: de max bestralingssterkte \nmap werkt slechts voor 1 iteratie ");
-	} else if (rayTracer->maxIterations < 1)
-	{
-		rayTracer->maxIterations = 1;
-	}
-
-	bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->currIterations >= rayTracer->maxIterations;
-	if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
-	{
-		if (Button("Berekening hervatten")) {
-			rayTracer->reachedMaxPhotons = false;
-		}
-	}
-
 	Text("Lamp sterkte (W)");
 	HelpMarker("Hoe veel energie de lamp uitstraalt"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");//TODO: should be int probably
-	Text("Minimale dosis (J/m^2)");
-	HelpMarker("De dosis die groen wordt aangegeven"); SameLine();
-	InputFloat("##mindosage", &rayTracer->minDosage, 0, 0, "%.2f");
-	//PushTextWrapPos(GetFontSize() * 15.0f);
-	Text("Minimale bestralings- \nsterkte (W/m^2)");
-	HelpMarker("De bestralingssterkte die groen wordt aangegeven"); SameLine();
-	//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 10));
-	InputFloat("##minpower", &rayTracer->minPower, 0, 0, "%.2f");
-	//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() - 5));
-	Text("Lamp lengte"); SameLine();
+	
+	Text("Lamp lengte (m)"); SameLine();
 	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
-	Text("Lamp hoogte"); SameLine();
+	Text("Lamp hoogte (m)"); SameLine();
 	InputFloat("##height", &rayTracer->lightHeight, 0, 0, "%.2f");
 	if (addedLamp) {
 		SetNextTreeNodeOpen(true);
 		addedLamp = false;
 	}
-	bool tempOpen = CollapsingHeader("Lamp route");
-	HelpMarker("Selecteer een positie om met WASD te verplaatsen");
+	bool tempOpen = CollapsingHeader("Lamp posities");
+	HelpMarker("Discrete plekken waar de lamp voor bepaalde tijdsduren staat \nSelecteer een positie uit de lijst om met WASD te verplaatsen");
 	if (tempOpen) {
 		BeginChild("lightpositions", ImVec2(0,220));
 		for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
@@ -143,9 +104,9 @@ void UserInterface::DrawUI()
 			SetItemAllowOverlap();
 			SameLine();
 			BeginGroup();
-			Text("Positie %i", i + 1); SameLine();
+			Text("Positie %i (m)", i + 1); SameLine();
 			InputFloat2(("##position_" + std::to_string(i)).c_str(), rayTracer->lightPositions[i].position.cell, "%.2f");
-			Text("Tijdsduur"); SameLine();
+			Text("Tijdsduur (s)"); SameLine();
 			PushItemWidth(-120);
 			InputFloat(("##duration_" + std::to_string(i)).c_str(), &rayTracer->lightPositions[i].duration, 0, 0, "%.2f");
 			SameLine();
@@ -246,13 +207,64 @@ void UserInterface::DrawUI()
 	else if (showLights && Button("Verberg lamp posities"))
 		showLights = false;
 
+	if (CollapsingHeader("Geavanceerd")) {
+		Text("Legenda drempel \ndosis (mJ/cm^2)");
+		HelpMarker("De heatmap wordt zo geschaald dat deze waarde groen is"); SameLine();
+		float tempminValue = rayTracer->minDosage;
+		InputFloat("##mindosage", &rayTracer->minDosage, 0, 0, "%.2f");
+		// Update the shading if the scaling dosage is changed
+		if (rayTracer->startedComputation && tempminValue != rayTracer->minDosage && rayTracer->viewMode == dosage)
+			rayTracer->Shade();
+
+		//PushTextWrapPos(GetFontSize() * 15.0f);
+		Text("Drempel bestralings-\nsterkte (\xC2\xB5W/cm^2 W)");
+		HelpMarker("De heatmap wordt zo geschaald dat deze waarde groen is"); SameLine();
+		tempminValue = rayTracer->minPower;
+		//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 10));
+		InputFloat("##minpower", &rayTracer->minPower, 0, 0, "%.2f");
+		//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() - 5));
+		// Update the shading if the scaling dosage is changed
+		if (rayTracer->startedComputation && tempminValue != rayTracer->minPower && rayTracer->viewMode == maxpower)
+			rayTracer->Shade();
+
+		Text("Fotonen per iteratie");
+		HelpMarker("Meer fotonen zorgen voor minder ruis in de berekening");
+		SameLine();
+		InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
+		rayTracer->photonCount = min(1 << 26, rayTracer->photonCount);
+		if (rayTracer->photonCount > 1 << 26 || rayTracer->photonCount < 1)
+		{
+			rayTracer->photonCount = 1 << 26;
+		}
+
+		Text("Aantal iteraties"); SameLine();
+		InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
+
+		if (rayTracer->maxIterations > 1)
+		{
+			Text("Note: de max bestralingssterkte \nmap werkt slechts voor 1 iteratie ");
+		}
+		else if (rayTracer->maxIterations < 1)
+		{
+			rayTracer->maxIterations = 1;
+		}
+
+		bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->currIterations >= rayTracer->maxIterations;
+		if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
+		{
+			if (Button("Berekening hervatten")) {
+				rayTracer->reachedMaxPhotons = false;
+			}
+		}
+	}
+
 	// Draw the heatmap color legend
 	static float pickerSize = 420;
 	static int halfnumberwidth = 25;
 	float rainbowHeight = 60, lineHeight = 50, numberHeight = 30;
-	SetNextWindowPos(ImVec2(SCRWIDTH - pickerSize - 2 * halfnumberwidth - 10, SCRHEIGHT - rainbowHeight - 45), 0);
-	SetNextWindowSize(ImVec2(pickerSize + 2 * halfnumberwidth, rainbowHeight + 35), 0);
-	Begin(rayTracer->viewMode == maxpower ? "Maximale bestralingssterkte (W/m^2)" : "Cumulatieve dosis (J/m^2)", 0, ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
+	SetNextWindowPos(ImVec2(SCRWIDTH - pickerSize - 2 * halfnumberwidth - 20, SCRHEIGHT - rainbowHeight - 45), 0);
+	SetNextWindowSize(ImVec2(pickerSize + 2 * halfnumberwidth + 10, rainbowHeight + 35), 0);
+	Begin(rayTracer->viewMode == maxpower ? "Maximale bestralingssterkte (\xC2\xB5W/cm^2)" : "Cumulatieve dosis (mJ/cm^2)", 0, ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
 	SetWindowFontScale(1.5f);
 
 	ImDrawList* draw_list = GetWindowDrawList();
@@ -278,7 +290,7 @@ void UserInterface::DrawUI()
 	}
 	End();
 
-	ShowDemoWindow();
+	//ShowDemoWindow();
 	//TODO: explain camera controls
 	//TODO: base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
 

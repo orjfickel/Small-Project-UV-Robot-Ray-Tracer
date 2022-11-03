@@ -21,7 +21,7 @@ float3 greyscale_to_heatmap(float intensity) {
 }
 
 __kernel void render(__global double* photonMap, __global struct TriangleColor* colorMap,
-    __global struct Triangle* vertices, int photonsPerLight, float power, float minValue)
+    __global struct Triangle* vertices, int photonsPerLight, float scaledPower, float minValue)
 {
 	const int threadID = get_global_id(0);
 
@@ -37,7 +37,8 @@ __kernel void render(__global double* photonMap, __global struct TriangleColor* 
     
     int triID = 0;
     float maxValue = minValue * 2;
-    float normValue = (power * photonMap[threadID]) / (area * photonsPerLight * maxValue);
+    // Compute the normalised irradiance/dosis. 
+    float normValue = (scaledPower * photonMap[threadID]) / (area * photonsPerLight * maxValue);
 
     float3 color = greyscale_to_heatmap(normValue);
 

@@ -13,12 +13,12 @@ void RayTracer::Init(Mesh* mesh)
 	this->mesh = mesh;
 	LoadRoute(defaultRouteFile);
 
-	if (lightPositions.empty()) { // If no route has previously been saved, initialise with single light
-		LightPos initLightPos;
-		initLightPos.position = make_float2(0.5f, 0.5f);
-		initLightPos.duration = 1;
-		lightPositions.push_back(initLightPos);
-	}
+	//if (lightPositions.empty()) { // If no route has previously been saved, initialise with single light
+	//	LightPos initLightPos;
+	//	initLightPos.position = make_float2(0.5f, 0.5f);
+	//	initLightPos.duration = 1;
+	//	lightPositions.push_back(initLightPos);
+	//}
 
 	//initLightPos.position = make_float3(-0.1f, 0.6f + floorOffset, -1.9f);
 	//initLightPos.duration = 1;
@@ -110,9 +110,10 @@ void RayTracer::ComputeDosageMap()
 
 void RayTracer::Shade()
 {
-	shadeKernel->SetArgument(4, lightIntensity);
 	if (viewMode == maxpower)
 	{
+		//Scale by 100 to convert from W/m^2 to microW/cm^2
+		shadeKernel->SetArgument(4, lightIntensity * 100);
 		shadeKernel->SetArgument(0, maxPhotonMapBuffer);
 		// Only the number of photons per light of a single iteration
 		shadeKernel->SetArgument(3, (int)((photonCount / lightPositions.size()) & ~1));//TODO: move to compute only once to prevent bugs etc
@@ -120,6 +121,8 @@ void RayTracer::Shade()
 	}
 	else
 	{
+		//Scale by 0.1 too convert from J/m^2 to mJ/cm^2
+		shadeKernel->SetArgument(4, lightIntensity * 0.1f);
 		shadeKernel->SetArgument(0, photonMapBuffer);
 		// The number of photons per area should be divided by the number of photons per light,
 		// as each photon carries a fraction of a single light's power
@@ -154,10 +157,13 @@ void RayTracer::SaveRoute(char fileName[32])
 	XMLDocument doc;
 	XMLNode* root = doc.NewElement("route");
 	doc.InsertFirstChild(root);
+	((XMLElement*)root->InsertEndChild(doc.NewElement("aantal_fotonen")))->SetText(photonCount);
+	((XMLElement*)root->InsertEndChild(doc.NewElement("aantal_iteraties")))->SetText(maxIterations);
 	((XMLElement*)root->InsertEndChild(doc.NewElement("lamp_sterkte")))->SetText(lightIntensity);
-	((XMLElement*)root->InsertEndChild(doc.NewElement("minimale_dosering")))->SetText(minDosage);
+	((XMLElement*)root->InsertEndChild(doc.NewElement("minimale_dosis")))->SetText(minDosage);
+	((XMLElement*)root->InsertEndChild(doc.NewElement("minimale_bestralingssterkte")))->SetText(minPower);
 	((XMLElement*)root->InsertEndChild(doc.NewElement("lamp_lengte")))->SetText(lightLength);
-	((XMLElement*)root->InsertEndChild(doc.NewElement("lamp_height")))->SetText(lightHeight);
+	((XMLElement*)root->InsertEndChild(doc.NewElement("lamp_hoogte")))->SetText(lightHeight);
 	XMLElement* viewElem = doc.NewElement("route");
 	for (int i = 0; i < lightPositions.size(); i++)
 	{
@@ -183,8 +189,11 @@ void RayTracer::LoadRoute(char fileName[32])
 	XMLNode* root = doc.FirstChild();
 	if (root == nullptr) return;
 	XMLElement* docElem;
+	if ((docElem = root->FirstChildElement("aantal_fotonen"))) docElem->QueryIntText(&photonCount);
+	if ((docElem = root->FirstChildElement("aantal_iteraties"))) docElem->QueryIntText(&maxIterations);
 	if ((docElem = root->FirstChildElement("lamp_sterkte"))) docElem->QueryFloatText(&lightIntensity);
-	if ((docElem = root->FirstChildElement("minimale_dosering"))) docElem->QueryFloatText(&minDosage);
+	if ((docElem = root->FirstChildElement("minimale_dosis"))) docElem->QueryFloatText(&minDosage);
+	if ((docElem = root->FirstChildElement("minimale_bestralingssterkte"))) docElem->QueryFloatText(&minPower);
 	if ((docElem = root->FirstChildElement("lamp_lengte"))) docElem->QueryFloatText(&lightLength);
 	if ((docElem = root->FirstChildElement("lamp_hoogte"))) docElem->QueryFloatText(&lightHeight);
 
