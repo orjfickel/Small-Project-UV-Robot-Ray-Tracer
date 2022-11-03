@@ -2,14 +2,16 @@
 #include <tiny_gltf.h>
 #include <glm/gtx/string_cast.hpp>
 
-void Mesh::LoadMesh(string modelFile)
+void Mesh::LoadMesh()
 {
 	cout << "Loading mesh " << endl;
-	// Load the mesh (TODO: allow specifying model in gui and load after pushing button)
+	// Load the mesh
 	tinygltf::TinyGLTF loader;
+	tinygltf::Model model;
 	string err;
 	string warn;
-	bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, modelFile); // for binary glTF(.glb)
+	char prefix[64] = "rooms/";
+	bool ret = loader.LoadBinaryFromFile(&model, &err, &warn, strcat(strcat(prefix, modelFile), ".glb")); // for binary glTF(.glb)
 	if (!warn.empty()) {
 		printf("Warn: %s\n", warn.c_str());
 	}
@@ -115,4 +117,89 @@ void Mesh::LoadMesh(string modelFile)
 			break;
 		node = &bvh->bvhNode[node->leftFirst];
 	}*/
+	BindMesh(model);
+}
+
+/**
+ * \brief Bind the mesh to the OpenGL context
+ */
+void Mesh::BindMesh(tinygltf::Model& model)
+{
+
+	cout << "Binding the mesh " << endl;
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &UVBuffer);
+	glGenBuffers(1, &dosageBufferID);
+
+	glBindVertexArray(VAO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, vertexCount * sizeof(float), vertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+	glBindBuffer(GL_ARRAY_BUFFER, UVBuffer);
+	glBufferData(GL_ARRAY_BUFFER, (vertexCount * 2 / 3) * sizeof(float), uvcoords, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+	glBindBuffer(GL_ARRAY_BUFFER, dosageBufferID);
+	glBufferData(GL_ARRAY_BUFFER, vertexCount * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
+	glEnableVertexAttribArray(2);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+
+	if (model.textures.size() > 0) {
+		tinygltf::Texture& tex = model.textures[model.materials[0].pbrMetallicRoughness.baseColorTexture.index];
+
+		if (tex.source > -1) {
+
+			glGenTextures(1, &textureBuffer);
+
+			tinygltf::Image& image = model.images[tex.source];
+
+			glBindTexture(GL_TEXTURE_2D, textureBuffer);
+			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+			GLenum format = GL_RGBA;
+
+			if (image.component == 1) {
+				format = GL_RED;
+			}
+			else if (image.component == 2) {
+				format = GL_RG;
+			}
+			else if (image.component == 3) {
+				format = GL_RGB;
+			}
+			else {
+				// ???
+			}
+
+			GLenum type = GL_UNSIGNED_BYTE;
+			if (image.bits == 8) {
+				// ok
+			}
+			else if (image.bits == 16) {
+				type = GL_UNSIGNED_SHORT;
+			}
+			else {
+				// ???
+			}
+
+			//if (!loadedMesh) {
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
+					format, type, &image.image.at(0));
+			//}
+
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+	}
+
+	// Free up memory on host
+	delete[] vertices;
 }

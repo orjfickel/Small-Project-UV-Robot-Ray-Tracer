@@ -27,14 +27,12 @@ public:
     void KeyDown(int key);
 	bool CameraKeyPressed();
 
-	void BindMesh();
 	void DrawMesh();
 	void Draw3DLine(glm::vec3 bottom, glm::vec3 top, uint color);
 	uint greyscale_to_heatmap(float intensity);
 	void drawBVH();
 	//void UpdateDosageMap();
 
-    string modelFile = "assets/C046_1.glb";
     ShaderGL* shader3D;
 	Mesh mesh;
 
@@ -44,7 +42,6 @@ public:
 	UserInterface* userInterface;
 	Camera camera{};
 
-	unsigned int VAO, VBO, UVBuffer, textureBuffer;
 
 	//uint texSize = 0, texWidth, texHeight;
 

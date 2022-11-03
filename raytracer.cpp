@@ -44,7 +44,7 @@ void RayTracer::Init(Mesh* mesh)
 	maxPhotonMapBuffer = new Buffer(sizeof(double) * mesh->triangleCount, Buffer::DEFAULT);
 	tempPhotonMapBuffer = new Buffer(sizeof(int) * mesh->triangleCount, Buffer::DEFAULT);
 
-	colorBuffer = new Buffer(dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
+	colorBuffer = new Buffer(mesh->dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
 
 	//generateKernel->SetArgument(0, rayBuffer);
 
@@ -176,13 +176,13 @@ void RayTracer::SaveRoute(char fileName[32])
 		viewElem->InsertEndChild(lightPosElem);
 	}
 	root->InsertEndChild(viewElem);
-	char prefix[64] = "routes/";
+	char prefix[64] = "positions/";
 	doc.SaveFile(strcat(strcat(prefix, fileName), ".xml"));
 }
 
 void RayTracer::LoadRoute(char fileName[32])
 {
-	char prefix[64] = "routes/";
+	char prefix[64] = "positions/";
 	XMLDocument doc;
 	XMLError result = doc.LoadFile(strcat(strcat(prefix, fileName), ".xml"));
 	if (result != XML_SUCCESS) return;

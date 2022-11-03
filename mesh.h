@@ -15,13 +15,18 @@ namespace Tmpl8
 	class Mesh
 	{
 	public:
-		void LoadMesh(string modelFile);
-		tinygltf::Model model;
+		void LoadMesh();
+		void BindMesh(tinygltf::Model& model);
+		char modelFile[32] = "C046_1";//smallroom
+		
 		Tri* triangles;
 		int triangleCount;
 		float* vertices;
 		int vertexCount; // Size of the triangles array. Number of vertices times 3 (1 for every axis) (includes duplicates)
 		float* uvcoords;
+		unsigned int VAO, VBO, UVBuffer, textureBuffer;
+		uint dosageBufferID;
+		bool loadedMesh = false;
 
 		BVH* bvh = 0;
 	};

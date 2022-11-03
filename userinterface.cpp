@@ -64,6 +64,7 @@ void UserInterface::DrawUI()
 		Text("Pas de overige parameters aan en klik op \"Bereken UV straling\" om de heatmap van de straling te tonen");
 		Text("De heatmap toont de cumulatieve of maximale UV straling die elke driehoek in het 3D model heeft ontvangen, vanuit de discrete lamp posities");
 		Text("Om de kleur van de heatmap te schalen, open het kopje \"Geavanceerd\" en pas de drempelwaarde(s) aan");
+		Text("Tip: beweeg de muis over de \"(?)\" symbolen voor extra uitleg of informatie");
 		PopTextWrapPos();
 		End();
 	}
@@ -153,6 +154,30 @@ void UserInterface::DrawUI()
 		if (Button("Laden")) {
 			CloseCurrentPopup();
 			rayTracer->LoadRoute(rayTracer->newRouteFile);
+		}
+		EndPopup();
+	}
+
+	if (Button("Model laden"))
+	{
+		OpenPopup("loadModelPopup");
+	}
+	if (BeginPopup("loadModelPopup"))
+	{
+		Text("Bestand naam:");
+		HelpMarker("Model bestanden moeten in .glb formaat in de \"kamers\" folder staan");
+		InputText("##editmodelname", rayTracer->mesh->modelFile, 32);
+		if (Button("Laden")) {
+			CloseCurrentPopup();
+			glDeleteVertexArrays(1, &rayTracer->mesh->VAO);
+			glDeleteBuffers(1, &rayTracer->mesh->VBO);
+			glDeleteBuffers(1, &rayTracer->mesh->UVBuffer);
+			glDeleteTextures(1, &rayTracer->mesh->textureBuffer);
+			glDeleteBuffers(1, &rayTracer->mesh->dosageBufferID);
+			rayTracer->mesh->LoadMesh();
+			rayTracer->Init(rayTracer->mesh);
+			rayTracer->viewMode = texture;
+			rayTracer->startedComputation = false;
 		}
 		EndPopup();
 	}

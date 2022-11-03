@@ -23,100 +23,8 @@ void MyApp::Init(GLFWwindow* window, UserInterface* userInterface)
 	Kernel::InitCL();
 	cout << "Initialised OpenCL " << endl;
 
-	mesh.LoadMesh(modelFile);
-
-	BindMesh();
-	// Free up memory on host
-	delete[] mesh.vertices;
-
-	rayTracer.Init(&mesh);
-	
-	//rayTracer.ResetDosageMap();
-	//rayTracer.ComputeDosageMap();
-	//UpdateDosageMap();
-}
-
-
-/**
- * \brief Bind the mesh to the OpenGL context
- */
-void MyApp::BindMesh()
-{
 	shader3D = new ShaderGL("shaders/shader3D.vert", "shaders/shader3D.frag", false);
 	rayTracer.simpleShader = new ShaderGL("shaders/simpleshader.vert", "shaders/simpleshader.frag", false);
-
-	cout << "Binding the mesh " << endl;
-	glGenVertexArrays(1, &VAO); 
-	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &UVBuffer);
-	glGenBuffers(1, &rayTracer.dosageBufferID);
-
-	glBindVertexArray(VAO);
-
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, mesh.vertexCount * sizeof(float), mesh.vertices, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-	glBindBuffer(GL_ARRAY_BUFFER, UVBuffer);
-	glBufferData(GL_ARRAY_BUFFER, (mesh.vertexCount * 2 / 3) * sizeof(float), mesh.uvcoords, GL_STATIC_DRAW);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 0, nullptr);
-
-	glBindBuffer(GL_ARRAY_BUFFER, rayTracer.dosageBufferID);
-	glBufferData(GL_ARRAY_BUFFER, mesh.vertexCount * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-	glEnableVertexAttribArray(2);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
-		
-	if (mesh.model.textures.size() > 0) {
-		tinygltf::Texture& tex = mesh.model.textures[mesh.model.materials[0].pbrMetallicRoughness.baseColorTexture.index];
-
-		if (tex.source > -1) {
-
-			glGenTextures(1, &textureBuffer);
-
-			tinygltf::Image& image = mesh.model.images[tex.source];
-
-			glBindTexture(GL_TEXTURE_2D, textureBuffer);
-			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-
-			GLenum format = GL_RGBA;
-
-			if (image.component == 1) {
-				format = GL_RED;
-			}
-			else if (image.component == 2) {
-				format = GL_RG;
-			}
-			else if (image.component == 3) {
-				format = GL_RGB;
-			}
-			else {
-				// ???
-			}
-
-			GLenum type = GL_UNSIGNED_BYTE;
-			if (image.bits == 8) {
-				// ok
-			}
-			else if (image.bits == 16) {
-				type = GL_UNSIGNED_SHORT;
-			}
-			else {
-				// ???
-			}
-
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
-				format, type, &image.image.at(0));
-
-			glBindTexture(GL_TEXTURE_2D, 0);
-		}
-	}
-
 	camera.projection = glm::perspective(glm::radians(camera.FOV), (float)SCRWIDTH / (float)SCRHEIGHT, 0.1f, 100.0f);
 
 	shader3D->Bind();
@@ -126,53 +34,12 @@ void MyApp::BindMesh()
 	rayTracer.simpleShader->SetInt("tex", 0);
 	rayTracer.simpleShader->SetInputMatrixGLM("projection", camera.projection);
 	rayTracer.simpleShader->Unbind();
-}
 
-//void MyApp::UpdateDosageMap()
-//{//Not necessary anymore, if done in OpenCL?
-//#ifdef GPU_RAYTRACING
-//	
-//
-//#else
-//	uint dosagePointCount = rayTracer.photonMapSize;
-//	bool recreateTexture = dosagePointCount > texSize;
-//	if (recreateTexture)
-//	{
-//		texHeight = ceil(dosagePointCount / 2048.0f); // Depends on the max photon count (max tex size is 2048). * 10f means max 2 mil photons
-//		texWidth = 2048;
-//		texSize = texWidth * texHeight;
-//	}
-//	cout << "count " << dosagePointCount << " texwidth " << texWidth << " texheight " << texHeight << " texSize " << texSize << endl;
-//	int maxSize = 0;
-//	glGetIntegerv(GL_MAX_TEXTURE_SIZE, &maxSize);
-//	if (texHeight > maxSize)
-//		cout << " TEXTURE TOO LARGE?" << endl;
-//	
-//	vector<float> imageData;
-//	for (int i = 0; i < texHeight; ++i)
-//	{
-//		for (int j = 0; j < texWidth; ++j)
-//		{
-//			const uint index = i * texWidth + j;
-//			float4 dosagePoint = index < dosagePointCount ? rayTracer.dosageMap[index] : make_float4(-1, -1, -1, -1);
-//			imageData.insert(imageData.end(), {
-//				dosagePoint.x, dosagePoint.y, dosagePoint.z, dosagePoint.w
-//				});
-//		}
-//	}
-//	glBindTexture(GL_TEXTURE_2D, rayTracer.dosageTexture);
-//	if (recreateTexture)
-//	{
-//		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, texWidth, texHeight, 0,
-//			GL_RGBA, GL_FLOAT, &imageData.at(0));
-//	} else {
-//		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, texWidth, texHeight,
-//			GL_RGBA, GL_FLOAT, &imageData.at(0));
-//	}
-//	glBindTexture(GL_TEXTURE_2D, 0);
-//#endif
-//	
-//}
+	mesh.LoadMesh();
+	mesh.loadedMesh = true;
+
+	rayTracer.Init(&mesh);
+}
 
 void MyApp::Draw3DLine(glm::vec3 bottom, glm::vec3 top, uint color)
 {
@@ -333,7 +200,7 @@ void MyApp::DrawMesh()
 		shader = shader3D;
 	else {
 		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureBuffer);
+		glBindTexture(GL_TEXTURE_2D, mesh.textureBuffer);
 		shader = rayTracer.simpleShader;
 	}
 
@@ -341,7 +208,7 @@ void MyApp::DrawMesh()
 
 	shader->SetInputMatrixGLM("view", camera.view);
 	glEnable(GL_CULL_FACE);
-	glBindVertexArray(VAO);
+	glBindVertexArray(mesh.VAO);
 	glDrawArrays(GL_TRIANGLES, 0, mesh.vertexCount);
 	glBindVertexArray(0);
 
@@ -443,9 +310,9 @@ void MyApp::Shutdown()
 {
 	rayTracer.SaveRoute(rayTracer.defaultRouteFile);
 	camera.Save();
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
-	glDeleteBuffers(1, &rayTracer.dosageBufferID);
-	//glDeleteBuffers(1, &EBO);
-	//nanogui::shutdown();
+	glDeleteVertexArrays(1, &mesh.VAO);
+	glDeleteBuffers(1, &mesh.VBO);
+	glDeleteBuffers(1, &mesh.UVBuffer);
+	glDeleteTextures(1, &mesh.textureBuffer);
+	glDeleteBuffers(1, &mesh.dosageBufferID);
 }

@@ -47,7 +47,6 @@ namespace Tmpl8
 		Kernel* generateKernel = 0, * extendKernel = 0, * shadeKernel = 0, *resetKernel = 0, * accumulateKernel = 0;
 		Buffer* colorBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0, * tempPhotonMapBuffer = 0, *maxPhotonMapBuffer, * bvhNodesBuffer, *triIdxBuffer;
 			//*lightPosBuffer = 0;
-		uint dosageBufferID;
 		int photonMapSize = 0;
 
 		ShaderGL* simpleShader;
