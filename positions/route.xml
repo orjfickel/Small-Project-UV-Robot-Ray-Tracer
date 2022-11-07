@@ -1,5 +1,5 @@
 <route>
-    <aantal_fotonen>67108864</aantal_fotonen>
+    <aantal_fotonen>134217728</aantal_fotonen>
     <aantal_iteraties>1</aantal_iteraties>
     <lamp_sterkte>180</lamp_sterkte>
     <minimale_dosis>100</minimale_dosis>

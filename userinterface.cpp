@@ -158,7 +158,7 @@ void UserInterface::DrawUI()
 		EndPopup();
 	}
 
-	if (Button("Model laden"))
+	if (Button("Kamer model laden"))
 	{
 		OpenPopup("loadModelPopup");
 	}
@@ -256,14 +256,11 @@ void UserInterface::DrawUI()
 		HelpMarker("Meer fotonen zorgen voor minder ruis in de berekening");
 		SameLine();
 		InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
-		rayTracer->photonCount = min(1 << 26, rayTracer->photonCount);
-		if (rayTracer->photonCount > 1 << 26 || rayTracer->photonCount < 1)
+		rayTracer->photonCount = min(rayTracer->maxPhotonCount, rayTracer->photonCount);
+		if (rayTracer->photonCount > rayTracer->maxPhotonCount || rayTracer->photonCount < 1)
 		{
-			rayTracer->photonCount = 1 << 26;
+			rayTracer->photonCount = rayTracer->maxPhotonCount;
 		}
-
-		Text("Aantal iteraties"); SameLine();
-		InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
 
 		if (rayTracer->maxIterations > 1)
 		{
@@ -273,7 +270,6 @@ void UserInterface::DrawUI()
 		{
 			rayTracer->maxIterations = 1;
 		}
-
 		bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->currIterations >= rayTracer->maxIterations;
 		if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
 		{
@@ -281,6 +277,10 @@ void UserInterface::DrawUI()
 				rayTracer->reachedMaxPhotons = false;
 			}
 		}
+
+		Text("Aantal iteraties"); SameLine();
+		InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
+
 	}
 
 	// Draw the heatmap color legend

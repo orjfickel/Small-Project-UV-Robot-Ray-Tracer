@@ -23,7 +23,8 @@ namespace Tmpl8
 
 		float lightLength = 1.3f;
 		float lightHeight = -0.9f; //TODO: make lightHeight not just the ypos but the distance from the ground.
-		int photonCount = (1<<26);
+		int maxPhotonCount = (1 << 27) - 2; // Bug: for some values above this, the heatmap becomes black
+		int photonCount = maxPhotonCount;
 		int maxIterations = 1;
 		int currIterations;
 		float lightIntensity = 180;

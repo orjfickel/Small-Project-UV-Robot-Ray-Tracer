@@ -138,6 +138,7 @@ void RayTracer::ResetDosageMap() {
 	compTime = 0;
 	timerClock.reset();
 	SaveRoute(defaultRouteFile);
+	progress = 0;
 	photonMapSize = 0;
 	reachedMaxPhotons = false;
 	currIterations = 0;
