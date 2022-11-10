@@ -145,8 +145,8 @@ void BVHIntersect(struct Ray* ray, /*uint instanceIdx,*/
 	//	ray->triID = 90;
 }
 
-__kernel void render(__global int* tempPhotonMap, int offset, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
-	__global struct Triangle* triangles, __global struct BVHNode* bvhNodes, __global uint* idxData, int triangleCount)
+__kernel void render(__global int* tempPhotonMap, __global struct Triangle* triangles, __global struct Ray* rays,// __global unsigned int* triangles, int triangleCount,
+	__global struct BVHNode* bvhNodes, __global uint* idxData, int triangleCount)
 {
 	const int threadID = get_global_id(0);
 

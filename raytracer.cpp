@@ -27,13 +27,14 @@ void RayTracer::Init(Mesh* mesh)
 	// compile and load kernel "render" from file "kernels.cl"
 	generateKernel = new Kernel("cl/generate.cl", "render");
 	extendKernel = new Kernel("cl/extend.cl", "render");
-	shadeKernel = new Kernel("cl/shade.cl", "render");
+	shadeDosageKernel = new Kernel("cl/shade.cl", "computeDosage");
+	shadeColorKernel = new Kernel("cl/shade.cl", "dosageToColor");
 	resetKernel = new Kernel("cl/reset.cl", "render");
 	accumulateKernel = new Kernel("cl/accumulate.cl", "render");
 
 	verticesBuffer = new Buffer(mesh->triangleCount * sizeof(Tri), Buffer::DEFAULT, mesh->triangles);
 	verticesBuffer->CopyToDevice();
-	delete[] mesh->triangles;
+	//delete[] mesh->triangles;
 	
 	bvhNodesBuffer = new Buffer(mesh->bvh->nodesUsed * sizeof(BVHNode), Buffer::DEFAULT, mesh->bvh->bvhNode);
 	triIdxBuffer = new Buffer(mesh->triangleCount * sizeof(uint), Buffer::DEFAULT, mesh->bvh->triIdx);
@@ -43,20 +44,23 @@ void RayTracer::Init(Mesh* mesh)
 	photonMapBuffer = new Buffer(sizeof(double) * mesh->triangleCount, Buffer::DEFAULT);
 	maxPhotonMapBuffer = new Buffer(sizeof(double) * mesh->triangleCount, Buffer::DEFAULT);
 	tempPhotonMapBuffer = new Buffer(sizeof(int) * mesh->triangleCount, Buffer::DEFAULT);
+	dosageBuffer = new Buffer(sizeof(float) * mesh->triangleCount, Buffer::DEFAULT, dosageMap);
 
 	colorBuffer = new Buffer(mesh->dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
-
 	//generateKernel->SetArgument(0, rayBuffer);
 
 	extendKernel->SetArgument(0, tempPhotonMapBuffer);
+	extendKernel->SetArgument(1, verticesBuffer);
 	//extendKernel->SetArgument(2, rayBuffer);
-	extendKernel->SetArgument(3, verticesBuffer);
-	extendKernel->SetArgument(4, bvhNodesBuffer);
-	extendKernel->SetArgument(5, triIdxBuffer);
-	extendKernel->SetArgument(6, mesh->triangleCount);
+	extendKernel->SetArgument(3, bvhNodesBuffer);
+	extendKernel->SetArgument(4, triIdxBuffer);
+	extendKernel->SetArgument(5, mesh->triangleCount);
 
-	shadeKernel->SetArgument(1, colorBuffer);
-	shadeKernel->SetArgument(2, verticesBuffer);
+	shadeDosageKernel->SetArgument(1, dosageBuffer);
+	shadeDosageKernel->SetArgument(2, verticesBuffer);
+
+	shadeColorKernel->SetArgument(0, dosageBuffer);
+	shadeColorKernel->SetArgument(1, colorBuffer);
 
 	resetKernel->SetArgument(0, photonMapBuffer);
 	resetKernel->SetArgument(1, maxPhotonMapBuffer);
@@ -72,65 +76,60 @@ void RayTracer::Init(Mesh* mesh)
 	//cout << " CL_DEVICE_MAX_WORK_GROUP_SIZE: " << size << endl;
 }
 
-void RayTracer::ComputeDosageMap()
+void RayTracer::ComputeDosageMap(vector<LightPos> lightPositions, int photonCount)
 {
 	//Round down the photons per light to the nearest number divisble by 2, to prevent tanking the performance of the kernels
 	int photonsPerLight = ((photonCount / lightPositions.size()) & ~1);
 	for (int i = 0; i < lightPositions.size(); ++i)
 	{
-		float3 lightposition = make_float3(lightPositions[i].position.x, lightHeight, lightPositions[i].position.y);
-		generateKernel->SetArgument(1, lightposition);
-		generateKernel->SetArgument(2, lightLength);
-		generateKernel->Run(photonsPerLight);
-		//clFinish(Kernel::GetQueue());
-		//cout << " generated: " <<  timerClock.elapsed() * 1000.0f << endl;
-
-		extendKernel->SetArgument(1, photonMapSize);
-		extendKernel->Run(photonsPerLight);
-
-		// Every timestep gets accumulated into the same map, so we cannot just multiply the entire thing by timestep (could be possible by dividing by (total timestep - timestep so far))
-		//timeStepKernel->SetArgument(1, lightPositions[i].duration);
-		//timeStepKernel->Run(vertexCount / 9);
-		//clFinish(Kernel::GetQueue());
-		//cout << " extended: " <<  timerClock.elapsed() * 1000.0f << endl;
-
-		accumulateKernel->SetArgument(3, lightPositions[i].duration);
-		accumulateKernel->Run(mesh->triangleCount);
-
-		//cout << " accumul: " << timerClock.elapsed() * 1000.0f << endl;
-		//TODO: separate kernel to multiply photoncount per triangle by the timestep and light power?
-		//TODO: why at the ~third to last iteraion do red outliers suddenly show up?
-
-		photonMapSize += photonsPerLight;
+		ComputeDosageMap(lightPositions[i], photonsPerLight, mesh->triangleCount);
 	}
-	Shade();
-	//cout << " shed: " << timerClock.elapsed() * 1000.0f << endl;
-	//clFinish(Kernel::GetQueue());//todo	
+}
+
+void RayTracer::ComputeDosageMap(LightPos lightPos, int photonsPerLight, int triangleCount)
+{
+	cout << " computing " << endl;
+	float3 lightposition = make_float3(lightPos.position.x, lightHeight, lightPos.position.y);
+	generateKernel->SetArgument(1, lightposition);
+	generateKernel->SetArgument(2, lightLength);
+	cout << " computingquarter " << endl;
+	generateKernel->Run(photonsPerLight);
+	cout << " computinghalf " << endl;
+
+	extendKernel->Run(photonsPerLight);
+
+	accumulateKernel->SetArgument(3, lightPos.duration);
+	accumulateKernel->Run(triangleCount);
+
+	photonMapSize += photonsPerLight;
+	cout << " computingend " << endl;
 }
 
 void RayTracer::Shade()
 {
+	cout << " shading " << endl;
 	if (viewMode == maxpower)
 	{
 		//Scale by 100 to convert from W/m^2 to microW/cm^2
-		shadeKernel->SetArgument(4, lightIntensity * 100);
-		shadeKernel->SetArgument(0, maxPhotonMapBuffer);
+		shadeDosageKernel->SetArgument(4, lightIntensity * 100);
+		shadeDosageKernel->SetArgument(0, maxPhotonMapBuffer);
 		// Only the number of photons per light of a single iteration
-		shadeKernel->SetArgument(3, (int)((photonCount / lightPositions.size()) & ~1));//TODO: move to compute only once to prevent bugs etc
-		shadeKernel->SetArgument(5, minPower);
+		shadeDosageKernel->SetArgument(3, (int)((photonCount / lightPositions.size()) & ~1));//TODO: move to compute only once to prevent bugs etc
+		shadeColorKernel->SetArgument(2, minPower);
 	}
 	else
 	{
 		//Scale by 0.1 too convert from J/m^2 to mJ/cm^2
-		shadeKernel->SetArgument(4, lightIntensity * 0.1f);
-		shadeKernel->SetArgument(0, photonMapBuffer);
+		shadeDosageKernel->SetArgument(4, lightIntensity * 0.1f);
+		shadeDosageKernel->SetArgument(0, photonMapBuffer);
 		// The number of photons per area should be divided by the number of photons per light,
 		// as each photon carries a fraction of a single light's power
-		shadeKernel->SetArgument(3, photonMapSize / (int)lightPositions.size());
-		shadeKernel->SetArgument(5, minDosage);
+		shadeDosageKernel->SetArgument(3, photonMapSize / (int)lightPositions.size());
+		shadeColorKernel->SetArgument(2, minDosage);
 	}
 
-	shadeKernel->Run(colorBuffer, mesh->triangleCount);
+	shadeDosageKernel->Run(mesh->triangleCount);
+	shadeColorKernel->Run(colorBuffer, mesh->triangleCount);
 }
 
 void RayTracer::ResetDosageMap() {
@@ -139,16 +138,90 @@ void RayTracer::ResetDosageMap() {
 	timerClock.reset();
 	SaveRoute(defaultRouteFile);
 	progress = 0;
-	photonMapSize = 0;
 	reachedMaxPhotons = false;
 	currIterations = 0;
+	ClearBuffers(true);
+}
+
+void RayTracer::ClearBuffers(bool resetColor)
+{
+	photonMapSize = 0;
 	delete rayBuffer;
 	rayBuffer = new Buffer(32 * photonCount, Buffer::DEFAULT);
 	generateKernel->SetArgument(0, rayBuffer);
 	extendKernel->SetArgument(2, rayBuffer);
 
-	resetKernel->Run(colorBuffer, mesh->triangleCount);
+	resetKernel->SetArgument(3, resetColor);
+	if (resetColor)
+		resetKernel->Run(colorBuffer, mesh->triangleCount);
+	else
+		resetKernel->Run(mesh->triangleCount);
 }
+
+void RayTracer::CalibratePower()
+{
+	LightPos singleLightPos;
+	singleLightPos.position = make_float2(0.0f, 0.0f);
+	Tri* square = new Tri[2];
+	square[0].vertex0 = make_float3_strict(singleLightPos.position.x + 0.1f, measureHeight + 0.1f, singleLightPos.position.y + measureDist);
+	square[0].vertex1 = make_float3_strict(singleLightPos.position.x - 0.1f, measureHeight + 0.1f, singleLightPos.position.y + measureDist);
+	square[0].vertex2 = make_float3_strict(singleLightPos.position.x + 0.1f, measureHeight - 0.1f, singleLightPos.position.y + measureDist);
+	square[1].vertex0 = make_float3_strict(singleLightPos.position.x - 0.1f, measureHeight - 0.1f, singleLightPos.position.y + measureDist);
+	square[1].vertex1 = make_float3_strict(singleLightPos.position.x - 0.1f, measureHeight + 0.1f, singleLightPos.position.y + measureDist);
+	square[1].vertex2 = make_float3_strict(singleLightPos.position.x + 0.1f, measureHeight - 0.1f, singleLightPos.position.y + measureDist);
+	delete verticesBuffer;
+	verticesBuffer = new Buffer(2 * sizeof(Tri), Buffer::DEFAULT, square);
+	verticesBuffer->CopyToDevice();
+	extendKernel->SetArgument(1, verticesBuffer);
+	shadeDosageKernel->SetArgument(2, verticesBuffer);
+
+	ClearBuffers(false);
+
+	BVHNode* temp = mesh->bvh->bvhNode;
+	mesh->bvh->bvhNode = new BVHNode[2];
+	bvhNodesBuffer->CopyToDevice();
+
+	//later:
+	mesh->bvh->bvhNode = temp;
+	bvhNodesBuffer->CopyToDevice();
+
+
+	triIdxBuffer = new Buffer(mesh->triangleCount * sizeof(uint), Buffer::DEFAULT, mesh->bvh->triIdx);
+	triIdxBuffer->CopyToDevice();
+
+	extendKernel->SetArgument(5, 2);
+
+	for (int i = 0; i < maxIterations; ++i)
+	{
+		ComputeDosageMap(singleLightPos, photonCount, 2);
+	}
+	
+	//Scale by 100 to convert from W/m^2 to microW/cm^2
+	shadeDosageKernel->SetArgument(4, 1 * 100.0f); // Use 1 as power, so that dividing the measured irradiance by the resulting irradiance yields the calibrated power
+	shadeDosageKernel->SetArgument(0, maxPhotonMapBuffer);
+	// Only the number of photons per light of a single iteration
+	shadeDosageKernel->SetArgument(3, photonCount);//TODO: move to compute only once to prevent bugs etc
+	shadeDosageKernel->Run(2);
+
+	dosageBuffer->CopyFromDevice();
+	cout << " d1 " << dosageMap[0] << " d2 " << dosageMap[1] << endl;
+	float avgPower = (dosageMap[0] + dosageMap[1]) / 2.0f;
+	calibratedPower = measurePower / avgPower;
+	//lightIntensity = calibratedPower;
+	//TODO: do not use bvh for this! (or create simple one?)
+
+	cout << " tr1 " << mesh->triangles[mesh->triangleCount-2].vertex0.x << " tr2 " << mesh->triangles[mesh->triangleCount-1].vertex0.x << endl;
+	delete verticesBuffer;
+	verticesBuffer = new Buffer(mesh->triangleCount * sizeof(Tri), Buffer::DEFAULT, mesh->triangles);
+	verticesBuffer->CopyToDevice();//TODO: at least sometimes this causes the crash
+	extendKernel->SetArgument(1, verticesBuffer);
+	shadeDosageKernel->SetArgument(2, verticesBuffer);
+	extendKernel->SetArgument(5, mesh->triangleCount);
+	
+	clFinish(Kernel::GetQueue());
+	cout << " done "  << endl;
+}
+
 
 #include "tinyxml2.h"
 using namespace tinyxml2;

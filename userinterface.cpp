@@ -57,14 +57,15 @@ void UserInterface::DrawUI()
 		Begin("Uitleg", &showControls, ImGuiWindowFlags_NoNavInputs);
 		SetWindowFontScale(1.5f);
 		PushTextWrapPos(GetFontSize() * 35.0f);
-		Text("Gebruik de WASDQE toetsen om de camera te bewegen");
-		Text("Gebruik de pijltjes toetsen om de camera te draaien");
-		Text("Om een een route te maken, klik op \"Lamp positie toevoegen\"");
-		Text("Selecteer een van de lampen uit de lijst, en gebruik WASD om de lamp te verplaatsen");
-		Text("Pas de overige parameters aan en klik op \"Bereken UV straling\" om de heatmap van de straling te tonen");
-		Text("De heatmap toont de cumulatieve of maximale UV straling die elke driehoek in het 3D model heeft ontvangen, vanuit de discrete lamp posities");
-		Text("Om de kleur van de heatmap te schalen, open het kopje \"Geavanceerd\" en pas de drempelwaarde(s) aan");
-		Text("Tip: beweeg de muis over de \"(?)\" symbolen voor extra uitleg of informatie");
+		Text("Gebruik de WASDQE toetsen om de camera te bewegen.");
+		Text("Gebruik de pijltjes toetsen om de camera te draaien.");
+		Text("Om een een route te maken, klik op \"Lamp positie toevoegen\".");
+		Text("Selecteer een van de lampen uit de lijst, en gebruik WASD om de lamp te verplaatsen.");
+		Text("Pas de overige parameters aan en klik op \"Bereken UV straling\" om de heatmap van de straling te tonen.");
+		Text("De heatmap toont de cumulatieve of maximale UV straling die elke driehoek in het 3D model heeft ontvangen, vanuit de discrete lamp posities.");
+		Text("Om de kleur van de heatmap te schalen, open het kopje \"Geavanceerd\" en pas de drempelwaarde(s) aan.");
+		Text("Als de heatmap compleet zwart is, start het programma opnieuw op en probeer een lager aantal fotonen onder het kopje \"Geavanceerd\".");
+		Text("Tip: beweeg de muis over de \"(?)\" symbolen voor extra uitleg of informatie.");
 		PopTextWrapPos();
 		End();
 	}
@@ -81,6 +82,11 @@ void UserInterface::DrawUI()
 	Text("Lamp sterkte (W)");
 	HelpMarker("Hoe veel energie de lamp uitstraalt"); SameLine();
 	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");//TODO: should be int probably
+	if (Button("Calibrate"))
+	{
+		rayTracer->CalibratePower();
+	}
+
 	
 	Text("Lamp lengte (m)"); SameLine();
 	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
@@ -128,7 +134,7 @@ void UserInterface::DrawUI()
 		selectedLightPos = rayTracer->lightPositions.size() - 1;
 	}
 
-	if (Button("Route opslaan"))
+	if (Button("Parameters opslaan"))
 	{
 		OpenPopup("savePopup");
 	}
@@ -143,7 +149,7 @@ void UserInterface::DrawUI()
 		EndPopup();
 	}
 	SameLine();
-	if (Button("Route laden"))
+	if (Button("Parameters laden"))
 	{
 		OpenPopup("loadPopup");
 	}
@@ -232,6 +238,8 @@ void UserInterface::DrawUI()
 	else if (showLights && Button("Verberg lamp posities"))
 		showLights = false;
 
+	cout << " halfUI " << endl;
+
 	if (CollapsingHeader("Geavanceerd")) {
 		Text("Legenda drempel \ndosis (mJ/cm^2)");
 		HelpMarker("De heatmap wordt zo geschaald dat deze waarde groen is"); SameLine();
@@ -282,6 +290,7 @@ void UserInterface::DrawUI()
 		InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
 
 	}
+	cout << " halfUI2 " << endl;
 
 	// Draw the heatmap color legend
 	static float pickerSize = 420;
@@ -316,17 +325,13 @@ void UserInterface::DrawUI()
 	End();
 
 	//ShowDemoWindow();
-	//TODO: explain camera controls
 	//TODO: base height off the ground by creating histogram of vertex heights (below half of model) and taking the lowest max bucket
-
-	//TODO: save heatmap automatically and allow saving to separate file as well. Perhaps save into the gltf model?
-	//TODO: for debugging: assign each triangle a color based on its normal
-	//TODO: light movement interpolate
-	//TODO: allow continueing/pauzing computation (not a priority)
+	
 	End();
 	Render();
 	ImGui_ImplOpenGL3_RenderDrawData(GetDrawData());
 
+	cout << " doneUI " << endl;
 	//rayTracer.lightPos = make_float3(lightPosInput[0], lightPosInput[1], lightPosInput[2]);
 }
 

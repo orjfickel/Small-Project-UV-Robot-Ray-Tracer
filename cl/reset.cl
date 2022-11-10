@@ -1,15 +1,18 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
-__kernel void render(__global double* photonMap, __global double* maxPhotonMap, __global struct TriangleColor* dosageMap)
+__kernel void render(__global double* photonMap, __global double* maxPhotonMap, __global struct TriangleColor* colorMap, int resetColor)
 {
     const int threadID = get_global_id(0);
 
     photonMap[threadID] = 0;
     maxPhotonMap[threadID] = 0;
 
+    if (!resetColor)
+        return;
+
     double testColor = 0;
-    struct TriangleColor* triColor = &dosageMap[threadID];
+    struct TriangleColor* triColor = &colorMap[threadID];
     triColor->v0x = testColor;
     triColor->v0y = testColor;
     triColor->v0z = testColor;

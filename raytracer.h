@@ -14,10 +14,13 @@ namespace Tmpl8
 	{
 	public:
 		void Init(Mesh* mesh);
-		void ComputeDosageMap();
+		void ComputeDosageMap(vector<LightPos> lightPositions, int photonCount);
+		void ComputeDosageMap(LightPos lightPos, int photonsPerLight, int triangleCount);
 		void Shade();
 		void ResetDosageMap();
+		void ClearBuffers(bool resetColor);
 		void AddLamp();
+		void CalibratePower();
 		void SaveRoute(char fileName[32]);
 		void LoadRoute(char fileName[32]);
 
@@ -27,13 +30,14 @@ namespace Tmpl8
 		int photonCount = maxPhotonCount;
 		int maxIterations = 1;
 		int currIterations;
-		float lightIntensity = 180;
+		float lightIntensityDefault = 180;
+		float lightIntensity = lightIntensityDefault;
 		float minDosage = 4, minPower = 4;
 		char defaultRouteFile[32] = "route";
 		char newRouteFile[32] = "nieuwe_route";
 
 		Mesh* mesh;
-		float4* dosageMap;
+		float* dosageMap = new float[2];
 		int2 workSize;
 		vector<LightPos> lightPositions;
 		float timer = 1000000;
@@ -45,8 +49,15 @@ namespace Tmpl8
 		ViewMode viewMode = texture;
 		bool startedComputation = false;
 
-		Kernel* generateKernel = 0, * extendKernel = 0, * shadeKernel = 0, *resetKernel = 0, * accumulateKernel = 0;
-		Buffer* colorBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0, * tempPhotonMapBuffer = 0, *maxPhotonMapBuffer, * bvhNodesBuffer, *triIdxBuffer;
+		// The irradiance that is manually measured and used to calibrate the simulation.
+		float measurePower = 2909;
+		// The calibrated fraction of the default power to use.
+		float calibratedPower;
+		float measureHeight = 0.8f;
+		float measureDist = 1;
+
+		Kernel* generateKernel = 0, * extendKernel = 0, * shadeDosageKernel = 0, * shadeColorKernel = 0, *resetKernel = 0, * accumulateKernel = 0;
+		Buffer* colorBuffer = 0, * dosageBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0, * tempPhotonMapBuffer = 0, *maxPhotonMapBuffer, * bvhNodesBuffer, *triIdxBuffer;
 			//*lightPosBuffer = 0;
 		int photonMapSize = 0;
 

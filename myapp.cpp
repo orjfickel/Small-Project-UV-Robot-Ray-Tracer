@@ -159,7 +159,8 @@ void MyApp::Tick(float deltaTime)
 	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already		
 		rayTracer.reachedMaxPhotons = rayTracer.currIterations >= rayTracer.maxIterations;
 		if (!rayTracer.reachedMaxPhotons) {
-			rayTracer.ComputeDosageMap();
+			rayTracer.ComputeDosageMap(rayTracer.lightPositions, rayTracer.photonCount);
+			rayTracer.Shade();
 			if (rayTracer.viewMode == texture) rayTracer.viewMode = dosage;
 			rayTracer.currIterations++;
 			rayTracer.progress = 100.0f * (float)rayTracer.currIterations / (float)rayTracer.maxIterations;

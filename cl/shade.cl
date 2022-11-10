@@ -20,8 +20,8 @@ float3 greyscale_to_heatmap(float intensity) {
     return intensity;
 }
 
-__kernel void render(__global double* photonMap, __global struct TriangleColor* colorMap,
-    __global struct Triangle* vertices, int photonsPerLight, float scaledPower, float minValue)
+__kernel void computeDosage(__global double* photonMap, __global float* dosageMap,
+    __global struct Triangle* vertices, int photonsPerLight, float scaledPower)
 {
 	const int threadID = get_global_id(0);
 
@@ -34,15 +34,23 @@ __kernel void render(__global double* photonMap, __global struct TriangleColor* 
     float3 v0v1 = v0 - v1;
     float3 v0v2 = v0 - v2;
     float area = (length(cross(v0v1, v0v2)) / 2.0f);
-    
-    int triID = 0;
+
+    // Compute the normalised irradiance/dosis. 
+    float dose = (scaledPower * photonMap[threadID]) / (area * photonsPerLight);
+    dosageMap[threadID] = scaledPower;
+}
+
+__kernel void dosageToColor(__global float* dosageMap, __global struct TriangleColor* colorMap, float minValue) {
+
+    const int threadID = get_global_id(0);
+
     float maxValue = minValue * 2;
     // Compute the normalised irradiance/dosis. 
-    float normValue = (scaledPower * photonMap[threadID]) / (area * photonsPerLight * maxValue);
+    float normValue = (dosageMap[threadID]) / (maxValue);
 
     float3 color = greyscale_to_heatmap(normValue);
 
-    //TODO: better to use float3 for better cache aligned accesses?
+    //TODO: Might be better to use float3 for better cache aligned accesses?
     struct TriangleColor* triColor = &colorMap[threadID];
     triColor->v0x = color.x;
     triColor->v0y = color.y;
