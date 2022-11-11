@@ -64,7 +64,8 @@ void RayTracer::Init(Mesh* mesh)
 
 	resetKernel->SetArgument(0, photonMapBuffer);
 	resetKernel->SetArgument(1, maxPhotonMapBuffer);
-	resetKernel->SetArgument(2, colorBuffer);
+	resetKernel->SetArgument(2, tempPhotonMapBuffer);
+	resetKernel->SetArgument(3, colorBuffer);
 
 	accumulateKernel->SetArgument(0, photonMapBuffer);
 	accumulateKernel->SetArgument(1, maxPhotonMapBuffer);
@@ -97,7 +98,6 @@ void RayTracer::ComputeDosageMap(LightPos lightPos, int photonsPerLight, int tri
 	cout << " computinghalf " << endl;
 
 	extendKernel->Run(photonsPerLight);
-
 	accumulateKernel->SetArgument(3, lightPos.duration);
 	accumulateKernel->Run(triangleCount);
 
@@ -151,42 +151,43 @@ void RayTracer::ClearBuffers(bool resetColor)
 	generateKernel->SetArgument(0, rayBuffer);
 	extendKernel->SetArgument(2, rayBuffer);
 
-	resetKernel->SetArgument(3, resetColor);
-	if (resetColor)
-		resetKernel->Run(colorBuffer, mesh->triangleCount);
-	else
-		resetKernel->Run(mesh->triangleCount);
+	resetKernel->SetArgument(4, resetColor);
+	resetKernel->Run(colorBuffer, mesh->triangleCount);
 }
 
-void RayTracer::CalibratePower()
+void RayTracer::CalibratePower(float measurePower, float measureHeight, float measureDist)
 {
 	LightPos singleLightPos;
 	singleLightPos.position = make_float2(0.0f, 0.0f);
 	Tri* square = new Tri[2];
-	square[0].vertex0 = make_float3_strict(singleLightPos.position.x + 0.1f, measureHeight + 0.1f, singleLightPos.position.y + measureDist);
-	square[0].vertex1 = make_float3_strict(singleLightPos.position.x - 0.1f, measureHeight + 0.1f, singleLightPos.position.y + measureDist);
-	square[0].vertex2 = make_float3_strict(singleLightPos.position.x + 0.1f, measureHeight - 0.1f, singleLightPos.position.y + measureDist);
-	square[1].vertex0 = make_float3_strict(singleLightPos.position.x - 0.1f, measureHeight - 0.1f, singleLightPos.position.y + measureDist);
-	square[1].vertex1 = make_float3_strict(singleLightPos.position.x - 0.1f, measureHeight + 0.1f, singleLightPos.position.y + measureDist);
-	square[1].vertex2 = make_float3_strict(singleLightPos.position.x + 0.1f, measureHeight - 0.1f, singleLightPos.position.y + measureDist);
-	delete verticesBuffer;
-	verticesBuffer = new Buffer(2 * sizeof(Tri), Buffer::DEFAULT, square);
+	float triWidth = 0.1f;
+	square[0].vertex0 = make_float3_strict(singleLightPos.position.x + triWidth, measureHeight + triWidth, singleLightPos.position.y + measureDist);
+	square[0].vertex1 = make_float3_strict(singleLightPos.position.x - triWidth, measureHeight + triWidth, singleLightPos.position.y + measureDist);
+	square[0].vertex2 = make_float3_strict(singleLightPos.position.x + triWidth, measureHeight - triWidth, singleLightPos.position.y + measureDist);
+	square[1].vertex0 = make_float3_strict(singleLightPos.position.x - triWidth, measureHeight - triWidth, singleLightPos.position.y + measureDist);
+	square[1].vertex1 = make_float3_strict(singleLightPos.position.x - triWidth, measureHeight + triWidth, singleLightPos.position.y + measureDist);
+	square[1].vertex2 = make_float3_strict(singleLightPos.position.x + triWidth, measureHeight - triWidth, singleLightPos.position.y + measureDist);
+	verticesBuffer->hostBuffer = (uint*)square;
+	int tempVerticesSize = verticesBuffer->size;
+	verticesBuffer->size = 2 * sizeof(Tri);
 	verticesBuffer->CopyToDevice();
-	extendKernel->SetArgument(1, verticesBuffer);
-	shadeDosageKernel->SetArgument(2, verticesBuffer);
 
 	ClearBuffers(false);
-
-	BVHNode* temp = mesh->bvh->bvhNode;
-	mesh->bvh->bvhNode = new BVHNode[2];
+	
+	BVHNode* hostNode = new BVHNode[1];
+	hostNode[0].leftFirst = 0;
+	hostNode[0].triCount = 2;
+	bvhNodesBuffer->hostBuffer = (uint*)hostNode;
+	int tempsize = bvhNodesBuffer->size;
+	bvhNodesBuffer->size = 1 * sizeof(BVHNode);
 	bvhNodesBuffer->CopyToDevice();
-
-	//later:
-	mesh->bvh->bvhNode = temp;
-	bvhNodesBuffer->CopyToDevice();
-
-
-	triIdxBuffer = new Buffer(mesh->triangleCount * sizeof(uint), Buffer::DEFAULT, mesh->bvh->triIdx);
+	
+	uint* hostTriIdx = new uint[2];
+	hostTriIdx[0] = 0;
+	hostTriIdx[1] = 1;
+	triIdxBuffer->hostBuffer = hostTriIdx;
+	int tempTriIdxSize = triIdxBuffer->size;
+	triIdxBuffer->size = 2 * sizeof(uint);
 	triIdxBuffer->CopyToDevice();
 
 	extendKernel->SetArgument(5, 2);
@@ -196,30 +197,35 @@ void RayTracer::CalibratePower()
 		ComputeDosageMap(singleLightPos, photonCount, 2);
 	}
 	
-	//Scale by 100 to convert from W/m^2 to microW/cm^2
-	shadeDosageKernel->SetArgument(4, 1 * 100.0f); // Use 1 as power, so that dividing the measured irradiance by the resulting irradiance yields the calibrated power
+	shadeDosageKernel->SetArgument(4, 1.0f); // Use 1 as power, so that dividing the measured irradiance by the resulting irradiance yields the calibrated power
 	shadeDosageKernel->SetArgument(0, maxPhotonMapBuffer);
-	// Only the number of photons per light of a single iteration
-	shadeDosageKernel->SetArgument(3, photonCount);//TODO: move to compute only once to prevent bugs etc
+	shadeDosageKernel->SetArgument(3, photonCount);
 	shadeDosageKernel->Run(2);
-
-	dosageBuffer->CopyFromDevice();
-	cout << " d1 " << dosageMap[0] << " d2 " << dosageMap[1] << endl;
-	float avgPower = (dosageMap[0] + dosageMap[1]) / 2.0f;
-	calibratedPower = measurePower / avgPower;
-	//lightIntensity = calibratedPower;
-	//TODO: do not use bvh for this! (or create simple one?)
-
-	cout << " tr1 " << mesh->triangles[mesh->triangleCount-2].vertex0.x << " tr2 " << mesh->triangles[mesh->triangleCount-1].vertex0.x << endl;
-	delete verticesBuffer;
-	verticesBuffer = new Buffer(mesh->triangleCount * sizeof(Tri), Buffer::DEFAULT, mesh->triangles);
-	verticesBuffer->CopyToDevice();//TODO: at least sometimes this causes the crash
-	extendKernel->SetArgument(1, verticesBuffer);
-	shadeDosageKernel->SetArgument(2, verticesBuffer);
-	extendKernel->SetArgument(5, mesh->triangleCount);
-	
 	clFinish(Kernel::GetQueue());
-	cout << " done "  << endl;
+
+	int tempDosageSize = dosageBuffer->size;
+	dosageBuffer->size = 2 * sizeof(float);
+	dosageBuffer->CopyFromDevice();
+	dosageBuffer->size = tempDosageSize;
+	float avgPower = (dosageMap[0] + dosageMap[1]) / 2.0f;
+	calibratedPower = 0.01f * (measurePower / avgPower);
+	lightIntensity = calibratedPower;
+	
+	extendKernel->SetArgument(5, mesh->triangleCount);
+
+	verticesBuffer->hostBuffer = (uint*)mesh->triangles;
+	verticesBuffer->size = tempVerticesSize;
+	verticesBuffer->CopyToDevice();
+	
+	bvhNodesBuffer->hostBuffer = (uint*)mesh->bvh->bvhNode;
+	bvhNodesBuffer->size = tempsize;
+	bvhNodesBuffer->CopyToDevice();
+
+	triIdxBuffer->hostBuffer = mesh->bvh->triIdx;
+	triIdxBuffer->size = tempTriIdxSize;
+	triIdxBuffer->CopyToDevice();
+	
+	cout << " done calibrating "  << endl;
 }
 
 

@@ -1,12 +1,13 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
-__kernel void render(__global double* photonMap, __global double* maxPhotonMap, __global struct TriangleColor* colorMap, int resetColor)
+__kernel void render(__global double* photonMap, __global double* maxPhotonMap, __global int* tempPhotonMap, __global struct TriangleColor* colorMap, int resetColor)
 {
     const int threadID = get_global_id(0);
 
     photonMap[threadID] = 0;
     maxPhotonMap[threadID] = 0;
+    tempPhotonMap[threadID] = 0;
 
     if (!resetColor)
         return;

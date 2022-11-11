@@ -6,7 +6,7 @@ namespace Tmpl8
 }
 
 // 32-byte BVH node struct
-struct BVHNode //TODO: float3 should be actually only 3 floats instead of taking up 16 bytes -____-
+struct BVHNode
 {
 	union { struct { float3_strict aabbMin; uint leftFirst; }; __m128 aabbMin4; };
 	union { struct { float3_strict aabbMax; uint triCount; }; __m128 aabbMax4; };

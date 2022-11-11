@@ -98,16 +98,10 @@
     <None Include="shaders\simpleshader.vert">
       <Filter>shaders</Filter>
     </None>
-    <None Include="cl\timestep.cl">
-      <Filter>kernels</Filter>
-    </None>
     <None Include="cl\reset.cl">
       <Filter>kernels</Filter>
     </None>
     <None Include="cl\shade.cl">
-      <Filter>kernels</Filter>
-    </None>
-    <None Include="cl\shadedepth.cl">
       <Filter>kernels</Filter>
     </None>
     <None Include="cl\generate.cl">

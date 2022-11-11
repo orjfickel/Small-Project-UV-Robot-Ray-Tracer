@@ -196,8 +196,6 @@
     <None Include="cl\kernels.cl" />
     <None Include="cl\reset.cl" />
     <None Include="cl\shade.cl" />
-    <None Include="cl\shadedepth.cl" />
-    <None Include="cl\timestep.cl" />
     <None Include="README.md" />
     <None Include="shaders\shader3D.frag" />
     <None Include="shaders\shader3D.vert" />

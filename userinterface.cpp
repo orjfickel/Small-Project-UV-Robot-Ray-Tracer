@@ -81,12 +81,45 @@ void UserInterface::DrawUI()
 	
 	Text("Lamp sterkte (W)");
 	HelpMarker("Hoe veel energie de lamp uitstraalt"); SameLine();
-	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");//TODO: should be int probably
-	if (Button("Calibrate"))
-	{
-		rayTracer->CalibratePower();
-	}
+	InputFloat("##power", &rayTracer->lightIntensity,0,0,"%.2f");
 
+	if (Button("Calibreren"))
+	{
+		OpenPopup("Calibratie");
+	}
+	if (BeginPopupModal("Calibratie"))
+	{
+		// The irradiance that is manually measured and used to calibrate the simulation.
+		static float measurePower = 2909;
+		static float measureHeight = 0.8f - 1.4f;
+		static float measureDist = 1;
+
+		PushTextWrapPos(GetFontSize() * 35.0f);
+		Text("Vul de gemeten waardes in en druk op \"Calibreren\".");
+		Text("De lamp sterkte wordt lineair aangepast op basis van de meting.");
+		Text("De calibraties van meerdere metingen zullen handmatig moeten worden samengevoegd (bijvoorbeeld door de gemiddelde lamp sterkte te nemen)");
+		PopTextWrapPos();
+
+		float offset = 400;
+		Text("Meting bestralingssterkte (\xC2\xB5W/cm^2 W)"); SameLine(offset);
+		InputFloat("##measurepower", &measurePower, 0, 0, "%.2f");
+
+		Text("Meting hoogte (m)"); SameLine(offset);
+		InputFloat("##measureheight", &measureHeight, 0, 0, "%.2f");
+
+		Text("Meting lamp afstand (m)"); SameLine(offset);
+		InputFloat("##measuredist", &measureDist, 0, 0, "%.2f");
+
+		if (Button("Calibreren##calib2"))
+		{
+			rayTracer->CalibratePower(measurePower, measureHeight, measureDist);
+		}
+		if (Button("Sluiten"))
+		{
+			CloseCurrentPopup();
+		}
+		EndPopup();
+	}
 	
 	Text("Lamp lengte (m)"); SameLine();
 	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
@@ -238,7 +271,7 @@ void UserInterface::DrawUI()
 	else if (showLights && Button("Verberg lamp posities"))
 		showLights = false;
 
-	cout << " halfUI " << endl;
+	//cout << " halfUI " << endl;
 
 	if (CollapsingHeader("Geavanceerd")) {
 		Text("Legenda drempel \ndosis (mJ/cm^2)");
@@ -250,7 +283,7 @@ void UserInterface::DrawUI()
 			rayTracer->Shade();
 
 		//PushTextWrapPos(GetFontSize() * 15.0f);
-		Text("Drempel bestralings-\nsterkte (\xC2\xB5W/cm^2 W)");
+		Text("Drempel bestralings-\nsterkte (\xC2\xB5W/cm^2)");
 		HelpMarker("De heatmap wordt zo geschaald dat deze waarde groen is"); SameLine();
 		tempminValue = rayTracer->minPower;
 		//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 10));
@@ -290,7 +323,7 @@ void UserInterface::DrawUI()
 		InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
 
 	}
-	cout << " halfUI2 " << endl;
+	//cout << " halfUI2 " << endl;
 
 	// Draw the heatmap color legend
 	static float pickerSize = 420;
@@ -331,7 +364,7 @@ void UserInterface::DrawUI()
 	Render();
 	ImGui_ImplOpenGL3_RenderDrawData(GetDrawData());
 
-	cout << " doneUI " << endl;
+	//cout << " doneUI " << endl;
 	//rayTracer.lightPos = make_float3(lightPosInput[0], lightPosInput[1], lightPosInput[2]);
 }
 

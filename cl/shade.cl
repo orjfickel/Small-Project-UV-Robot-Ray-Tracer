@@ -37,7 +37,7 @@ __kernel void computeDosage(__global double* photonMap, __global float* dosageMa
 
     // Compute the normalised irradiance/dosis. 
     float dose = (scaledPower * photonMap[threadID]) / (area * photonsPerLight);
-    dosageMap[threadID] = scaledPower;
+    dosageMap[threadID] = dose;
 }
 
 __kernel void dosageToColor(__global float* dosageMap, __global struct TriangleColor* colorMap, float minValue) {

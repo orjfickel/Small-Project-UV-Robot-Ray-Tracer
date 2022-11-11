@@ -20,7 +20,7 @@ namespace Tmpl8
 		void ResetDosageMap();
 		void ClearBuffers(bool resetColor);
 		void AddLamp();
-		void CalibratePower();
+		void CalibratePower(float measurePower, float measureHeight, float measureDist);
 		void SaveRoute(char fileName[32]);
 		void LoadRoute(char fileName[32]);
 
@@ -49,12 +49,8 @@ namespace Tmpl8
 		ViewMode viewMode = texture;
 		bool startedComputation = false;
 
-		// The irradiance that is manually measured and used to calibrate the simulation.
-		float measurePower = 2909;
 		// The calibrated fraction of the default power to use.
 		float calibratedPower;
-		float measureHeight = 0.8f;
-		float measureDist = 1;
 
 		Kernel* generateKernel = 0, * extendKernel = 0, * shadeDosageKernel = 0, * shadeColorKernel = 0, *resetKernel = 0, * accumulateKernel = 0;
 		Buffer* colorBuffer = 0, * dosageBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0, * tempPhotonMapBuffer = 0, *maxPhotonMapBuffer, * bvhNodesBuffer, *triIdxBuffer;
