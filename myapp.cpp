@@ -145,7 +145,7 @@ void MyApp::Tick(float deltaTime)
 	if (userInterface->showLights) {
 		for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
 		{
-			glm::vec3 bottompos = glm::vec3(rayTracer.lightPositions[i].position.x, rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
+			glm::vec3 bottompos = glm::vec3(rayTracer.lightPositions[i].position.x, mesh.floorHeight + rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
 			Draw3DLine(bottompos,
 				bottompos + glm::vec3(0, rayTracer.lightLength, 0),
 				userInterface->selectedLightPos == i ? 255 | 170 << 8 | 170 << 16 | 255 << 24

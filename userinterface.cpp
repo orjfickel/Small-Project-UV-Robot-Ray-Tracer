@@ -96,7 +96,7 @@ void UserInterface::DrawUI()
 
 		PushTextWrapPos(GetFontSize() * 35.0f);
 		Text("Vul de gemeten waardes in en druk op \"Calibreren\".");
-		Text("De lamp sterkte wordt lineair aangepast op basis van de meting.");
+		Text("De lamp sterkte wordt lineair aangepast op basis van de hoe meting vergelijkt met de simulatie.");
 		Text("De calibraties van meerdere metingen zullen handmatig moeten worden samengevoegd (bijvoorbeeld door de gemiddelde lamp sterkte te nemen)");
 		PopTextWrapPos();
 

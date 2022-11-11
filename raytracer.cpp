@@ -90,7 +90,7 @@ void RayTracer::ComputeDosageMap(vector<LightPos> lightPositions, int photonCoun
 void RayTracer::ComputeDosageMap(LightPos lightPos, int photonsPerLight, int triangleCount)
 {
 	cout << " computing " << endl;
-	float3 lightposition = make_float3(lightPos.position.x, lightHeight, lightPos.position.y);
+	float3 lightposition = make_float3(lightPos.position.x, mesh->floorHeight + lightHeight, lightPos.position.y);
 	generateKernel->SetArgument(1, lightposition);
 	generateKernel->SetArgument(2, lightLength);
 	cout << " computingquarter " << endl;
@@ -146,7 +146,7 @@ void RayTracer::ResetDosageMap() {
 void RayTracer::ClearBuffers(bool resetColor)
 {
 	photonMapSize = 0;
-	delete rayBuffer;
+	delete rayBuffer;// Photon count might be higher so just reallocate memory to be safe
 	rayBuffer = new Buffer(32 * photonCount, Buffer::DEFAULT);
 	generateKernel->SetArgument(0, rayBuffer);
 	extendKernel->SetArgument(2, rayBuffer);
@@ -157,6 +157,7 @@ void RayTracer::ClearBuffers(bool resetColor)
 
 void RayTracer::CalibratePower(float measurePower, float measureHeight, float measureDist)
 {
+	measureHeight += mesh->floorHeight;
 	LightPos singleLightPos;
 	singleLightPos.position = make_float2(0.0f, 0.0f);
 	Tri* square = new Tri[2];

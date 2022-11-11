@@ -88,35 +88,46 @@ void Mesh::LoadMesh()
 	vertexCount = indicesAccessor.count * 3;
 	triangleCount = indicesAccessor.count / 3;
 
-	//// Determine floor height
-	//float floorHeight;
-	//int binCount = 8;
-	//float maxVal = 4.0f, minVal = -4.0f;
-	//int* heightHistogram = new int[binCount];
-	//for (int i = 0; i < vertexCount / 3; ++i)
-	//{
-	//	for (int j = 0; j < binCount; ++j)
-	//	{
-	//		if (vertices[i * 3 + 1] < (j+1) * (maxVal) / binCount && vertices[i * 3 + 1] > j * maxVal / binCount)
-	//		{
-	//			heightHistogram[j]++;
-	//		}
-	//	}
-	//}
-
-	cout << "vert " << vertexCount << " tricount " << triangleCount << endl;
-	bvh = new BVH(this);
-	cout << "BVH " << bvh->nodesUsed << " tricount " << triangleCount << endl;
-	/*BVHNode* node = bvh->bvhNode;
-	for (int i = 0; i < 1000; ++i)
+	//TODO: move to separate method
+	// Determine floor height
+	int binCount = 48;
+	float maxVal = 0.0f, minVal = 0.0f;
+	int* heightHistogram = new int[binCount];
+	for (int j = 0; j < binCount; ++j)
 	{
-		cout << "nodex " << node->aabbMin.x << " nodey " << node->aabbMin.y << " nodez " << node->aabbMin.z
-			<< " maxx " << node->aabbMax.x << " maxy " << node->aabbMax.y << " maxz " << node->aabbMax.z << " tricount " << node->triCount << endl;
+		heightHistogram[j] = 0;
+	}
+	for (int i = 0; i < vertexCount / 3; ++i)
+	{
+		if (vertices[i * 3 + 1] < minVal)
+			minVal = vertices[i * 3 + 1];
+	}
+	float range = maxVal - minVal;
+	for (int i = 0; i < vertexCount / 3; ++i)
+	{
+		//cout << " verty " << vertices[i * 3 + 1] << endl;
+		for (int j = 0; j < binCount; ++j)
+		{
+			if (j * range / binCount + minVal < vertices[i * 3 + 1] && vertices[i * 3 + 1] < (j+1) * (range) / binCount + minVal)
+			{
+				heightHistogram[j]++;
+			}
+		}
+	}
+	int maxCount = 0, maxIndex = -1;
+	for (int i = 0; i < binCount; ++i)
+	{
+		if (heightHistogram[i] > maxCount)
+		{
+			maxIndex = i;
+			maxCount = heightHistogram[i];
+		}
+	}
+	floorHeight = (maxIndex+0.5f) * range / binCount + minVal;
 
-		if (node->triCount > 0)
-			break;
-		node = &bvh->bvhNode[node->leftFirst];
-	}*/
+	cout << "Vertex count " << vertexCount << " triangle count " << triangleCount << endl;
+	bvh = new BVH(this);
+	cout << "BVH size" << bvh->nodesUsed << endl;
 	BindMesh(model);
 }
 

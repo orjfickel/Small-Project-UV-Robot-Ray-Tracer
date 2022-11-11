@@ -27,6 +27,7 @@ namespace Tmpl8
 		unsigned int VAO, VBO, UVBuffer, textureBuffer;
 		uint dosageBufferID;
 		bool loadedMesh = false;
+		float floorHeight;
 
 		BVH* bvh = 0;
 	};
