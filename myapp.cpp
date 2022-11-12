@@ -4,8 +4,6 @@
 #define TINYGLTF_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 
-// #define TINYGLTF_NOEXCEPTION // optional. disable exception handling.
-
 #include <tiny_gltf.h>
 #include <glm/gtx/string_cast.hpp>
 
@@ -41,6 +39,7 @@ void MyApp::Init(GLFWwindow* window, UserInterface* userInterface)
 	rayTracer.Init(&mesh);
 }
 
+// Convert coordinates to screen space and draw the line
 void MyApp::Draw3DLine(glm::vec3 bottom, glm::vec3 top, uint color)
 {
 	glm::vec4 lightClipPosBottom = camera.projection * camera.view * glm::vec4(bottom, 1);
@@ -50,6 +49,7 @@ void MyApp::Draw3DLine(glm::vec3 bottom, glm::vec3 top, uint color)
 	screen->Line(lightScreenPosBottom.x, lightScreenPosBottom.y, lightScreenPosTop.x, lightScreenPosTop.y,
 		color, 3);
 }
+
 uint MyApp::greyscale_to_heatmap(float intensity) {
 	float minDosageColor = 0.5f;
 	float upperHalfColor = minDosageColor + (1.0 - minDosageColor) / 2;
@@ -67,6 +67,7 @@ uint MyApp::greyscale_to_heatmap(float intensity) {
 			return (0 | ((int)((intensity) / (lowerHalfColor)) << 8) | 255 << 16 | 255 << 24);
 	}
 }
+// Visualise the BVH for debugging purposes (currently unused)
 void MyApp::drawBVH()
 {
 	static bool firsttime = true;
@@ -79,8 +80,6 @@ void MyApp::drawBVH()
 		while (stackPtr >= 0)
 		{
 			node = stack[stackPtr--];
-			//cout << "nodex " << node->aabbMin.x << " nodey " << node->aabbMin.y << " nodez " << node->aabbMin.z
-			//	<< " maxx " << node->aabbMax.x << " maxy " << node->aabbMax.y << " maxz " << node->aabbMax.z << " tricount " << node->triCount << endl;
 			uint color = greyscale_to_heatmap((float)i / levels);
 			Draw3DLine(glm::vec3(node->aabbMin.x, node->aabbMin.y, node->aabbMin.z), glm::vec3(node->aabbMax.x, node->aabbMin.y, node->aabbMin.z),
 				color);
@@ -123,12 +122,12 @@ void MyApp::drawBVH()
 	}
 	firsttime = false;
 }
+
 // -----------------------------------------------------------
 // Main application tick function - Executed once per frame
 // -----------------------------------------------------------
 void MyApp::Tick(float deltaTime)
 {
-	//cout << " time since last frame: " << deltaTime << endl;
 	rayTracer.timer += deltaTime;
 	if (rayTracer.progressTextTimer > 0) rayTracer.progressTextTimer -= deltaTime;
 
@@ -137,11 +136,11 @@ void MyApp::Tick(float deltaTime)
 	{
 		userInterface->MoveLightPos(keyPresses, deltaTime, camera.view);
 	}
+
 	// Update the camera
 	camera.UpdateView(keyPresses, deltaTime, !moveLightPos);
 
 	screen->Clear(0);
-	//TODO: move to separate function
 	if (userInterface->showLights) {
 		for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
 		{
@@ -151,11 +150,9 @@ void MyApp::Tick(float deltaTime)
 				userInterface->selectedLightPos == i ? 255 | 170 << 8 | 170 << 16 | 255 << 24
 				: 255 | 255 << 8 | 255 << 16 | 255 << 24);
 		}
-
 	}
-	//cout << "BVH " << mesh.bvh->nodesUsed << " tricount " << mesh.triangleCount << endl;
-	//drawBVH();
 
+	// Compute the dosage map
 	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already		
 		rayTracer.reachedMaxPhotons = rayTracer.currIterations >= rayTracer.maxIterations;
 		if (!rayTracer.reachedMaxPhotons) {
@@ -178,28 +175,21 @@ void MyApp::Tick(float deltaTime)
 			rayTracer.progressTextTimer = 1000;
 		}
 	}
-
-	//cout << " beforedraw: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
-	//if ((timerStart <= 100 || updatedMap || bufferSwapDraw || CameraKeyPressed())) {
+	
 	DrawMesh();
-		//timerStart += deltaTime;
-		//bufferSwapDraw = !bufferSwapDraw;
-	//}
-	//cout << " afterdraw: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 }
 
 void MyApp::DrawMesh()
 {
-	//cout << "drawmesh photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
-
-	//glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
 	glClearColor(0.2f, 0.3f, 0.4f, 1.0f);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	ShaderGL* shader;
 	if (rayTracer.viewMode != texture)
+		// Use the shaders that displays the uniform solid colors per triangle
 		shader = shader3D;
 	else {
+		// Use the shader that simply displays the texture of each triangle
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, mesh.textureBuffer);
 		shader = rayTracer.simpleShader;
@@ -214,12 +204,10 @@ void MyApp::DrawMesh()
 	glBindVertexArray(0);
 
 	shader->Unbind();
-	//cout << "drawmesh2 photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << endl;
 }
 
 void MyApp::KeyDown(int key)
 {
-	//cout << " pressed " << key;
 	switch (key)
 	{
 	case GLFW_KEY_W:

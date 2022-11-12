@@ -30,7 +30,7 @@ namespace Tmpl8
 		int photonCount = (1 << 25);
 		int maxIterations = 10;
 		int currIterations;
-		float lightIntensityDefault = 180;
+		float lightIntensityDefault = 450;
 		float lightIntensity = lightIntensityDefault;
 		float minDosage = 4, minPower = 4;
 		char defaultRouteFile[32] = "route";
@@ -49,13 +49,11 @@ namespace Tmpl8
 		ViewMode viewMode = texture;
 		bool thresholdView = false;
 		bool startedComputation = false;
-
-		// The calibrated fraction of the default power to use.
 		float calibratedPower;
 
 		Kernel* generateKernel = 0, * extendKernel = 0, * shadeDosageKernel = 0, * shadeColorKernel = 0, *resetKernel = 0, * accumulateKernel = 0;
-		Buffer* colorBuffer = 0, * dosageBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0, * tempPhotonMapBuffer = 0, *maxPhotonMapBuffer, * bvhNodesBuffer, *triIdxBuffer;
-			//*lightPosBuffer = 0;
+		Buffer* colorBuffer = 0, * dosageBuffer = 0, * photonMapBuffer = 0, * verticesBuffer = 0, * rayBuffer = 0, * tempPhotonMapBuffer = 0,
+			*maxPhotonMapBuffer, * bvhNodesBuffer, *triIdxBuffer;
 		int photonMapSize = 0;
 
 		ShaderGL* simpleShader;

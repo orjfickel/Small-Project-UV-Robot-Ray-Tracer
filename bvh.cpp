@@ -1,8 +1,9 @@
 #include "precomp.h"
 
+// Adapted from https://github.com/jbikker/bvh_article
+
 BVH::BVH(Mesh* mesh)
 {
-	//mesh = triMesh;
 	this->mesh = mesh;
 	bvhNode = (BVHNode*)_aligned_malloc(sizeof(BVHNode) * mesh->triangleCount * 2 + 0, 64);
 	triIdx = new uint[mesh->triangleCount];

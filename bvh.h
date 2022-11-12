@@ -1,5 +1,7 @@
 #pragma once
 
+// Adapted from https://github.com/jbikker/bvh_article
+
 namespace Tmpl8
 {//Forward declaration
 	class Mesh;

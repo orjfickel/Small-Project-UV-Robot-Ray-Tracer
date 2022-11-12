@@ -1,6 +1,8 @@
 #include "template/common.h"
 #include "cl/tools.cl"
 
+// Adapted from https://github.com/jbikker/bvh_article ----------------------------------
+
 void IntersectTri(struct Ray* ray, struct Triangle* tri, const uint triID)
 {
 	float3 v0 = (float3)(tri->v0x, tri->v0y, tri->v0z);
@@ -34,7 +36,6 @@ float IntersectAABB(struct Ray* ray, struct BVHNode* node)
 	tmin = max(tmin, min(tz1, tz2)), tmax = min(tmax, max(tz1, tz2));
 	if (tmax >= tmin && tmin < ray->dist && tmax > 0) return tmin; else return 1e30f;
 }
-
 
 void BVHIntersect(struct Ray* ray,
 	struct Triangle* tri, struct BVHNode* bvhNode, uint* triIdx)
@@ -79,6 +80,8 @@ void BVHIntersect(struct Ray* ray,
 	}
 }
 
+//---------------------------------------------------------------------------------------
+
 __kernel void render(__global int* tempPhotonMap, __global struct Triangle* triangles, __global struct Ray* rays,
 	__global struct BVHNode* bvhNodes, __global uint* idxData, int triangleCount)
 {
@@ -88,27 +91,11 @@ __kernel void render(__global int* tempPhotonMap, __global struct Triangle* tria
 
 	BVHIntersect(newray, triangles, bvhNodes, idxData);
 
-	//float closestDist = 1000000;
-	//int triID = -1;
-	//for (int i = 0; i < triangleCount; i++)
-	//{
-	//	//struct Triangle tri = &triangles[i];
-	//	/*bool hit = */IntersectTri(newray, &triangles[i], i);
-	//	//bool hit = TriangleIntersect(newray, (float3)(0, 1, 2),
-	//	//	(float3)(2, 1, 0), (float3)(2, 3, 1));
-	//	//if (hit && newray->dist > 0 && newray->dist < closestDist)
-	//	//{
-	//	//	closestDist = newray->dist;
-	//	//	newray->triID = i;
-	//	//}
-	//}
-
 	// If the ray hit something, increment that triangle's photon count
 	if (newray->dist != 1e30f) {
 		volatile __global int* triPtr = tempPhotonMap + newray->triID;
 		atomic_inc(triPtr);
 	}
 }
-//
 
 // EOF

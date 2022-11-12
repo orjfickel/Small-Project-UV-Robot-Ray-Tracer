@@ -19,4 +19,4 @@ public:
 	const char* cameraFile = "camera.xml";
 };
 
-} // namespace Tmpl8
+}

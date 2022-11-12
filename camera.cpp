@@ -15,7 +15,7 @@ Camera::Camera()
 	Load();
 }
 
-void Camera::UpdateView(KeyPresses keyPresses, float deltaTime, bool allowMovement)// Move all camera view code here & make position change relative while keeping the position itself absolute.
+void Camera::UpdateView(KeyPresses keyPresses, float deltaTime, bool allowMovement)
 {
 	float movement = (keyPresses.shiftPress ? 0.015f : 0.005f) * deltaTime;
 	float turning = (keyPresses.shiftPress ? 0.006f : 0.002f) * deltaTime;

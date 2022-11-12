@@ -49,12 +49,12 @@ __kernel void dosageToColor(__global float* dosageMap, __global struct TriangleC
     float normValue = (dosageMap[threadID]) / (maxValue);
 
     float3 color;
+    // Set the color to a gradient of just blue if the threshold view is enabled and the value is below 0.5, otherwise use the RGB gradient
     if (thresholdView && normValue < 0.5f)
         color = (float3)(0, 0, normValue * 2.0f);
     else
         color = greyscale_to_heatmap(normValue);
 
-    //TODO: Might be better to use float3 for better cache aligned accesses?
     struct TriangleColor* triColor = &colorMap[threadID];
     triColor->v0x = color.x;
     triColor->v0y = color.y;

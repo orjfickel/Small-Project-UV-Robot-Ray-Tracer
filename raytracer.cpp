@@ -13,18 +13,6 @@ void RayTracer::Init(Mesh* mesh)
 	this->mesh = mesh;
 	LoadRoute(defaultRouteFile);
 
-	//if (lightPositions.empty()) { // If no route has previously been saved, initialise with single light
-	//	LightPos initLightPos;
-	//	initLightPos.position = make_float2(0.5f, 0.5f);
-	//	initLightPos.duration = 1;
-	//	lightPositions.push_back(initLightPos);
-	//}
-
-	//initLightPos.position = make_float3(-0.1f, 0.6f + floorOffset, -1.9f);
-	//initLightPos.duration = 1;
-	//lightPositions.push_back(initLightPos);
-
-	// compile and load kernel "render" from file "kernels.cl"
 	generateKernel = new Kernel("cl/generate.cl", "render");
 	extendKernel = new Kernel("cl/extend.cl", "render");
 	shadeDosageKernel = new Kernel("cl/shade.cl", "computeDosage");
@@ -34,7 +22,6 @@ void RayTracer::Init(Mesh* mesh)
 
 	verticesBuffer = new Buffer(mesh->triangleCount * sizeof(Tri), Buffer::DEFAULT, mesh->triangles);
 	verticesBuffer->CopyToDevice();
-	//delete[] mesh->triangles;
 	
 	bvhNodesBuffer = new Buffer(mesh->bvh->nodesUsed * sizeof(BVHNode), Buffer::DEFAULT, mesh->bvh->bvhNode);
 	triIdxBuffer = new Buffer(mesh->triangleCount * sizeof(uint), Buffer::DEFAULT, mesh->bvh->triIdx);
@@ -47,11 +34,9 @@ void RayTracer::Init(Mesh* mesh)
 	dosageBuffer = new Buffer(sizeof(float) * mesh->triangleCount, Buffer::DEFAULT, dosageMap);
 
 	colorBuffer = new Buffer(mesh->dosageBufferID, Buffer::GLARRAY | Buffer::WRITEONLY);
-	//generateKernel->SetArgument(0, rayBuffer);
 
 	extendKernel->SetArgument(0, tempPhotonMapBuffer);
 	extendKernel->SetArgument(1, verticesBuffer);
-	//extendKernel->SetArgument(2, rayBuffer);
 	extendKernel->SetArgument(3, bvhNodesBuffer);
 	extendKernel->SetArgument(4, triIdxBuffer);
 	extendKernel->SetArgument(5, mesh->triangleCount);
@@ -70,44 +55,38 @@ void RayTracer::Init(Mesh* mesh)
 	accumulateKernel->SetArgument(0, photonMapBuffer);
 	accumulateKernel->SetArgument(1, maxPhotonMapBuffer);
 	accumulateKernel->SetArgument(2, tempPhotonMapBuffer);
-
-	//timeStepKernel->SetArgument(0, photonMapBuffer);
-	//size_t size = 0;
-	//clGetDeviceInfo(extendKernel->GetDevice(), CL_KERNEL_WORK_GROUP_SIZE, sizeof(size_t), &size, 0);//CL_DEVICE_MAX_WORK_GROUP_SIZE
-	//cout << " CL_DEVICE_MAX_WORK_GROUP_SIZE: " << size << endl;
 }
 
 void RayTracer::ComputeDosageMap(vector<LightPos> lightPositions, int photonCount)
 {
 	//Round down the photons per light to the nearest number divisble by 2, to prevent tanking the performance of the kernels
 	int photonsPerLight = ((photonCount / lightPositions.size()) & ~1);
-	for (int i = 0; i < lightPositions.size(); ++i)
+	for(LightPos& lightPosition : lightPositions)
 	{
-		ComputeDosageMap(lightPositions[i], photonsPerLight, mesh->triangleCount);
+		ComputeDosageMap(lightPosition, photonsPerLight, mesh->triangleCount);
 	}
 }
 
 void RayTracer::ComputeDosageMap(LightPos lightPos, int photonsPerLight, int triangleCount)
 {
-	cout << " computing " << endl;
 	float3 lightposition = make_float3(lightPos.position.x, mesh->floorHeight + lightHeight, lightPos.position.y);
 	generateKernel->SetArgument(1, lightposition);
 	generateKernel->SetArgument(2, lightLength);
-	cout << " computingquarter " << endl;
 	generateKernel->Run(photonsPerLight);
-	cout << " computinghalf " << endl;
 
 	extendKernel->Run(photonsPerLight);
+
 	accumulateKernel->SetArgument(3, lightPos.duration);
 	accumulateKernel->Run(triangleCount);
 
 	photonMapSize += photonsPerLight;
-	cout << " computingend " << endl;
 }
 
+/**
+ * \brief Convert the photon counts into dosage or irradiance, and then convert to colors for the heatmap
+ */
 void RayTracer::Shade()
 {
-	cout << "Shading " << endl;
 	shadeColorKernel->SetArgument(3, thresholdView);
 	if (viewMode == maxpower)
 	{
@@ -156,9 +135,17 @@ void RayTracer::ClearBuffers(bool resetColor)
 	resetKernel->Run(colorBuffer, mesh->triangleCount);
 }
 
+/**
+ * \brief Adjust the light intensity linearly based on how the measurement power compares to the ray traced power
+ * \param measurePower 
+ * \param measureHeight 
+ * \param measureDist 
+ */
 void RayTracer::CalibratePower(float measurePower, float measureHeight, float measureDist)
 {
 	measureHeight += mesh->floorHeight;
+
+	// Create a small square as the sample geometry
 	LightPos singleLightPos;
 	singleLightPos.position = make_float2(0.0f, 0.0f);
 	Tri* square = new Tri[2];
@@ -227,7 +214,7 @@ void RayTracer::CalibratePower(float measurePower, float measureHeight, float me
 	triIdxBuffer->size = tempTriIdxSize;
 	triIdxBuffer->CopyToDevice();
 	
-	cout << " done calibrating "  << endl;
+	cout << "Done calibrating "  << endl;
 }
 
 

@@ -5,7 +5,7 @@
 void Mesh::LoadMesh()
 {
 	cout << "Loading mesh " << endl;
-	// Load the mesh
+
 	tinygltf::TinyGLTF loader;
 	tinygltf::Model model;
 	string err;
@@ -24,6 +24,7 @@ void Mesh::LoadMesh()
 		printf("Failed to parse glTF\n");
 		return;
 	}
+
 	tinygltf::Primitive& primitive = model.meshes[0].primitives[0];
 	const tinygltf::Accessor& positionAccessor = model.accessors[primitive.attributes["POSITION"]];
 	const tinygltf::Accessor& texcoordAccessor = model.accessors[primitive.attributes["TEXCOORD_0"]];
@@ -36,16 +37,16 @@ void Mesh::LoadMesh()
 	const tinygltf::Buffer& indicesBuffer = model.buffers[indicesBufferView.buffer];
 	const float* positions = reinterpret_cast<const float*>(&positionBuffer.data[positionBufferView.byteOffset + positionAccessor.byteOffset]);
 	const float* texcoords = reinterpret_cast<const float*>(&texcoordBuffer.data[texcoordBufferView.byteOffset + texcoordAccessor.byteOffset]);
+
+	// Depending on the mesh size, the indices will either be shorts or ints
 	const unsigned short* temps;
 	const unsigned int* tempi;
 	bool shortIndices = indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
 	if (shortIndices)
 	{
-		cout << "Loading unsigned short type indices " << endl;
 		temps = reinterpret_cast<const unsigned short*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 	}
 	else if (indicesAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-		cout << "Loading unsigned int type indices " << endl;
 		tempi = reinterpret_cast<const unsigned int*>(&indicesBuffer.data[indicesBufferView.byteOffset + indicesAccessor.byteOffset]);
 	}
 	
@@ -53,21 +54,21 @@ void Mesh::LoadMesh()
 	vertices = new float[indicesAccessor.count * 3];
 	uvcoords = new float[indicesAccessor.count * 2];
 	for (size_t i = 0; i < indicesAccessor.count / 3; ++i) {
-		//cout << " vertexposz: " << positions[(shortIndices ? temps[i] : tempi[i]) * 3 + 2] << endl;
 		Tri* triangle = &triangles[i];
 		int v1ID = i * 3 + 0, v2ID = i * 3 + 1, v3ID = i * 3 + 2;
+		int v1 = shortIndices ? temps[v1ID] : tempi[v1ID], v2 = shortIndices ? temps[v2ID] : tempi[v2ID], v3 = shortIndices ? temps[v3ID] : tempi[v3ID];
 		triangle->vertex0 = make_float3_strict(
-			positions[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 3 + 0],
-			positions[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 3 + 1],
-			positions[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 3 + 2]);
+			positions[v1 * 3 + 0],
+			positions[v1 * 3 + 1],
+			positions[v1 * 3 + 2]);
 		triangle->vertex1 = make_float3_strict(
-			positions[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 3 + 0],
-			positions[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 3 + 1],
-			positions[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 3 + 2]);
+			positions[v2 * 3 + 0],
+			positions[v2 * 3 + 1],
+			positions[v2 * 3 + 2]);
 		triangle->vertex2 = make_float3_strict(
-			positions[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 3 + 0],
-			positions[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 3 + 1],
-			positions[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 3 + 2]);
+			positions[v3 * 3 + 0],
+			positions[v3 * 3 + 1],
+			positions[v3 * 3 + 2]);
 		vertices[i * 9 + 0] = triangle->vertex0.x;
 		vertices[i * 9 + 1] = triangle->vertex0.y;
 		vertices[i * 9 + 2] = triangle->vertex0.z;
@@ -77,18 +78,27 @@ void Mesh::LoadMesh()
 		vertices[i * 9 + 6] = triangle->vertex2.x;
 		vertices[i * 9 + 7] = triangle->vertex2.y;
 		vertices[i * 9 + 8] = triangle->vertex2.z;
-		uvcoords[i * 6 + 0] = texcoords[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 2 + 0];
-		uvcoords[i * 6 + 1] = texcoords[(shortIndices ? temps[v1ID] : tempi[v1ID]) * 2 + 1];
-		uvcoords[i * 6 + 2] = texcoords[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 2 + 0];
-		uvcoords[i * 6 + 3] = texcoords[(shortIndices ? temps[v2ID] : tempi[v2ID]) * 2 + 1];
-		uvcoords[i * 6 + 4] = texcoords[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 2 + 0];
-		uvcoords[i * 6 + 5] = texcoords[(shortIndices ? temps[v3ID] : tempi[v3ID]) * 2 + 1];
+		uvcoords[i * 6 + 0] = texcoords[v1 * 2 + 0];
+		uvcoords[i * 6 + 1] = texcoords[v1 * 2 + 1];
+		uvcoords[i * 6 + 2] = texcoords[v2 * 2 + 0];
+		uvcoords[i * 6 + 3] = texcoords[v2 * 2 + 1];
+		uvcoords[i * 6 + 4] = texcoords[v3 * 2 + 0];
+		uvcoords[i * 6 + 5] = texcoords[v3 * 2 + 1];
 	}
 
 	vertexCount = indicesAccessor.count * 3;
 	triangleCount = indicesAccessor.count / 3;
 
-	//TODO: move to separate method
+	DetermineFloorHeight();
+
+	cout << "Vertex count: " << vertexCount << " triangle count: " << triangleCount << endl;
+	bvh = new BVH(this);
+	cout << "BVH size: " << bvh->nodesUsed << endl;
+	BindMesh(model);
+}
+
+void Mesh::DetermineFloorHeight()
+{
 	// Determine floor height
 	int binCount = 48;
 	float maxVal = 0.0f, minVal = 0.0f;
@@ -107,7 +117,7 @@ void Mesh::LoadMesh()
 	{
 		for (int j = 0; j < binCount; ++j)
 		{
-			if (j * range / binCount + minVal < vertices[i * 3 + 1] && vertices[i * 3 + 1] < (j+1) * (range) / binCount + minVal)
+			if (j * range / binCount + minVal < vertices[i * 3 + 1] && vertices[i * 3 + 1] < (j + 1) * (range) / binCount + minVal)
 			{
 				heightHistogram[j]++;
 			}
@@ -122,20 +132,11 @@ void Mesh::LoadMesh()
 			maxCount = heightHistogram[i];
 		}
 	}
-	floorHeight = (maxIndex+0.5f) * range / binCount + minVal;
-
-	cout << "Vertex count " << vertexCount << " triangle count " << triangleCount << endl;
-	bvh = new BVH(this);
-	cout << "BVH size " << bvh->nodesUsed << endl;
-	BindMesh(model);
+	floorHeight = (maxIndex + 0.5f) * range / binCount + minVal;
 }
 
-/**
- * \brief Bind the mesh to the OpenGL context
- */
 void Mesh::BindMesh(tinygltf::Model& model)
 {
-
 	cout << "Binding the mesh " << endl;
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
@@ -148,6 +149,8 @@ void Mesh::BindMesh(tinygltf::Model& model)
 	glBufferData(GL_ARRAY_BUFFER, vertexCount * sizeof(float), vertices, GL_STATIC_DRAW);
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
+	// Free up memory on host
+	delete[] vertices;
 
 	glBindBuffer(GL_ARRAY_BUFFER, UVBuffer);
 	glBufferData(GL_ARRAY_BUFFER, (vertexCount * 2 / 3) * sizeof(float), uvcoords, GL_STATIC_DRAW);
@@ -159,6 +162,7 @@ void Mesh::BindMesh(tinygltf::Model& model)
 	glEnableVertexAttribArray(2);
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 0, nullptr);
 
+	// Load the mesh texture
 	if (model.textures.size() > 0) {
 		tinygltf::Texture& tex = model.textures[model.materials[0].pbrMetallicRoughness.baseColorTexture.index];
 
@@ -176,7 +180,6 @@ void Mesh::BindMesh(tinygltf::Model& model)
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 			GLenum format = GL_RGBA;
-
 			if (image.component == 1) {
 				format = GL_RED;
 			}
@@ -186,30 +189,13 @@ void Mesh::BindMesh(tinygltf::Model& model)
 			else if (image.component == 3) {
 				format = GL_RGB;
 			}
-			else {
-				// ???
-			}
 
-			GLenum type = GL_UNSIGNED_BYTE;
-			if (image.bits == 8) {
-				// ok
-			}
-			else if (image.bits == 16) {
-				type = GL_UNSIGNED_SHORT;
-			}
-			else {
-				// ???
-			}
+			GLenum type = image.bits == 16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_BYTE;
 
-			//if (!loadedMesh) {
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
-					format, type, &image.image.at(0));
-			//}
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width, image.height, 0,
+				format, type, &image.image.at(0));
 
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 	}
-
-	// Free up memory on host
-	delete[] vertices;
 }

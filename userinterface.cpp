@@ -3,8 +3,6 @@
 #include "imgui.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
-//#include <windows.h>
-//#include <stdio.h>
 
 using namespace ImGui;
 
@@ -20,12 +18,12 @@ void UserInterface::Init(GLFWwindow* window, RayTracer* rayTracer)
 	}
 	ImGuiIO& io = GetIO(); (void)io;
 	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	StyleColorsDark(); // or ImGui::StyleColorsClassic();
+	StyleColorsDark();
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 130");
-
 }
 
+// Puts a "(?)" symbol on the same line that displays a popup when hovering over it, adapted from the imgui_demo.cpp file
 static void HelpMarker(const char* desc)
 {
 	ImGui::SameLine();
@@ -43,7 +41,6 @@ static void HelpMarker(const char* desc)
 
 void UserInterface::DrawUI()
 {
-	//TODO: ensure it is drawn in front of the lights
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	NewFrame();
@@ -144,6 +141,7 @@ void UserInterface::DrawUI()
 	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
 	Text(language == dutch ? "Lamp hoogte (m)" : "Lamp height (m)"); SameLine();
 	InputFloat("##height", &rayTracer->lightHeight, 0, 0, "%.2f");
+
 	if (addedLamp) {
 		SetNextTreeNodeOpen(true);
 		addedLamp = false;
@@ -180,6 +178,7 @@ void UserInterface::DrawUI()
 		}
 		EndChild();
 	}
+
 	if (Button(language == dutch ? "Lamp positie toevoegen" : "Add lamp position"))
 	{
 		rayTracer->AddLamp();
@@ -273,6 +272,7 @@ void UserInterface::DrawUI()
 			rayTracer->ResetDosageMap();
 		rayTracer->Shade();
 	}
+
 	Text("");
 
 	if (!showLights && Button(language == dutch ? "Toon lamp posities" : "Show lamp positions"))
@@ -302,13 +302,10 @@ void UserInterface::DrawUI()
 		if (rayTracer->startedComputation && tempminValue != rayTracer->minDosage && rayTracer->viewMode == dosage)
 			rayTracer->Shade();
 
-		//PushTextWrapPos(GetFontSize() * 15.0f);
 		Text(language == dutch ? "Drempel bestralings-\nsterkte (\xC2\xB5W/cm^2)" : "Threshold irradiation\n (\xC2\xB5W/cm^2)");
 		HelpMarker(language == dutch ? "De heatmap wordt zo geschaald dat deze waarde groen is" : "The heatmap is scaled such that this value is green"); SameLine();
 		tempminValue = rayTracer->minPower;
-		//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 10));
 		InputFloat("##minpower", &rayTracer->minPower, 0, 0, "%.2f");
-		//ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() - 5));
 		// Update the shading if the scaling dosage is changed
 		if (rayTracer->startedComputation && tempminValue != rayTracer->minPower && rayTracer->viewMode == maxpower)
 			rayTracer->Shade();
@@ -341,7 +338,6 @@ void UserInterface::DrawUI()
 
 		Text(language == dutch ? "Aantal iteraties" : "Number of iterations"); SameLine();
 		InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
-
 	}
 
 	// Progress popup
@@ -398,15 +394,10 @@ void UserInterface::DrawUI()
 		draw_list->AddLine(ImVec2(posx, panelPos.y + lineHeight), ImVec2(posx, panelPos.y + lineHeight + 10), 0xFFFFFFFF);
 	}
 	End();
-
-	//ShowDemoWindow();
 	
 	End();
 	Render();
 	ImGui_ImplOpenGL3_RenderDrawData(GetDrawData());
-
-	//cout << " doneUI " << endl;
-	//rayTracer.lightPos = make_float3(lightPosInput[0], lightPosInput[1], lightPosInput[2]);
 }
 
 void UserInterface::MoveLightPos(KeyPresses keyPresses, float deltaTime, glm::mat4 cameraView)

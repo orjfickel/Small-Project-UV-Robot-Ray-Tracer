@@ -1,5 +1,4 @@
 #pragma once
-#include <tiny_gltf.h>
 
 namespace Tmpl8
 {
@@ -31,7 +30,6 @@ public:
 	void Draw3DLine(glm::vec3 bottom, glm::vec3 top, uint color);
 	uint greyscale_to_heatmap(float intensity);
 	void drawBVH();
-	//void UpdateDosageMap();
 
     ShaderGL* shader3D;
 	Mesh mesh;
@@ -41,12 +39,6 @@ public:
 	RayTracer rayTracer{};
 	UserInterface* userInterface;
 	Camera camera{};
-
-
-	//uint texSize = 0, texWidth, texHeight;
-
-	//float timerStart = 0;
-	//bool bufferSwapDraw = false;
 };
 
 } // namespace Tmpl8
