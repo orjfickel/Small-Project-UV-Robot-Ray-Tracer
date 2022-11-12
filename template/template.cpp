@@ -131,7 +131,7 @@ void main()
 	//glDisable( GL_BLEND );
 	CheckGL();
 	// we want a console window for text output
-#ifndef FULLSCREEN
+#if 0
 	CONSOLE_SCREEN_BUFFER_INFO coninfo;
 	AllocConsole();
 	GetConsoleScreenBufferInfo( GetStdHandle( STD_OUTPUT_HANDLE ), &coninfo );
