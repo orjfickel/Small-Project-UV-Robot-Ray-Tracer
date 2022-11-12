@@ -1,8 +1,8 @@
 <route>
     <aantal_fotonen>33554432</aantal_fotonen>
     <aantal_iteraties>10</aantal_iteraties>
-    <lamp_sterkte>545.84119</lamp_sterkte>
-    <minimale_dosis>100</minimale_dosis>
+    <lamp_sterkte>443.31842</lamp_sterkte>
+    <minimale_dosis>200</minimale_dosis>
     <minimale_bestralingssterkte>1500</minimale_bestralingssterkte>
     <lamp_lengte>1</lamp_lengte>
     <lamp_hoogte>0.60000002</lamp_hoogte>

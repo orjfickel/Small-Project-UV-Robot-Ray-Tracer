@@ -126,7 +126,7 @@ void Mesh::LoadMesh()
 
 	cout << "Vertex count " << vertexCount << " triangle count " << triangleCount << endl;
 	bvh = new BVH(this);
-	cout << "BVH size" << bvh->nodesUsed << endl;
+	cout << "BVH size " << bvh->nodesUsed << endl;
 	BindMesh(model);
 }
 

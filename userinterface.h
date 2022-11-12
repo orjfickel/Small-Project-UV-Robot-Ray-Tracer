@@ -8,6 +8,8 @@ namespace Tmpl8
 		float moveTimer = 0, timeTillMove = 2;
 	};
 
+	enum Language { english, dutch  };
+
 	class UserInterface
 	{
 	public:
@@ -20,5 +22,6 @@ namespace Tmpl8
 		bool addedLamp = false;
 		bool showLights = true;
 		bool showControls = false;
+		Language language = english;
 	};
 }
