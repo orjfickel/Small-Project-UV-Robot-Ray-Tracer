@@ -107,7 +107,8 @@ void RayTracer::ComputeDosageMap(LightPos lightPos, int photonsPerLight, int tri
 
 void RayTracer::Shade()
 {
-	cout << " shading " << endl;
+	cout << "Shading " << endl;
+	shadeColorKernel->SetArgument(3, thresholdView);
 	if (viewMode == maxpower)
 	{
 		//Scale by 100 to convert from W/m^2 to microW/cm^2

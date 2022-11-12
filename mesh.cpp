@@ -105,7 +105,6 @@ void Mesh::LoadMesh()
 	float range = maxVal - minVal;
 	for (int i = 0; i < vertexCount / 3; ++i)
 	{
-		//cout << " verty " << vertices[i * 3 + 1] << endl;
 		for (int j = 0; j < binCount; ++j)
 		{
 			if (j * range / binCount + minVal < vertices[i * 3 + 1] && vertices[i * 3 + 1] < (j+1) * (range) / binCount + minVal)

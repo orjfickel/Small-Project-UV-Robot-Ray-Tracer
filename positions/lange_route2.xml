@@ -1,11 +1,11 @@
 <route>
     <aantal_fotonen>33554432</aantal_fotonen>
     <aantal_iteraties>10</aantal_iteraties>
-    <lamp_sterkte>545.84119</lamp_sterkte>
+    <lamp_sterkte>440.19705</lamp_sterkte>
     <minimale_dosis>100</minimale_dosis>
     <minimale_bestralingssterkte>1500</minimale_bestralingssterkte>
     <lamp_lengte>1</lamp_lengte>
-    <lamp_hoogte>0.60000002</lamp_hoogte>
+    <lamp_hoogte>0.40000001</lamp_hoogte>
     <route>
         <lamp_positie_0 positie_x="-0.25500134" positie_y="-3.3149862" duration="60"/>
         <lamp_positie_1 positie_x="-1.1050029" positie_y="-3.2301083" duration="60"/>

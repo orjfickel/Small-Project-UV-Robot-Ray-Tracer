@@ -27,7 +27,7 @@ namespace Tmpl8
 		float lightLength = 1.3f;
 		float lightHeight = 0.5f;
 		int maxPhotonCount = (1 << 26);
-		int photonCount = maxPhotonCount;
+		int photonCount = (1 << 25);
 		int maxIterations = 10;
 		int currIterations;
 		float lightIntensityDefault = 180;
@@ -47,6 +47,7 @@ namespace Tmpl8
 		Timer timerClock;
 		bool reachedMaxPhotons = true;
 		ViewMode viewMode = texture;
+		bool thresholdView = false;
 		bool startedComputation = false;
 
 		// The calibrated fraction of the default power to use.

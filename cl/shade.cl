@@ -35,20 +35,24 @@ __kernel void computeDosage(__global double* photonMap, __global float* dosageMa
     float3 v0v2 = v0 - v2;
     float area = (length(cross(v0v1, v0v2)) / 2.0f);
 
-    // Compute the normalised irradiance/dosis. 
+    // Compute the irradiance/dose. 
     float dose = (scaledPower * photonMap[threadID]) / (area * photonsPerLight);
     dosageMap[threadID] = dose;
 }
 
-__kernel void dosageToColor(__global float* dosageMap, __global struct TriangleColor* colorMap, float minValue) {
+__kernel void dosageToColor(__global float* dosageMap, __global struct TriangleColor* colorMap, float minValue, int thresholdView) {
 
     const int threadID = get_global_id(0);
 
     float maxValue = minValue * 2;
-    // Compute the normalised irradiance/dosis. 
+    // Normalise the irradiance/dose. 
     float normValue = (dosageMap[threadID]) / (maxValue);
 
-    float3 color = greyscale_to_heatmap(normValue);
+    float3 color;
+    if (thresholdView && normValue < 0.5f)
+        color = (float3)(0, 0, normValue * 2.0f);
+    else
+        color = greyscale_to_heatmap(normValue);
 
     //TODO: Might be better to use float3 for better cache aligned accesses?
     struct TriangleColor* triColor = &colorMap[threadID];

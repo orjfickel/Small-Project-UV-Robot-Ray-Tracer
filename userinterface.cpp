@@ -226,19 +226,6 @@ void UserInterface::DrawUI()
 		rayTracer->ResetDosageMap();
 	}
 
-	//Progress popup
-	if (!rayTracer->reachedMaxPhotons || rayTracer->progressTextTimer > 0) {
-		SetNextWindowPos(ImVec2(10, SCRHEIGHT - 50), 0);
-		SetNextWindowSize(ImVec2(220, 0), 0);
-		Begin("progress", 0, ImGuiCond_FirstUseEver | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
-		SetWindowFontScale(1.5f);
-		if (!rayTracer->reachedMaxPhotons) {
-			Text("Vooruitgang: %.2f%%", rayTracer->progress);
-		} else {
-			Text("Berekening klaar");
-		}
-		End();
-	}
 	Text("");
 
 	tempOpen = Selectable("Toon fotoscan", rayTracer->viewMode == texture);
@@ -271,7 +258,17 @@ void UserInterface::DrawUI()
 	else if (showLights && Button("Verberg lamp posities"))
 		showLights = false;
 
-	//cout << " halfUI " << endl;
+	if (!rayTracer->thresholdView && Button("Toon drempelwaarde"))
+	{
+		rayTracer->thresholdView = true;
+		if (rayTracer->viewMode != texture) rayTracer->Shade();
+	}
+	else if (rayTracer->thresholdView && Button("Verberg drempelwaarde"))
+	{
+		rayTracer->thresholdView = false;
+		if (rayTracer->viewMode != texture) rayTracer->Shade();
+	}
+	HelpMarker("Alle waardes onder de drempelwaarde (zie kopje \"Geavanceerd\") worden donkerder gemaakt");
 
 	if (CollapsingHeader("Geavanceerd")) {
 		Text("Legenda drempel \ndosis (mJ/cm^2)");
@@ -323,7 +320,21 @@ void UserInterface::DrawUI()
 		InputInt("##iterations", &rayTracer->maxIterations, 1, 0);
 
 	}
-	//cout << " halfUI2 " << endl;
+
+	// Progress popup
+	if (!rayTracer->reachedMaxPhotons || rayTracer->progressTextTimer > 0) {
+		SetNextWindowPos(ImVec2(SCRWIDTH - 230, 10), 0);
+		SetNextWindowSize(ImVec2(220, 0), 0);
+		Begin("progress", 0, ImGuiCond_FirstUseEver | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
+		SetWindowFontScale(1.5f);
+		if (!rayTracer->reachedMaxPhotons) {
+			Text("Vooruitgang: %.2f%%", rayTracer->progress);
+		}
+		else {
+			Text("Berekening klaar");
+		}
+		End();
+	}
 
 	// Draw the heatmap color legend
 	static float pickerSize = 420;
