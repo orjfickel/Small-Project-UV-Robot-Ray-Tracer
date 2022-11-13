@@ -153,9 +153,9 @@ void MyApp::Tick(float deltaTime)
 	}
 
 	// Compute the dosage map
-	if (!rayTracer.reachedMaxPhotons) { // Only check if we reached the max photon count if we haven't already		
-		rayTracer.reachedMaxPhotons = rayTracer.currIterations >= rayTracer.maxIterations;
-		if (!rayTracer.reachedMaxPhotons) {
+	if (!rayTracer.finishedComputation) { // Only check if we reached the max photon count if we haven't already		
+		rayTracer.finishedComputation = rayTracer.currIterations >= rayTracer.maxIterations;
+		if (!rayTracer.finishedComputation) {
 			rayTracer.ComputeDosageMap(rayTracer.lightPositions, rayTracer.photonCount);
 			rayTracer.Shade();
 			if (rayTracer.viewMode == texture) rayTracer.viewMode = dosage;

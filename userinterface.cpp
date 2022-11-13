@@ -331,11 +331,11 @@ void UserInterface::DrawUI()
 		{
 			rayTracer->maxIterations = 1;
 		}
-		bool actuallyReachedMaxPhotons = rayTracer->reachedMaxPhotons && rayTracer->currIterations >= rayTracer->maxIterations;
-		if (rayTracer->startedComputation && rayTracer->reachedMaxPhotons && !actuallyReachedMaxPhotons)
+		bool actuallyReachedMaxPhotons = rayTracer->finishedComputation && rayTracer->currIterations >= rayTracer->maxIterations;
+		if (rayTracer->startedComputation && rayTracer->finishedComputation && !actuallyReachedMaxPhotons)
 		{
 			if (Button(language == dutch ? "Berekening hervatten" : "Resume computation")) {
-				rayTracer->reachedMaxPhotons = false;
+				rayTracer->finishedComputation = false;
 			}
 		}
 
@@ -344,12 +344,12 @@ void UserInterface::DrawUI()
 	}
 
 	// Progress popup
-	if (!rayTracer->reachedMaxPhotons || rayTracer->progressTextTimer > 0) {
+	if (!rayTracer->finishedComputation || rayTracer->progressTextTimer > 0) {
 		SetNextWindowPos(ImVec2(SCRWIDTH - 230, 10), 0);
 		SetNextWindowSize(ImVec2(220, 0), 0);
 		Begin("progress", 0, ImGuiCond_FirstUseEver | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoInputs);
 		SetWindowFontScale(1.5f);
-		if (!rayTracer->reachedMaxPhotons) {
+		if (!rayTracer->finishedComputation) {
 			Text(language == dutch ? "Vooruitgang: %.2f%%" : "Progress: %.2f%%", rayTracer->progress);
 		}
 		else {

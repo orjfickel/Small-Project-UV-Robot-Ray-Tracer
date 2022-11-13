@@ -24,28 +24,25 @@ namespace Tmpl8
 		void SaveRoute(char fileName[32]);
 		void LoadRoute(char fileName[32]);
 
-		float lightLength = 1.3f;
-		float lightHeight = 0.5f;
+		float lightLength = 1.0f;
+		float lightHeight = 0.8f;
 		int maxPhotonCount = (1 << 26);
 		int photonCount = (1 << 25);
 		int maxIterations = 10;
-		int currIterations;
-		float lightIntensityDefault = 450;
-		float lightIntensity = lightIntensityDefault;
-		float minDosage = 4, minPower = 4;
+		int currIterations; // The number of computed iterations
+		float lightIntensity = 450;
+		float minDosage = 100, minPower = 1500;
 		char defaultRouteFile[32] = "route";
-		char newRouteFile[32] = "nieuwe_route";
+		char newRouteFile[32] = "new_route";
 
 		Mesh* mesh;
 		float* dosageMap = new float[2];
-		int2 workSize;
 		vector<LightPos> lightPositions;
-		float timer = 1000000;
 		float compTime = 0;
 		float progressTextTimer = 0;
 		float progress;
 		Timer timerClock;
-		bool reachedMaxPhotons = true;
+		bool finishedComputation = true;
 		ViewMode viewMode = texture;
 		bool thresholdView = false;
 		bool startedComputation = false;

@@ -18,7 +18,7 @@ namespace Tmpl8
 		void LoadMesh();
 		void BindMesh(tinygltf::Model& model);
 		void DetermineFloorHeight();
-		char modelFile[32] = "C046_1";//smallroom
+		char modelFile[32] = "C046_1";
 		
 		Tri* triangles;
 		int triangleCount;
