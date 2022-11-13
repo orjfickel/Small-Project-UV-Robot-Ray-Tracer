@@ -2,19 +2,19 @@
     <aantal_fotonen>33554432</aantal_fotonen>
     <aantal_iteraties>10</aantal_iteraties>
     <lamp_sterkte>443.31842</lamp_sterkte>
-    <minimale_dosis>200</minimale_dosis>
+    <minimale_dosis>300</minimale_dosis>
     <minimale_bestralingssterkte>1500</minimale_bestralingssterkte>
     <lamp_lengte>1</lamp_lengte>
     <lamp_hoogte>0.60000002</lamp_hoogte>
     <route>
         <lamp_positie_0 positie_x="-0.25500134" positie_y="-3.3149862" duration="60"/>
-        <lamp_positie_1 positie_x="-1.1050029" positie_y="-3.2301083" duration="60"/>
-        <lamp_positie_2 positie_x="-1.1900022" positie_y="-2.6350086" duration="60"/>
-        <lamp_positie_3 positie_x="-1.1900027" positie_y="-1.9550929" duration="60"/>
-        <lamp_positie_4 positie_x="-1.0200028" positie_y="-1.3600045" duration="60"/>
-        <lamp_positie_5 positie_x="-0.68000257" positie_y="-0.85000378" duration="60"/>
-        <lamp_positie_6 positie_x="0" positie_y="-0.7650674" duration="60"/>
-        <lamp_positie_7 positie_x="0.51000142" positie_y="-0.25500044" duration="60"/>
+        <lamp_positie_1 positie_x="0.085213982" positie_y="-2.4650602" duration="60"/>
+        <lamp_positie_2 positie_x="-0.50999999" positie_y="-2.4650078" duration="60"/>
+        <lamp_positie_3 positie_x="-0.85000193" positie_y="-1.9550929" duration="60"/>
+        <lamp_positie_4 positie_x="-0.76488125" positie_y="-1.3600045" duration="60"/>
+        <lamp_positie_5 positie_x="-0.51000208" positie_y="-1.1900045" duration="60"/>
+        <lamp_positie_6 positie_x="0" positie_y="-1.1901022" duration="60"/>
+        <lamp_positie_7 positie_x="0.50984371" positie_y="-1.1050818" duration="60"/>
         <lamp_positie_8 positie_x="-0.085000105" positie_y="3.8743019e-07" duration="60"/>
         <lamp_positie_9 positie_x="-0.34000638" positie_y="0.25500143" duration="60"/>
         <lamp_positie_10 positie_x="-0.34009981" positie_y="1.1050037" duration="60"/>

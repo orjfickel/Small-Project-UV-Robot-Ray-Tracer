@@ -120,7 +120,8 @@ void UserInterface::DrawUI()
 		Text(language == dutch ? "Meting bestralingssterkte (\xC2\xB5W/cm^2 W)" : "Measured irradiance (\xC2\xB5W/cm^2 W)"); SameLine(offset);
 		InputFloat("##measurepower", &measurePower, 0, 0, "%.2f");
 
-		Text(language == dutch ? "Meting hoogte (m)" : "Measurement height (m)"); SameLine(offset);
+		Text(language == dutch ? "Meting hoogte (m)" : "Measurement height (m)");
+		HelpMarker(language == dutch ? "Hoe hoog boven de vloer de meting is genomen" : "How high above the floor the measurement was taken"); SameLine(offset);
 		InputFloat("##measureheight", &measureHeight, 0, 0, "%.2f");
 
 		Text(language == dutch ? "Meting lamp afstand (m)" : "Measurement lamp distance (m)"); SameLine(offset);
@@ -139,8 +140,10 @@ void UserInterface::DrawUI()
 	
 	Text(language == dutch ? "Lamp lengte (m)" : "Lamp length (m)"); SameLine();
 	InputFloat("##length", &rayTracer->lightLength, 0, 0, "%.2f");
-	Text(language == dutch ? "Lamp hoogte (m)" : "Lamp height (m)"); SameLine();
+	Text(language == dutch ? "Lamp hoogte boven vloer (m)" : "Lamp height above floor (m)"); SameLine();
 	InputFloat("##height", &rayTracer->lightHeight, 0, 0, "%.2f");
+	HelpMarker(language == dutch ? "Hoe hoog de lamp boven de vloer staat. De hoogte van de vloer wordt automatisch bepaald." : 
+		"How high above the floor the lamp is positioned. The height of the floor is automatically detemined.");
 
 	if (addedLamp) {
 		SetNextTreeNodeOpen(true);
@@ -150,7 +153,7 @@ void UserInterface::DrawUI()
 	HelpMarker(language == dutch ? "Discrete plekken waar de lamp voor bepaalde tijdsduren staat. Selecteer een positie uit de lijst om met WASD te verplaatsen" :
 		"Discrete places where the lamp remains stationary for certain amounts of time. Select a position from the list to move it with WASD");
 	if (tempOpen) {
-		BeginChild("lightpositions", ImVec2(0,220));
+		BeginChild("lightpositions", ImVec2(0,220), false, ImGuiWindowFlags_NoNavInputs);
 		for (int i = 0; i < rayTracer->lightPositions.size(); ++i)
 		{
 			char buf[32];

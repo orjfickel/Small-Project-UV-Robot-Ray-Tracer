@@ -147,7 +147,7 @@ void MyApp::Tick(float deltaTime)
 			glm::vec3 bottompos = glm::vec3(rayTracer.lightPositions[i].position.x, mesh.floorHeight + rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
 			Draw3DLine(bottompos,
 				bottompos + glm::vec3(0, rayTracer.lightLength, 0),
-				userInterface->selectedLightPos == i ? 255 | 170 << 8 | 170 << 16 | 255 << 24
+				userInterface->selectedLightPos == i ? 255 | 100 << 8 | 100 << 16 | 255 << 24
 				: 255 | 255 << 8 | 255 << 16 | 255 << 24);
 		}
 	}
