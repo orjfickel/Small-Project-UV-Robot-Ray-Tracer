@@ -6,6 +6,7 @@ void RayTracer::AddLamp()
 	initLightPos.position = make_float2(0.0f, 0.0f);
 	initLightPos.duration = 1;
 	lightPositions.push_back(initLightPos);
+	UpdatePhotonsPerLight();
 }
 
 void RayTracer::Init(Mesh* mesh)
@@ -57,17 +58,21 @@ void RayTracer::Init(Mesh* mesh)
 	accumulateKernel->SetArgument(2, tempPhotonMapBuffer);
 }
 
-void RayTracer::ComputeDosageMap(vector<LightPos> lightPositions, int photonCount)
+void RayTracer::UpdatePhotonsPerLight(){
+	//Round down the photons per light to the nearest number divisible by 2, to prevent tanking the performance of the kernels
+	photonsPerLight = (photonCount / lightPositions.size()) & ~1;
+}
+
+void RayTracer::ComputeDosageMap()
 {
-	//Round down the photons per light to the nearest number divisble by 2, to prevent tanking the performance of the kernels
-	int photonsPerLight = ((photonCount / lightPositions.size()) & ~1);
 	for(LightPos& lightPosition : lightPositions)
 	{
-		ComputeDosageMap(lightPosition, photonsPerLight, mesh->triangleCount);
+		ComputeSingleLightDosageMap(lightPosition, photonsPerLight, mesh->triangleCount);
 	}
 }
 
-void RayTracer::ComputeDosageMap(LightPos lightPos, int photonsPerLight, int triangleCount)
+// photonsPerLight and triangleCount are used as parameters, since we want to use different values in CalibratePower()
+void RayTracer::ComputeSingleLightDosageMap(LightPos lightPos, int photonsPerLight, int triangleCount)
 {
 	float3 lightposition = make_float3(lightPos.position.x, mesh->floorHeight + lightHeight, lightPos.position.y);
 	generateKernel->SetArgument(1, lightposition);
@@ -90,21 +95,23 @@ void RayTracer::Shade()
 	shadeColorKernel->SetArgument(3, thresholdView);
 	if (viewMode == maxpower)
 	{
-		//Scale by 100 to convert from W/m^2 to microW/cm^2
-		shadeDosageKernel->SetArgument(4, lightIntensity * 100);
-		shadeDosageKernel->SetArgument(0, maxPhotonMapBuffer);
+		shadeDosageKernel->SetArgument(0, maxPhotonMapBuffer); // photonMap
 		// Only the number of photons per light of a single iteration
-		shadeDosageKernel->SetArgument(3, (int)((photonCount / lightPositions.size()) & ~1));//TODO: move to compute only once to prevent bugs etc
+		shadeDosageKernel->SetArgument(3, photonsPerLight);
+		// Scale by 100 to convert from W/m^2 to microW/cm^2
+		shadeDosageKernel->SetArgument(4, lightIntensity * 100); // scaledPower
+
 		shadeColorKernel->SetArgument(2, minPower);
 	}
-	else
+	else // viewMode is dosage
 	{
-		//Scale by 0.1 too convert from J/m^2 to mJ/cm^2
-		shadeDosageKernel->SetArgument(4, lightIntensity * 0.1f);
 		shadeDosageKernel->SetArgument(0, photonMapBuffer);
 		// The number of photons per area should be divided by the number of photons per light,
 		// as each photon carries a fraction of a single light's power
-		shadeDosageKernel->SetArgument(3, photonMapSize / (int)lightPositions.size());
+		shadeDosageKernel->SetArgument(3, photonMapSize / (int)lightPositions.size()); // photonsPerLight
+		// Scale by 0.1 too convert from J/m^2 to mJ/cm^2
+		shadeDosageKernel->SetArgument(4, lightIntensity * 0.1f); // scaledPower
+
 		shadeColorKernel->SetArgument(2, minDosage);
 	}
 
@@ -179,14 +186,16 @@ void RayTracer::CalibratePower(float measurePower, float measureHeight, float me
 	triIdxBuffer->size = 2 * sizeof(uint);
 	triIdxBuffer->CopyToDevice();
 
+	// Set the triangle count to 2
 	extendKernel->SetArgument(5, 2);
 
 	for (int i = 0; i < maxIterations; ++i)
 	{
-		ComputeDosageMap(singleLightPos, photonCount, 2);
+		ComputeSingleLightDosageMap(singleLightPos, photonCount, 2);
 	}
 	
-	shadeDosageKernel->SetArgument(4, 1.0f); // Use 1 as power, so that dividing the measured irradiance by the resulting irradiance yields the calibrated power
+	// Use 1 as power, so that dividing the measured irradiance by the resulting irradiance yields the calibrated power
+	shadeDosageKernel->SetArgument(4, 1.0f); 
 	shadeDosageKernel->SetArgument(0, maxPhotonMapBuffer);
 	shadeDosageKernel->SetArgument(3, photonCount);
 	shadeDosageKernel->Run(2);
@@ -287,4 +296,5 @@ void RayTracer::LoadRoute(char fileName[32])
 			}
 		}
 	}
+	UpdatePhotonsPerLight();
 }

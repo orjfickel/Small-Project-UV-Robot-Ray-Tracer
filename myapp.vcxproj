@@ -193,7 +193,6 @@
     <None Include="cl\accumulate.cl" />
     <None Include="cl\extend.cl" />
     <None Include="cl\generate.cl" />
-    <None Include="cl\kernels.cl" />
     <None Include="cl\reset.cl" />
     <None Include="cl\shade.cl" />
     <None Include="README.md" />

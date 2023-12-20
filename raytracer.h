@@ -14,8 +14,9 @@ namespace Tmpl8
 	{
 	public:
 		void Init(Mesh* mesh);
-		void ComputeDosageMap(vector<LightPos> lightPositions, int photonCount);
-		void ComputeDosageMap(LightPos lightPos, int photonsPerLight, int triangleCount);
+		void UpdatePhotonsPerLight();
+		void ComputeDosageMap();
+		void ComputeSingleLightDosageMap(LightPos lightPos, int photonsPerLight, int triangleCount);
 		void Shade();
 		void ResetDosageMap();
 		void ClearBuffers(bool resetColor);
@@ -38,6 +39,7 @@ namespace Tmpl8
 		Mesh* mesh;
 		float* dosageMap = new float[2];
 		vector<LightPos> lightPositions;
+		int photonsPerLight; // The number of photons per light of a single iteration
 		float compTime = 0;
 		float progressTextTimer = 0;
 		float progress;

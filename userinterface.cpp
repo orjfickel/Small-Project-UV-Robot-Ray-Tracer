@@ -175,6 +175,7 @@ void UserInterface::DrawUI()
 			if (Button(((language == dutch ? "Verwijder###delete_" : "Delete###delete_") + std::to_string(i)).c_str()))
 			{
 				rayTracer->lightPositions.erase(rayTracer->lightPositions.begin()+i);
+				rayTracer->UpdatePhotonsPerLight();
 			}
 			EndGroup();
 			ImGui::SetCursorPos(ImVec2(ImGui::GetCursorPosX(), ImGui::GetCursorPosY() + 5));
@@ -316,11 +317,14 @@ void UserInterface::DrawUI()
 		Text(language == dutch ? "Fotonen per iteratie" : "Photons per iteration");
 		HelpMarker(language == dutch ? "Meer fotonen zorgen voor minder ruis in de berekening" : "More photons mean less noise in the computation");
 		SameLine();
-		InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
-		rayTracer->photonCount = min(rayTracer->maxPhotonCount, rayTracer->photonCount);
-		if (rayTracer->photonCount > rayTracer->maxPhotonCount || rayTracer->photonCount < 1)
-		{
-			rayTracer->photonCount = rayTracer->maxPhotonCount;
+		bool photonCountChanged = InputInt("##photonCount", &rayTracer->photonCount, 0, 0);
+		if (photonCountChanged) {
+			rayTracer->photonCount = min(rayTracer->maxPhotonCount, rayTracer->photonCount);
+			if (rayTracer->photonCount > rayTracer->maxPhotonCount || rayTracer->photonCount < 1)
+			{
+				rayTracer->photonCount = rayTracer->maxPhotonCount;
+			}
+			rayTracer->UpdatePhotonsPerLight();
 		}
 
 		if (rayTracer->maxIterations > 1)

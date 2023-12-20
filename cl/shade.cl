@@ -40,7 +40,9 @@ __kernel void computeDosage(__global double* photonMap, __global float* dosageMa
     dosageMap[threadID] = dose;
 }
 
-__kernel void dosageToColor(__global float* dosageMap, __global struct TriangleColor* colorMap, float minValue, int thresholdView) {
+__kernel void dosageToColor(__global float* dosageMap, __global struct TriangleColor* colorMap, 
+    float minValue, int thresholdView) 
+{
 
     const int threadID = get_global_id(0);
 
@@ -49,7 +51,8 @@ __kernel void dosageToColor(__global float* dosageMap, __global struct TriangleC
     float normValue = (dosageMap[threadID]) / (maxValue);
 
     float3 color;
-    // Set the color to a gradient of just blue if the threshold view is enabled and the value is below 0.5, otherwise use the RGB gradient
+    // Set the color to a gradient of just blue if the threshold view is enabled and the value is below 0.5,
+    // otherwise use the RGB gradient
     if (thresholdView && normValue < 0.5f)
         color = (float3)(0, 0, normValue * 2.0f);
     else

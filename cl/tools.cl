@@ -13,14 +13,6 @@ struct Ray
 	uint triID;
 };
 
-struct Triangle
-{
-	float v0x, v0y, v0z, dummy1;
-	float v1x, v1y, v1z, dummy2;
-	float v2x, v2y, v2z, dummy3;
-	float cx, cy, cz, dummy4;
-};
-
 struct TriangleColor
 {
 	float v0x, v0y, v0z;
@@ -34,6 +26,16 @@ struct LightPos
 	float duration;
 };
 
+// Adapted from https://github.com/jbikker/bvh_article ----------------------------------
+
+struct Triangle
+{
+	float v0x, v0y, v0z, dummy1;
+	float v1x, v1y, v1z, dummy2;
+	float v2x, v2y, v2z, dummy3;
+	float cx, cy, cz, dummy4;
+};
+
 struct BVHNode
 {
 	float minx, miny, minz;
@@ -41,5 +43,7 @@ struct BVHNode
 	float maxx, maxy, maxz;
 	int triCount;
 };
+
+//---------------------------------------------------------------------------------------
 
 // EOF

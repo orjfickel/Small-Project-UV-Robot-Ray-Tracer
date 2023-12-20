@@ -128,7 +128,6 @@ void MyApp::drawBVH()
 // -----------------------------------------------------------
 void MyApp::Tick(float deltaTime)
 {
-	rayTracer.timer += deltaTime;
 	if (rayTracer.progressTextTimer > 0) rayTracer.progressTextTimer -= deltaTime;
 
 	bool moveLightPos = userInterface->selectedLightPos > -1 && userInterface->selectedLightPos < rayTracer.lightPositions.size();
@@ -144,7 +143,8 @@ void MyApp::Tick(float deltaTime)
 	if (userInterface->showLights) {
 		for (int i = 0; i < rayTracer.lightPositions.size(); ++i)
 		{
-			glm::vec3 bottompos = glm::vec3(rayTracer.lightPositions[i].position.x, mesh.floorHeight + rayTracer.lightHeight, rayTracer.lightPositions[i].position.y);
+			glm::vec3 bottompos = glm::vec3(rayTracer.lightPositions[i].position.x, mesh.floorHeight + rayTracer.lightHeight, 
+											rayTracer.lightPositions[i].position.y);
 			Draw3DLine(bottompos,
 				bottompos + glm::vec3(0, rayTracer.lightLength, 0),
 				userInterface->selectedLightPos == i ? 255 | 100 << 8 | 100 << 16 | 255 << 24
@@ -152,25 +152,23 @@ void MyApp::Tick(float deltaTime)
 		}
 	}
 
-	// Compute the dosage map
+	// Compute and shade the dosage map
 	if (!rayTracer.finishedComputation) { // Only check if we reached the max photon count if we haven't already		
 		rayTracer.finishedComputation = rayTracer.currIterations >= rayTracer.maxIterations;
 		if (!rayTracer.finishedComputation) {
-			rayTracer.ComputeDosageMap(rayTracer.lightPositions, rayTracer.photonCount);
+			rayTracer.ComputeDosageMap();
 			rayTracer.Shade();
 			if (rayTracer.viewMode == texture) rayTracer.viewMode = dosage;
 			rayTracer.currIterations++;
-			rayTracer.progress = 100.0f * (float)rayTracer.currIterations / (float)rayTracer.maxIterations;
+			rayTracer.progress = 100.0f * static_cast<float>(rayTracer.currIterations) / static_cast<float>(rayTracer.maxIterations);
 
 			clFinish(Kernel::GetQueue());// Make sure heatmap computation is finished
 			float time = rayTracer.timerClock.elapsed();
 			rayTracer.compTime += time;
-			cout << "Progress: " << rayTracer.progress << "% photon count: " << rayTracer.photonMapSize << " delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << 
-				" total time: " << rayTracer.compTime * 1000.0f << endl;
-			rayTracer.timer = 0;
+			cout << "Progress: " << rayTracer.progress << "% photon count: " << rayTracer.photonMapSize << 
+				" delta time: " << rayTracer.timerClock.elapsed() * 1000.0f << " total time: " << rayTracer.compTime * 1000.0f << endl;
 			rayTracer.timerClock.reset();
-		} else // We have reached the max number of iterations
-		{
+		} else { // We have reached the max number of iterations
 			// Set the timer to display the "computation done" popup text
 			rayTracer.progressTextTimer = 1000;
 		}
@@ -186,7 +184,7 @@ void MyApp::DrawMesh()
 
 	ShaderGL* shader;
 	if (rayTracer.viewMode != texture)
-		// Use the shaders that displays the uniform solid colors per triangle
+		// Use the shader that displays the uniform solid colors per triangle
 		shader = shader3D;
 	else {
 		// Use the shader that simply displays the texture of each triangle
